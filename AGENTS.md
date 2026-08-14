@@ -153,12 +153,15 @@ Existing core CSS includes:
 - reset.css
 - typography.css
 - navbar.css
+- sidebar.css
 - forms.css
 - modals.css
 - tables.css
+- components.css
 - responsive.css
 
-Do not create components.css unless explicitly instructed.
+components.css is intentionally part of the existing MADAM HY design
+system. Do not delete it or recreate it.
 
 Do not duplicate styles already handled by:
 
@@ -166,6 +169,8 @@ Do not duplicate styles already handled by:
 - modals.css
 - tables.css
 - navbar.css
+- sidebar.css
+- components.css
 - responsive.css
 
 

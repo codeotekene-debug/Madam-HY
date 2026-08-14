@@ -7,6 +7,9 @@ const sidebar =
 const sidebarOverlay =
     document.getElementById("sidebarOverlay");
 
+const sidebarClose =
+    document.getElementById("sidebarClose");
+
 
 function openSidebar() {
 
@@ -35,6 +38,12 @@ mobileMenuButton?.addEventListener(
 
 
 sidebarOverlay?.addEventListener(
+    "click",
+    closeSidebar
+);
+
+
+sidebarClose?.addEventListener(
     "click",
     closeSidebar
 );
