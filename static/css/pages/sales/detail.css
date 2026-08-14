@@ -1,0 +1,58 @@
+/* =========================================================
+   MADAM HY - SALE DETAIL
+   ========================================================= */
+
+.detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 20px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.detail-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-pill.pending {
+    background: #fff7df;
+    color: #9a6b00;
+}
+
+.status-pill.refunded {
+    background: #fff0f0;
+    color: var(--danger);
+}
+
+@media (max-width: 960px) {
+    .detail-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}

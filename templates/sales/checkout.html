@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Checkout | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Checkout
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/sales/checkout.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="checkout-page">
+    <section class="sales-hero">
+        <div>
+            <span class="badge badge-primary">Payment</span>
+            <h2>Checkout</h2>
+            <p>Confirm payment details, collect the amount due, and prepare the receipt for the customer.</p>
+        </div>
+    </section>
+
+    <section class="checkout-layout">
+        <div class="card checkout-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Customer checkout</h3>
+                    <p>Complete the sale details and finalise payment.</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="customerName">Customer name</label>
+                    <input id="customerName" class="form-control" type="text" value="Walk-in customer" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="customerPhone">Phone number</label>
+                    <input id="customerPhone" class="form-control" type="tel" value="0803 000 0000" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="paymentMethodSelect">Payment method</label>
+                    <select id="paymentMethodSelect" class="form-select">
+                        <option value="Cash">Cash</option>
+                        <option value="Transfer">Bank transfer</option>
+                        <option value="Card">Card</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="amountReceivedInput">Amount received</label>
+                    <input id="amountReceivedInput" class="form-control" type="number" min="0" step="100" value="0" />
+                </div>
+            </div>
+
+            <div class="checkout-summary">
+                <div class="totals-row">
+                    <span>Subtotal</span>
+                    <strong id="checkoutSubtotal">₦ 0</strong>
+                </div>
+                <div class="totals-row">
+                    <span>Discount</span>
+                    <strong id="checkoutDiscount">₦ 0</strong>
+                </div>
+                <div class="totals-row total-row">
+                    <span>Total due</span>
+                    <strong id="checkoutTotal">₦ 0</strong>
+                </div>
+                <div class="totals-row balance-row">
+                    <span>Change</span>
+                    <strong id="checkoutChange">₦ 0</strong>
+                </div>
+            </div>
+
+            <div id="checkoutMessage" class="sale-message" aria-live="polite"></div>
+
+            <div class="checkout-actions">
+                <button type="button" class="btn btn-secondary" id="cancelCheckoutBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmPaymentBtn">Confirm payment</button>
+            </div>
+        </div>
+
+        <aside class="card summary-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Sale summary</h3>
+                    <p>Items included in this transaction.</p>
+                </div>
+            </div>
+
+            <ul id="checkoutItems" class="checkout-item-list"></ul>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/sales/checkout.js' %}"></script>
+{% endblock %}

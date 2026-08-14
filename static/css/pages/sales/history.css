@@ -1,0 +1,111 @@
+/* =========================================================
+   MADAM HY - SALES HISTORY
+   ========================================================= */
+
+.sales-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.summary-card {
+    padding: 18px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-card span,
+.summary-card strong {
+    display: block;
+}
+
+.summary-card span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.summary-card strong {
+    margin-top: 12px;
+    color: var(--text);
+    font-size: 26px;
+    font-weight: 800;
+}
+
+.history-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.toolbar-search {
+    flex: 1 1 300px;
+}
+
+.toolbar-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 78px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-pill.pending {
+    background: #fff7df;
+    color: #9a6b00;
+}
+
+.status-pill.refunded {
+    background: #fff0f0;
+    color: var(--danger);
+}
+
+.action-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+@media (max-width: 960px) {
+    .sales-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 560px) {
+    .sales-summary {
+        grid-template-columns: 1fr;
+    }
+}

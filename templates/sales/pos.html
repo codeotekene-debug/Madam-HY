@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    POS | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Point of Sale
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/sales/pos.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sales-pos-page">
+    <section class="sales-hero">
+        <div>
+            <span class="badge badge-primary">Operations</span>
+            <h2>Point of Sale</h2>
+            <p>Search product stock, build the customer cart, and finalise the sale in one streamlined checkout flow.</p>
+        </div>
+
+        <div class="page-actions">
+            <button type="button" class="btn btn-secondary" id="toggleCatalogBtn">Grid view</button>
+            <button type="button" class="btn btn-primary" id="openQuickAddBtn">Quick add</button>
+        </div>
+    </section>
+
+    <section class="pos-layout">
+        <div class="card pos-products-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Product catalogue</h3>
+                    <p>Search and select products for the current customer sale.</p>
+                </div>
+            </div>
+
+            <div class="catalog-controls">
+                <div class="catalog-search">
+                    <label class="visually-hidden" for="productSearchInput">Search products</label>
+                    <input id="productSearchInput" class="form-control" type="search" placeholder="Search products, category or SKU" />
+                </div>
+
+                <div class="catalog-filters">
+                    <label class="visually-hidden" for="categoryFilter">Filter by category</label>
+                    <select id="categoryFilter" class="form-select">
+                        <option value="all">All categories</option>
+                        <option value="Fashion">Fashion</option>
+                        <option value="Beauty">Beauty</option>
+                        <option value="Home">Home</option>
+                        <option value="Electronics">Electronics</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="productList" class="product-list" aria-live="polite"></div>
+            <div id="productEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+                <h3>No products match this search</h3>
+                <p>Try another keyword or choose another category.</p>
+            </div>
+        </div>
+
+        <aside class="card pos-cart-panel">
+            <div class="panel-header cart-header">
+                <div>
+                    <h3>Current sale</h3>
+                    <p>Customer cart and payment summary</p>
+                </div>
+                <span class="cart-badge" id="cartItemCount">0 items</span>
+            </div>
+
+            <div id="cartItems" class="cart-items" aria-live="polite"></div>
+
+            <div id="cartEmptyState" class="empty-cart empty-state-hidden">
+                <div class="empty-cart-icon">🛒</div>
+                <h4>Cart is empty</h4>
+                <p>Select products from the catalogue to begin a sale.</p>
+            </div>
+
+            <div class="totals-box">
+                <div class="totals-row">
+                    <span>Subtotal</span>
+                    <strong id="subtotalValue">₦ 0</strong>
+                </div>
+                <div class="totals-row">
+                    <span>Discount</span>
+                    <input id="discountInput" class="form-control discount-input" type="number" min="0" value="0" aria-label="Discount amount" />
+                </div>
+                <div class="totals-row total-row">
+                    <span>Total</span>
+                    <strong id="totalValue">₦ 0</strong>
+                </div>
+            </div>
+
+            <div class="payment-box">
+                <div class="form-group compact-group">
+                    <label class="form-label" for="paymentMethodSelect">Payment method</label>
+                    <select id="paymentMethodSelect" class="form-select">
+                        <option value="Cash">Cash</option>
+                        <option value="Transfer">Bank transfer</option>
+                        <option value="Card">Card</option>
+                    </select>
+                </div>
+
+                <div class="form-group compact-group">
+                    <label class="form-label" for="amountReceivedInput">Amount received</label>
+                    <input id="amountReceivedInput" class="form-control" type="number" min="0" step="100" placeholder="0" />
+                </div>
+
+                <div class="totals-row balance-row">
+                    <span>Change</span>
+                    <strong id="changeValue">₦ 0</strong>
+                </div>
+            </div>
+
+            <div class="cart-actions">
+                <button type="button" id="clearCartBtn" class="btn btn-secondary btn-block">Clear cart</button>
+                <button type="button" id="checkoutBtn" class="btn btn-primary btn-block">Checkout</button>
+            </div>
+
+            <div id="saleMessage" class="sale-message" aria-live="polite"></div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/sales/pos.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Receipt | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Receipt
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/sales/receipt.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="receipt-page">
+    <section class="sales-hero">
+        <div>
+            <span class="badge badge-primary">Receipt</span>
+            <h2>Sales receipt</h2>
+            <p>Customer-facing invoice generated from the completed checkout.</p>
+        </div>
+    </section>
+
+    <section class="receipt-card-wrap">
+        <article class="card receipt-card" id="receiptCard">
+            <div class="receipt-header">
+                <div>
+                    <div class="brand-block">
+                        <div class="brand-logo">HY</div>
+                        <div>
+                            <strong>MADAM HY</strong>
+                            <span>Smart Shop</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="receipt-meta">
+                    <span>Receipt #</span>
+                    <strong id="receiptNumber">-</strong>
+                </div>
+            </div>
+
+            <div class="receipt-info-row">
+                <div>
+                    <span>Date</span>
+                    <strong id="receiptDate">-</strong>
+                </div>
+                <div>
+                    <span>Cashier</span>
+                    <strong id="receiptCashier">-</strong>
+                </div>
+            </div>
+
+            <table class="table receipt-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptItems"></tbody>
+            </table>
+
+            <div class="receipt-totals">
+                <div class="totals-row">
+                    <span>Subtotal</span>
+                    <strong id="receiptSubtotal">₦ 0</strong>
+                </div>
+                <div class="totals-row">
+                    <span>Discount</span>
+                    <strong id="receiptDiscount">₦ 0</strong>
+                </div>
+                <div class="totals-row total-row">
+                    <span>Total</span>
+                    <strong id="receiptTotal">₦ 0</strong>
+                </div>
+                <div class="totals-row">
+                    <span>Payment</span>
+                    <strong id="receiptPayment">Cash</strong>
+                </div>
+                <div class="totals-row balance-row">
+                    <span>Change</span>
+                    <strong id="receiptChange">₦ 0</strong>
+                </div>
+            </div>
+
+            <div class="receipt-footer">
+                <p>Thank you for shopping with MADAM HY.</p>
+                <p>Customer copy</p>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/sales/receipt.js' %}"></script>
+{% endblock %}

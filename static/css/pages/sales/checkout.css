@@ -1,0 +1,52 @@
+/* =========================================================
+   MADAM HY - SALES CHECKOUT
+   ========================================================= */
+
+.checkout-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+    gap: 20px;
+}
+
+.checkout-summary {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.checkout-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.checkout-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.checkout-item-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.checkout-item-list strong {
+    color: var(--text);
+}
+
+@media (max-width: 960px) {
+    .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+}

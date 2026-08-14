@@ -1,0 +1,82 @@
+/* =========================================================
+   MADAM HY - SALES RECEIPT
+   ========================================================= */
+
+.receipt-card {
+    width: min(100%, 620px);
+    padding: 22px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.receipt-header,
+.receipt-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.brand-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-logo {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+}
+
+.brand-block strong,
+.receipt-meta strong,
+.receipt-info-row strong {
+    display: block;
+    color: var(--text);
+}
+
+.brand-block span,
+.receipt-meta span,
+.receipt-info-row span {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.receipt-info-row {
+    margin-top: 18px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.receipt-table {
+    width: 100%;
+    margin-top: 14px;
+}
+
+.receipt-totals {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.receipt-footer {
+    margin-top: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+@media (max-width: 560px) {
+    .receipt-header,
+    .receipt-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Sales History | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Sales History
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/sales/history.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sales-history-page">
+    <section class="sales-hero">
+        <div>
+            <span class="badge badge-primary">Reports</span>
+            <h2>Sales history</h2>
+            <p>Review recent transactions, filter by status or payment type, and open sale details for audit review.</p>
+        </div>
+    </section>
+
+    <section class="sales-summary" aria-label="Sales summary">
+        <article class="summary-card">
+            <span>Total sales</span>
+            <strong id="totalSalesCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Cash sales</span>
+            <strong id="cashSalesCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Card sales</span>
+            <strong id="cardSalesCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Revenue</span>
+            <strong id="revenueTotal">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="card history-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Recent transactions</h3>
+                <p>Filter and inspect sales entries for the current operational period.</p>
+            </div>
+        </div>
+
+        <div class="history-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="historySearch">Search sales</label>
+                <input id="historySearch" class="form-control" type="search" placeholder="Search by sale number, customer or cashier" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="historyPaymentFilter">Filter by payment</label>
+                <select id="historyPaymentFilter" class="form-select">
+                    <option value="all">All payment types</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="Card">Card</option>
+                </select>
+
+                <label class="visually-hidden" for="historyStatusFilter">Filter by status</label>
+                <select id="historyStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Refunded">Refunded</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table sales-table">
+                <thead>
+                    <tr>
+                        <th>Sale #</th>
+                        <th>Customer</th>
+                        <th>Cashier</th>
+                        <th>Date</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="historyEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No sales match your filters</h3>
+            <p>Adjust the search or payment filters to review more sales records.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/sales/history.js' %}"></script>
+{% endblock %}

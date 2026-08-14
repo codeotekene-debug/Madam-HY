@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Sale Detail | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Sale Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/sales/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sale-detail-page">
+    <section class="sales-hero">
+        <div>
+            <span class="badge badge-primary">Audit</span>
+            <h2>Sale detail</h2>
+            <p>Review the exact items, payment information, and transaction status for a completed sale.</p>
+        </div>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3 id="detailSaleNumber">Sale #0000</h3>
+                    <p id="detailDate">-</p>
+                </div>
+                <span id="detailStatus" class="status-pill">Completed</span>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <span class="detail-label">Customer</span>
+                    <strong id="detailCustomer">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Cashier</span>
+                    <strong id="detailCashier">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Payment</span>
+                    <strong id="detailPayment">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Subtotal</span>
+                    <strong id="detailSubtotal">₦ 0</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Discount</span>
+                    <strong id="detailDiscount">₦ 0</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Total</span>
+                    <strong id="detailTotal">₦ 0</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="card detail-items-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Items sold</h3>
+                    <p>Product breakdown for this transaction.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table detail-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailItemsBody"></tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/sales/detail.js' %}"></script>
+{% endblock %}
