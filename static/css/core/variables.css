@@ -1,0 +1,33 @@
+:root {
+
+    --primary: #087a3d;
+    --primary-dark: #05612f;
+    --primary-light: #e8f7ee;
+
+    --background: #f6f8f7;
+    --surface: #ffffff;
+
+    --text: #17201b;
+    --muted: #6b756f;
+
+    --border: #e3e9e5;
+
+    --danger: #dc3545;
+    --warning: #e0a800;
+    --success: #087a3d;
+
+    --sidebar-width: 250px;
+
+    --topbar-height: 76px;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    --shadow-sm:
+        0 1px 3px rgba(0, 0, 0, 0.05);
+
+    --shadow-md:
+        0 5px 20px rgba(0, 0, 0, 0.08);
+
+}

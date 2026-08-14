@@ -1,0 +1,776 @@
+/* =========================================================
+   MADAM HY — SHARED COMPONENTS
+   Reusable UI components
+   ========================================================= */
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.btn {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    min-height: 40px;
+
+    padding: 9px 16px;
+
+    border: 1px solid transparent;
+
+    border-radius: var(--radius-sm);
+
+    font-size: 13px;
+
+    font-weight: 650;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+
+.btn:active {
+    transform: translateY(0);
+}
+
+
+.btn:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+
+/* Primary */
+
+.btn-primary {
+    background: var(--primary);
+
+    color: #ffffff;
+
+    border-color: var(--primary);
+}
+
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+
+    border-color: var(--primary-dark);
+}
+
+
+/* Secondary */
+
+.btn-secondary {
+    background: var(--surface);
+
+    color: var(--text);
+
+    border-color: var(--border);
+}
+
+
+.btn-secondary:hover {
+    border-color: var(--primary);
+
+    color: var(--primary);
+}
+
+
+/* Danger */
+
+.btn-danger {
+    background: var(--danger);
+
+    color: #ffffff;
+
+    border-color: var(--danger);
+}
+
+
+/* Warning */
+
+.btn-warning {
+    background: var(--warning);
+
+    color: #ffffff;
+
+    border-color: var(--warning);
+}
+
+
+/* Success */
+
+.btn-success {
+    background: var(--success);
+
+    color: #ffffff;
+
+    border-color: var(--success);
+}
+
+
+/* Outline */
+
+.btn-outline {
+    background: transparent;
+
+    color: var(--primary);
+
+    border-color: var(--primary);
+}
+
+
+.btn-outline:hover {
+    background: var(--primary-light);
+}
+
+
+/* Small */
+
+.btn-sm {
+    min-height: 34px;
+
+    padding: 7px 11px;
+
+    font-size: 11px;
+}
+
+
+/* Large */
+
+.btn-lg {
+    min-height: 46px;
+
+    padding: 11px 20px;
+
+    font-size: 14px;
+}
+
+
+/* Full width */
+
+.btn-block {
+    width: 100%;
+}
+
+
+/* Icon button */
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+
+    padding: 0;
+
+    border-radius: var(--radius-sm);
+}
+
+
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+
+.card {
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    box-shadow: var(--shadow-sm);
+
+    padding: 20px;
+}
+
+
+.card-header {
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 18px;
+}
+
+
+.card-title {
+    font-size: 16px;
+
+    font-weight: 700;
+
+    color: var(--text);
+}
+
+
+.card-subtitle {
+    margin-top: 4px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+.card-footer {
+    margin-top: 18px;
+
+    padding-top: 15px;
+
+    border-top: 1px solid var(--border);
+}
+
+
+
+/* =========================================================
+   BADGES
+   ========================================================= */
+
+.badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 4px 8px;
+
+    border-radius: 5px;
+
+    font-size: 10px;
+
+    font-weight: 650;
+
+    white-space: nowrap;
+}
+
+
+.badge-primary {
+    background: var(--primary-light);
+
+    color: var(--primary);
+}
+
+
+.badge-success {
+    background: #e8f7ee;
+
+    color: var(--success);
+}
+
+
+.badge-warning {
+    background: #fff7df;
+
+    color: var(--warning);
+}
+
+
+.badge-danger {
+    background: #fff0f0;
+
+    color: var(--danger);
+}
+
+
+.badge-neutral {
+    background: var(--background);
+
+    color: var(--muted);
+}
+
+
+
+/* =========================================================
+   ALERTS
+   ========================================================= */
+
+.alert {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 10px;
+
+    padding: 13px 15px;
+
+    border-radius: var(--radius-sm);
+
+    border: 1px solid transparent;
+
+    font-size: 12px;
+}
+
+
+.alert-success {
+    background: #eaf8ef;
+
+    border-color: #c9ead5;
+
+    color: #146c3a;
+}
+
+
+.alert-error {
+    background: #fff0f0;
+
+    border-color: #f3cccc;
+
+    color: #a72d2d;
+}
+
+
+.alert-warning {
+    background: #fff8e3;
+
+    border-color: #f0dfa5;
+
+    color: #8b6700;
+}
+
+
+.alert-info {
+    background: #edf7f2;
+
+    border-color: #cce8da;
+
+    color: #236b4b;
+}
+
+
+
+
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.search-box {
+    position: relative;
+
+    width: 100%;
+}
+
+
+.search-box input {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 9px 42px 9px 13px;
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-sm);
+
+    background: var(--surface);
+
+    color: var(--text);
+
+    outline: none;
+}
+
+
+.search-box input:focus {
+    border-color: var(--primary);
+
+    box-shadow:
+        0 0 0 3px var(--primary-light);
+}
+
+
+.search-icon {
+    position: absolute;
+
+    top: 50%;
+    right: 13px;
+
+    transform: translateY(-50%);
+
+    color: var(--muted);
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.empty-state {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-height: 220px;
+
+    padding: 30px;
+
+    text-align: center;
+}
+
+
+.empty-state-icon {
+    width: 50px;
+    height: 50px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 12px;
+
+    border-radius: 50%;
+
+    background: var(--primary-light);
+
+    color: var(--primary);
+
+    font-size: 20px;
+}
+
+
+.empty-state h3 {
+    margin-bottom: 5px;
+
+    color: var(--text);
+
+    font-size: 15px;
+}
+
+
+.empty-state p {
+    max-width: 350px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.loading {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+.spinner {
+    width: 18px;
+    height: 18px;
+
+    border: 2px solid var(--border);
+
+    border-top-color: var(--primary);
+
+    border-radius: 50%;
+
+    animation:
+        spin 0.7s linear infinite;
+}
+
+
+@keyframes spin {
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+
+/* =========================================================
+   DROPDOWN
+   ========================================================= */
+
+.dropdown {
+    position: relative;
+}
+
+
+.dropdown-menu {
+    position: absolute;
+
+    top: calc(100% + 7px);
+
+    right: 0;
+
+    z-index: 1200;
+
+    min-width: 180px;
+
+    padding: 6px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-sm);
+
+    box-shadow: var(--shadow-md);
+
+    display: none;
+}
+
+
+.dropdown.active .dropdown-menu {
+    display: block;
+}
+
+
+.dropdown-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    width: 100%;
+
+    padding: 9px 10px;
+
+    border-radius: 6px;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+
+.dropdown-item:hover {
+    background: var(--primary-light);
+
+    color: var(--primary);
+}
+
+
+.dropdown-divider {
+    height: 1px;
+
+    margin: 5px 0;
+
+    background: var(--border);
+}
+
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.pagination {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 5px;
+
+    margin-top: 18px;
+}
+
+
+.pagination-item {
+    min-width: 32px;
+    height: 32px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 8px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 6px;
+
+    background: var(--surface);
+
+    color: var(--text);
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+
+.pagination-item:hover,
+.pagination-item.active {
+    border-color: var(--primary);
+
+    background: var(--primary);
+
+    color: #ffffff;
+}
+
+
+
+/* =========================================================
+   STAT / METRIC COMPONENT
+   ========================================================= */
+
+.metric {
+    padding: 17px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+}
+
+
+.metric-label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+.metric-value {
+    display: block;
+
+    color: var(--text);
+
+    font-size: 21px;
+
+    font-weight: 750;
+}
+
+
+.metric-change {
+    display: inline-block;
+
+    margin-top: 7px;
+
+    font-size: 10px;
+
+    font-weight: 650;
+}
+
+
+.metric-change.up {
+    color: var(--success);
+}
+
+
+.metric-change.down {
+    color: var(--danger);
+}
+
+
+
+/* =========================================================
+   RESPONSIVE COMPONENT ADJUSTMENTS
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .card {
+        padding: 15px;
+    }
+
+
+    .card-header {
+        flex-wrap: wrap;
+    }
+
+
+    .btn {
+        min-height: 38px;
+
+        padding: 8px 13px;
+
+        font-size: 12px;
+    }
+
+
+    .modal {
+        max-height: 94vh;
+    }
+
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 15px;
+    }
+
+
+    .modal-footer {
+        flex-wrap: wrap;
+    }
+
+
+    .modal-footer .btn {
+        flex: 1;
+    }
+
+}
+
+
+@media (max-width: 400px) {
+
+    .btn-lg {
+        width: 100%;
+    }
+
+
+    .search-box {
+        width: 100%;
+    }
+
+}

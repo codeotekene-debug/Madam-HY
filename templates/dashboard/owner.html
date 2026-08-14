@@ -1,0 +1,736 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Dashboard | MADAM HY
+{% endblock %}
+
+
+{% block page_title %}
+    Dashboard
+{% endblock %}
+
+
+{% block page_css %}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/pages/dashboard/owner.css' %}"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="dashboard">
+
+
+    <!-- =========================================
+         WELCOME
+         ========================================= -->
+
+    <section class="dashboard-welcome">
+
+        <div>
+
+            <p class="dashboard-greeting">
+                Welcome back
+            </p>
+
+            <h2>
+                Madam HY
+            </h2>
+
+            <p>
+                Here's what's happening in your shop today.
+            </p>
+
+        </div>
+
+
+        <div class="dashboard-date">
+
+            <span>
+                Today
+            </span>
+
+            <strong id="currentDate">
+                —
+            </strong>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================================
+         KEY BUSINESS METRICS
+         ========================================= -->
+
+    <section class="dashboard-metrics">
+
+
+        <!-- Today's Sales -->
+
+        <article class="metric-card">
+
+            <div class="metric-card-header">
+
+                <span class="metric-card-title">
+                    Today's Sales
+                </span>
+
+                <span class="metric-card-icon">
+                    ₦
+                </span>
+
+            </div>
+
+
+            <div class="metric-card-value">
+                ₦<span id="todaySales">0.00</span>
+            </div>
+
+
+            <div class="metric-card-footer">
+
+                <span
+                    class="metric-change"
+                    id="salesChange"
+                >
+                    —
+                </span>
+
+                <span>
+                    vs yesterday
+                </span>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- Today's Profit -->
+
+        <article class="metric-card">
+
+            <div class="metric-card-header">
+
+                <span class="metric-card-title">
+                    Today's Profit
+                </span>
+
+                <span class="metric-card-icon">
+                    ↗
+                </span>
+
+            </div>
+
+
+            <div class="metric-card-value">
+                ₦<span id="todayProfit">0.00</span>
+            </div>
+
+
+            <div class="metric-card-footer">
+
+                <span
+                    class="metric-change"
+                    id="profitChange"
+                >
+                    —
+                </span>
+
+                <span>
+                    vs yesterday
+                </span>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- Monthly Sales -->
+
+        <article class="metric-card">
+
+            <div class="metric-card-header">
+
+                <span class="metric-card-title">
+                    Monthly Sales
+                </span>
+
+                <span class="metric-card-icon">
+                    ▣
+                </span>
+
+            </div>
+
+
+            <div class="metric-card-value">
+                ₦<span id="monthlySales">0.00</span>
+            </div>
+
+
+            <div class="metric-card-footer">
+
+                <span
+                    class="metric-change"
+                    id="monthlySalesChange"
+                >
+                    —
+                </span>
+
+                <span>
+                    this month
+                </span>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- Outstanding Credit -->
+
+        <article class="metric-card">
+
+            <div class="metric-card-header">
+
+                <span class="metric-card-title">
+                    Customer Credit
+                </span>
+
+                <span class="metric-card-icon">
+                    ◷
+                </span>
+
+            </div>
+
+
+            <div class="metric-card-value">
+                ₦<span id="outstandingCredit">0.00</span>
+            </div>
+
+
+            <div class="metric-card-footer">
+
+                <span>
+                    outstanding
+                </span>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =========================================
+         MAIN DASHBOARD GRID
+         ========================================= -->
+
+    <section class="dashboard-grid">
+
+
+        <!-- =====================================
+             SALES OVERVIEW
+             ===================================== -->
+
+        <article class="dashboard-card sales-overview">
+
+            <div class="dashboard-card-header">
+
+                <div>
+
+                    <h3>
+                        Sales Overview
+                    </h3>
+
+                    <p>
+                        Track your shop's sales performance.
+                    </p>
+
+                </div>
+
+
+                <select
+                    id="salesPeriod"
+                    class="dashboard-filter"
+                >
+
+                    <option value="7">
+                        Last 7 days
+                    </option>
+
+                    <option value="30">
+                        Last 30 days
+                    </option>
+
+                    <option value="90">
+                        Last 3 months
+                    </option>
+
+                    <option value="365">
+                        This year
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div
+                class="sales-chart"
+                id="salesChart"
+            >
+
+                <div class="chart-placeholder">
+
+                    Sales chart will appear here.
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- =====================================
+             QUICK ACTIONS
+             ===================================== -->
+
+        <article class="dashboard-card quick-actions">
+
+            <div class="dashboard-card-header">
+
+                <div>
+
+                    <h3>
+                        Quick Actions
+                    </h3>
+
+                    <p>
+                        Common shop operations.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="quick-action-grid">
+
+
+                <a
+                    href="#"
+                    class="quick-action"
+                >
+
+                    <span class="quick-action-icon">
+                        +
+                    </span>
+
+                    <span>
+                        Add Product
+                    </span>
+
+                </a>
+
+
+                <a
+                    href="#"
+                    class="quick-action"
+                >
+
+                    <span class="quick-action-icon">
+                        🛒
+                    </span>
+
+                    <span>
+                        New Sale
+                    </span>
+
+                </a>
+
+
+                <a
+                    href="#"
+                    class="quick-action"
+                >
+
+                    <span class="quick-action-icon">
+                        👤
+                    </span>
+
+                    <span>
+                        Add Customer
+                    </span>
+
+                </a>
+
+
+                <a
+                    href="#"
+                    class="quick-action"
+                >
+
+                    <span class="quick-action-icon">
+                        ₦
+                    </span>
+
+                    <span>
+                        Add Expense
+                    </span>
+
+                </a>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- =====================================
+             RECENT SALES
+             ===================================== -->
+
+        <article class="dashboard-card recent-sales">
+
+            <div class="dashboard-card-header">
+
+                <div>
+
+                    <h3>
+                        Recent Sales
+                    </h3>
+
+                    <p>
+                        Latest transactions in your shop.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="#"
+                    class="view-all-link"
+                >
+                    View all
+                </a>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table class="table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Customer
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Payment
+                            </th>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="recentSalesTable">
+
+                        <tr>
+
+                            <td colspan="5">
+
+                                <div class="dashboard-loading">
+
+                                    Loading sales...
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- =====================================
+             LOW STOCK
+             ===================================== -->
+
+        <article class="dashboard-card low-stock">
+
+            <div class="dashboard-card-header">
+
+                <div>
+
+                    <h3>
+                        Low Stock
+                    </h3>
+
+                    <p>
+                        Products that need restocking.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="#"
+                    class="view-all-link"
+                >
+                    View inventory
+                </a>
+
+            </div>
+
+
+            <div
+                class="low-stock-list"
+                id="lowStockList"
+            >
+
+                <div class="dashboard-loading">
+                    Loading inventory...
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- =====================================
+             CUSTOMER CREDITS
+             ===================================== -->
+
+        <article class="dashboard-card credit-summary">
+
+            <div class="dashboard-card-header">
+
+                <div>
+
+                    <h3>
+                        Customer Credits
+                    </h3>
+
+                    <p>
+                        Outstanding customer balances.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="#"
+                    class="view-all-link"
+                >
+                    View credits
+                </a>
+
+            </div>
+
+
+            <div
+                class="credit-list"
+                id="creditList"
+            >
+
+                <div class="dashboard-loading">
+                    Loading credits...
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- =====================================
+             PRODUCT REQUESTS
+             ===================================== -->
+
+        <article class="dashboard-card product-requests">
+
+            <div class="dashboard-card-header">
+
+                <div>
+
+                    <h3>
+                        Product Requests
+                    </h3>
+
+                    <p>
+                        Products customers want you to find.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="#"
+                    class="view-all-link"
+                >
+                    View requests
+                </a>
+
+            </div>
+
+
+            <div
+                class="request-list"
+                id="requestList"
+            >
+
+                <div class="dashboard-loading">
+                    Loading requests...
+                </div>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =========================================
+         BUSINESS GROWTH
+         ========================================= -->
+
+    <section class="dashboard-card business-growth">
+
+        <div class="dashboard-card-header">
+
+            <div>
+
+                <h3>
+                    Business Growth
+                </h3>
+
+                <p>
+                    Monitor how your business is performing over time.
+                </p>
+
+            </div>
+
+
+            <a
+                href="#"
+                class="view-all-link"
+            >
+                Full report
+            </a>
+
+        </div>
+
+
+        <div class="growth-summary">
+
+
+            <div class="growth-item">
+
+                <span>
+                    Sales Growth
+                </span>
+
+                <strong id="salesGrowth">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="growth-item">
+
+                <span>
+                    Profit Growth
+                </span>
+
+                <strong id="profitGrowth">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="growth-item">
+
+                <span>
+                    Customers
+                </span>
+
+                <strong id="customerGrowth">
+                    —
+                </strong>
+
+            </div>
+
+
+            <div class="growth-item">
+
+                <span>
+                    Orders
+                </span>
+
+                <strong id="orderGrowth">
+                    —
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block page_js %}
+
+<script
+    src="{% static 'js/ajax/dashboard/owner.ajax.js' %}"
+></script>
+
+<script
+    src="{% static 'js/pages/dashboard/owner.js' %}"
+></script>
+
+{% endblock %}

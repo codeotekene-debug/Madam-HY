@@ -1,0 +1,625 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}MADAM HY{% endblock %}
+    </title>
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/modals.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/responsive.css' %}">
+
+    <!-- Page-specific CSS -->
+    {% block page_css %}
+    {% endblock %}
+</head>
+
+
+<body>
+
+    <!-- =========================================
+         APPLICATION
+         ========================================= -->
+
+    <div class="app">
+
+
+        <!-- =====================================
+             SIDEBAR
+             ===================================== -->
+
+        <aside class="sidebar" id="sidebar">
+
+            <!-- Brand -->
+
+            <div class="sidebar-header">
+
+                <a href="#" class="brand">
+
+                    <div class="brand-logo">
+                        HY
+                    </div>
+
+                    <div class="brand-text">
+
+                        <strong>MADAM HY</strong>
+
+                        <span>Smart Shop</span>
+
+                    </div>
+
+                </a>
+
+
+                <button
+                    type="button"
+                    class="sidebar-close"
+                    id="sidebarClose"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <!-- User -->
+
+            {% if user.is_authenticated %}
+
+            <div class="sidebar-user">
+
+                <div class="user-avatar">
+
+                    {{ user.first_name|first|default:user.username|first|upper }}
+
+                </div>
+
+
+                <div class="user-info">
+
+                    <strong>
+                        {{ user.get_full_name|default:user.username }}
+                    </strong>
+
+                    <span>
+                        {{ user.role|default:"User" }}
+                    </span>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+
+            <!-- Navigation -->
+
+            <nav class="sidebar-navigation">
+
+
+                <!-- ==============================
+                     GENERAL
+                     ============================== -->
+
+                <div class="nav-section">
+
+                    <span class="nav-section-title">
+                        General
+                    </span>
+
+
+                    {% if user.is_authenticated %}
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            ▦
+                        </span>
+
+                        <span>
+                            Dashboard
+                        </span>
+
+                    </a>
+
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- ==============================
+                     BUSINESS
+                     OWNER / MANAGER
+                     ============================== -->
+
+                {% if user.is_authenticated %}
+
+                    {% if user.role == "OWNER" or user.role == "MANAGER" %}
+
+                    <div class="nav-section">
+
+                        <span class="nav-section-title">
+                            Business
+                        </span>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ◈
+                            </span>
+
+                            <span>
+                                Products
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ▣
+                            </span>
+
+                            <span>
+                                Inventory
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ₦
+                            </span>
+
+                            <span>
+                                Sales
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ◉
+                            </span>
+
+                            <span>
+                                Customers
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ◷
+                            </span>
+
+                            <span>
+                                Credits
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                −
+                            </span>
+
+                            <span>
+                                Expenses
+                            </span>
+
+                        </a>
+
+                    </div>
+
+                    {% endif %}
+
+                {% endif %}
+
+
+
+                <!-- ==============================
+                     OPERATIONS
+                     ============================== -->
+
+                {% if user.is_authenticated %}
+
+                    {% if user.role == "OWNER" or user.role == "MANAGER" or user.role == "CASHIER" or user.role == "STAFF" %}
+
+                    <div class="nav-section">
+
+                        <span class="nav-section-title">
+                            Operations
+                        </span>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                🛒
+                            </span>
+
+                            <span>
+                                Point of Sale
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ↔
+                            </span>
+
+                            <span>
+                                Orders
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ₦
+                            </span>
+
+                            <span>
+                                Payments
+                            </span>
+
+                        </a>
+
+                    </div>
+
+                    {% endif %}
+
+                {% endif %}
+
+
+
+                <!-- ==============================
+                     REPORTS
+                     OWNER / MANAGER
+                     ============================== -->
+
+                {% if user.is_authenticated %}
+
+                    {% if user.role == "OWNER" or user.role == "MANAGER" %}
+
+                    <div class="nav-section">
+
+                        <span class="nav-section-title">
+                            Analytics
+                        </span>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ▥
+                            </span>
+
+                            <span>
+                                Reports
+                            </span>
+
+                        </a>
+
+
+                        <a href="#" class="nav-item">
+
+                            <span class="nav-icon">
+                                ↗
+                            </span>
+
+                            <span>
+                                Business Growth
+                            </span>
+
+                        </a>
+
+                    </div>
+
+                    {% endif %}
+
+                {% endif %}
+
+
+
+                <!-- ==============================
+                     CUSTOMER
+                     ============================== -->
+
+                {% if user.is_authenticated and user.role == "CUSTOMER" %}
+
+                <div class="nav-section">
+
+                    <span class="nav-section-title">
+                        Shop
+                    </span>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            ◈
+                        </span>
+
+                        <span>
+                            Products
+                        </span>
+
+                    </a>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            🛒
+                        </span>
+
+                        <span>
+                            Cart
+                        </span>
+
+                    </a>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            ▣
+                        </span>
+
+                        <span>
+                            My Orders
+                        </span>
+
+                    </a>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            ₦
+                        </span>
+
+                        <span>
+                            My Credit
+                        </span>
+
+                    </a>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            +
+                        </span>
+
+                        <span>
+                            Request Product
+                        </span>
+
+                    </a>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            ◷
+                        </span>
+
+                        <span>
+                            My Activity
+                        </span>
+
+                    </a>
+
+                </div>
+
+                {% endif %}
+
+
+
+                <!-- ==============================
+                     OWNER ONLY
+                     ============================== -->
+
+                {% if user.is_authenticated and user.role == "OWNER" %}
+
+                <div class="nav-section">
+
+                    <span class="nav-section-title">
+                        Administration
+                    </span>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            👥
+                        </span>
+
+                        <span>
+                            Staff
+                        </span>
+
+                    </a>
+
+
+                    <a href="#" class="nav-item">
+
+                        <span class="nav-icon">
+                            ⚙
+                        </span>
+
+                        <span>
+                            Settings
+                        </span>
+
+                    </a>
+
+                </div>
+
+                {% endif %}
+
+            </nav>
+
+
+            <!-- Sidebar footer -->
+
+            <div class="sidebar-footer">
+
+                {% if user.is_authenticated %}
+
+                <a href="#" class="logout-button">
+
+                    <span>
+                        ⇥
+                    </span>
+
+                    <span>
+                        Logout
+                    </span>
+
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </aside>
+
+
+
+        <!-- =====================================
+             MAIN CONTENT
+             ===================================== -->
+
+        <main class="main-content">
+
+
+            <!-- Topbar -->
+
+            <header class="topbar">
+
+                <button
+                    type="button"
+                    class="mobile-menu-button"
+                    id="mobileMenuButton"
+                >
+                    ☰
+                </button>
+
+
+                <div class="topbar-title">
+
+                    <h1>
+                        {% block page_title %}
+                        MADAM HY
+                        {% endblock %}
+                    </h1>
+
+                </div>
+
+
+                <div class="topbar-actions">
+
+                    {% if user.is_authenticated %}
+
+                    <button
+                        type="button"
+                        class="notification-button"
+                    >
+                        🔔
+
+                        <span class="notification-badge">
+                            0
+                        </span>
+
+                    </button>
+
+
+                    <div class="user-avatar small">
+
+                        {{ user.first_name|first|default:user.username|first|upper }}
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </header>
+
+
+
+            <!-- Page -->
+
+            <section class="page-content">
+
+                {% block content %}
+                {% endblock %}
+
+            </section>
+
+
+        </main>
+
+    </div>
+
+
+
+    <!-- Mobile overlay -->
+
+    <div
+        class="sidebar-overlay"
+        id="sidebarOverlay"
+    >
+    </div>
+
+
+
+    <!-- Core JavaScript -->
+
+    <script src="{% static 'js/core/main.js' %}"></script>
+
+
+    <!-- Page-specific JavaScript -->
+
+    {% block page_js %}
+    {% endblock %}
+
+</body>
+
+</html>
