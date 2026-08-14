@@ -1,0 +1,85 @@
+/* =========================================================
+   MADAM HY - STOCK HISTORY
+   ========================================================= */
+
+.stock-history-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.stock-history-table {
+    min-width: 100%;
+}
+
+.movement-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.movement-in {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.movement-out {
+    background: #fff0f0;
+    color: var(--danger);
+}
+
+.movement-adjustment {
+    background: #fff7df;
+    color: #9a6b00;
+}
+
+@media (max-width: 560px) {
+    .table-wrapper {
+        overflow: visible;
+        border: 0;
+    }
+
+    .table {
+        min-width: 0;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tr {
+        display: block;
+        margin-bottom: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+    }
+
+    .table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .table td[colspan] {
+        display: block;
+    }
+
+    .table td[colspan]::before {
+        content: none;
+    }
+}

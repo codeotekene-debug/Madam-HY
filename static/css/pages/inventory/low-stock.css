@@ -1,0 +1,69 @@
+/* =========================================================
+   MADAM HY - LOW STOCK
+   ========================================================= */
+
+.low-stock-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.low-stock-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.low-stock-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+}
+
+.low-stock-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.low-stock-item-main strong {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.low-stock-meta {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.low-stock-level {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.level-critical {
+    background: #fff0f0;
+    color: var(--danger);
+}
+
+.level-warning {
+    background: #fff7df;
+    color: #9a6b00;
+}
+
+@media (max-width: 620px) {
+    .low-stock-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

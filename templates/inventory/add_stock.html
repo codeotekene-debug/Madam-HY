@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Add Stock | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Add Stock
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/inventory/add-stock.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="inventory-form-page">
+    <section class="inventory-hero compact-hero">
+        <div>
+            <span class="badge badge-primary">Stock intake</span>
+            <h2>Add stock</h2>
+            <p>Record incoming inventory and keep replenishment information aligned with business operations.</p>
+        </div>
+
+        <a href="#" class="btn btn-secondary">Back to inventory</a>
+    </section>
+
+    <form class="card inventory-form" id="stockForm" novalidate>
+        <div class="form-grid">
+            <div class="form-column">
+                <div class="form-group">
+                    <label class="form-label" for="stockProduct">Product <span class="required">*</span></label>
+                    <select id="stockProduct" class="form-select" required>
+                        <option value="">Select product</option>
+                        <option>Green Ankara Fabric Premium</option>
+                        <option>Velvet Evening Gown</option>
+                        <option>Radiant Glow Serum</option>
+                        <option>Kitchen Storage Basket</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="stockSupplier">Supplier</label>
+                    <input id="stockSupplier" class="form-control" type="text" placeholder="Supplier or vendor name" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="stockQuantity">Quantity <span class="required">*</span></label>
+                    <input id="stockQuantity" class="form-control" type="number" min="1" required placeholder="0" />
+                </div>
+            </div>
+
+            <div class="form-column">
+                <div class="form-group">
+                    <label class="form-label" for="stockUnitCost">Unit cost</label>
+                    <input id="stockUnitCost" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="stockDate">Date received</label>
+                    <input id="stockDate" class="form-control" type="date" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="stockReason">Reason</label>
+                    <select id="stockReason" class="form-select">
+                        <option value="Restock">Restock</option>
+                        <option value="New arrival">New arrival</option>
+                        <option value="Seasonal order">Seasonal order</option>
+                        <option value="Damaged replacement">Damaged replacement</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="stockNotes">Notes</label>
+            <textarea id="stockNotes" class="form-textarea" placeholder="Add receiving notes, packaging notes, or supplier remarks."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="reset" class="btn btn-secondary">Clear</button>
+            <button type="submit" class="btn btn-primary">Save stock entry</button>
+        </div>
+
+        <div id="stockFormMessage" class="alert alert-success" hidden role="status" aria-live="polite"></div>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/inventory/add-stock.js' %}"></script>
+{% endblock %}

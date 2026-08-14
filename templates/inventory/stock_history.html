@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Stock History | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Stock History
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/inventory/stock-history.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stock-history-page">
+    <section class="inventory-hero">
+        <div>
+            <span class="badge badge-primary">Audit trail</span>
+            <h2>Stock history</h2>
+            <p>Review inventory adjustments, received stock, and product movements over time.</p>
+        </div>
+
+        <div class="page-actions">
+            <button type="button" class="btn btn-secondary">Filter by month</button>
+            <a href="#" class="btn btn-primary">Add stock</a>
+        </div>
+    </section>
+
+    <section class="card stock-history-panel">
+        <div class="section-header compact-header">
+            <div>
+                <h3>Recent adjustments</h3>
+                <p>Internal movements prepared for later backend reporting.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table stock-history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Movement</th>
+                        <th>Reason</th>
+                        <th>Staff</th>
+                    </tr>
+                </thead>
+                <tbody id="stockHistoryTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/inventory/stock-history.js' %}"></script>
+{% endblock %}

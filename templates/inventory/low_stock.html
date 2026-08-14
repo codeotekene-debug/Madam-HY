@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Low Stock | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Low Stock
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/inventory/low-stock.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="low-stock-page">
+    <section class="inventory-hero">
+        <div>
+            <span class="badge badge-warning">Attention</span>
+            <h2>Low-stock products</h2>
+            <p>Review items near reorder levels and keep the retail floor replenished before demand gathers.</p>
+        </div>
+
+        <div class="page-actions">
+            <button type="button" class="btn btn-secondary">Refresh checks</button>
+            <a href="#" class="btn btn-primary">Add stock</a>
+        </div>
+    </section>
+
+    <section class="low-stock-summary" aria-label="Low stock summary">
+        <article class="summary-card critical">
+            <span>Critical</span>
+            <strong id="criticalCount">0</strong>
+        </article>
+
+        <article class="summary-card warning">
+            <span>Warning</span>
+            <strong id="warningCount">0</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Reorder queue</span>
+            <strong id="reorderQueue">0</strong>
+        </article>
+    </section>
+
+    <section class="card low-stock-panel">
+        <div class="section-header compact-header">
+            <div>
+                <h3>Products needing attention</h3>
+                <p>Prioritise replenishment based on item risk and urgency.</p>
+            </div>
+        </div>
+
+        <div id="lowStockList" class="low-stock-list" aria-live="polite"></div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/inventory/low-stock.js' %}"></script>
+{% endblock %}
