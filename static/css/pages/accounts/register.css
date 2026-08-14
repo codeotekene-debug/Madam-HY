@@ -1,0 +1,26 @@
+/* =========================================================
+   MADAM HY - REGISTER ACCOUNT PAGE
+   ========================================================= */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.terms-control {
+    margin: 4px 0 18px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+}
+
+@media (max-width: 640px) {
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+}

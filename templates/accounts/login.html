@@ -1,0 +1,161 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Login | MADAM HY</title>
+
+    <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/modals.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages/accounts/login.css' %}">
+</head>
+
+<body>
+    <main class="auth-shell">
+        <section class="auth-panel" aria-labelledby="loginTitle">
+            <a href="#" class="auth-brand" aria-label="MADAM HY home">
+                <span class="auth-logo">HY</span>
+                <span>
+                    <strong>MADAM HY</strong>
+                    <small>Smart Shop</small>
+                </span>
+            </a>
+
+            <div class="auth-card">
+                <div class="auth-header">
+                    <span class="badge badge-primary">Secure access</span>
+
+                    <h1 id="loginTitle">Welcome back</h1>
+
+                    <p>
+                        Sign in to continue managing shop operations,
+                        sales, stock, and customer activity.
+                    </p>
+                </div>
+
+                <div
+                    class="alert alert-error account-message"
+                    id="loginMessage"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                >
+                </div>
+
+                <form
+                    class="account-form"
+                    id="loginForm"
+                    method="post"
+                    novalidate
+                    data-demo-form
+                >
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label class="form-label" for="loginIdentifier">
+                            Email or username
+                            <span class="required">*</span>
+                        </label>
+
+                        <input
+                            class="form-control"
+                            type="text"
+                            id="loginIdentifier"
+                            name="identifier"
+                            autocomplete="username"
+                            placeholder="owner@madamhy.com"
+                            required
+                        >
+
+                        <span class="form-error" data-error-for="loginIdentifier"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword">
+                            Password
+                            <span class="required">*</span>
+                        </label>
+
+                        <div class="password-field">
+                            <input
+                                class="form-control"
+                                type="password"
+                                id="loginPassword"
+                                name="password"
+                                autocomplete="current-password"
+                                placeholder="Enter your password"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                data-password-toggle="loginPassword"
+                                aria-label="Show password"
+                            >
+                                Show
+                            </button>
+                        </div>
+
+                        <span class="form-error" data-error-for="loginPassword"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="check-control">
+                            <input type="checkbox" name="remember">
+                            <span>Remember this device</span>
+                        </label>
+
+                        <a href="#" class="text-link">Forgot password?</a>
+                    </div>
+
+                    <button class="btn btn-primary btn-block btn-lg" type="submit">
+                        Sign in
+                    </button>
+                </form>
+
+                <p class="auth-footer">
+                    New to MADAM HY?
+                    <a href="#" class="text-link">Create an account</a>
+                </p>
+            </div>
+        </section>
+
+        <aside class="auth-aside" aria-label="MADAM HY retail overview">
+            <div class="auth-aside-content">
+                <span class="auth-kicker">Retail control center</span>
+                <h2>Run the shop with calm, clear information.</h2>
+                <p>
+                    Accounts are prepared for owners, managers, cashiers,
+                    staff, and customers as the permission system grows.
+                </p>
+
+                <div class="auth-highlights">
+                    <span>Sales</span>
+                    <span>Inventory</span>
+                    <span>Orders</span>
+                    <span>Credit</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="{% static 'js/ajax/accounts/login.ajax.js' %}"></script>
+    <script src="{% static 'js/pages/accounts/login.js' %}"></script>
+</body>
+
+</html>

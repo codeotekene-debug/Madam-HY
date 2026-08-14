@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Profile | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Profile
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/accounts/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <section class="profile-hero" aria-labelledby="profileTitle">
+        <div class="profile-identity">
+            <div class="profile-avatar" aria-hidden="true">
+                HY
+            </div>
+
+            <div>
+                <span class="badge badge-primary">Account profile</span>
+
+                <h2 id="profileTitle">
+                    Manage your MADAM HY account
+                </h2>
+
+                <p>
+                    Keep contact details, role information, and security
+                    preferences ready for backend account management.
+                </p>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <button
+                type="button"
+                class="btn btn-secondary"
+                data-profile-edit-toggle
+            >
+                Edit profile
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                data-profile-save
+                disabled
+            >
+                Save changes
+            </button>
+        </div>
+    </section>
+
+    <section class="profile-layout">
+        <aside class="profile-summary card" aria-label="Profile summary">
+            <div class="profile-summary-top">
+                <div class="profile-avatar large" aria-hidden="true">
+                    MH
+                </div>
+
+                <h3>Madam HY User</h3>
+
+                <p>Owner / Manager / Staff / Customer ready</p>
+            </div>
+
+            <div class="profile-meta-list">
+                <div>
+                    <span>Role</span>
+                    <strong>OWNER</strong>
+                </div>
+
+                <div>
+                    <span>Status</span>
+                    <strong>Active</strong>
+                </div>
+
+                <div>
+                    <span>Branch</span>
+                    <strong>Main shop</strong>
+                </div>
+            </div>
+        </aside>
+
+        <section class="profile-main card">
+            <div class="account-tabs" role="tablist" aria-label="Profile sections">
+                <button
+                    type="button"
+                    class="account-tab active"
+                    id="detailsTab"
+                    data-profile-tab="details"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="detailsPanel"
+                >
+                    Details
+                </button>
+
+                <button
+                    type="button"
+                    class="account-tab"
+                    id="securityTab"
+                    data-profile-tab="security"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="securityPanel"
+                >
+                    Security
+                </button>
+
+                <button
+                    type="button"
+                    class="account-tab"
+                    id="preferencesTab"
+                    data-profile-tab="preferences"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="preferencesPanel"
+                >
+                    Preferences
+                </button>
+            </div>
+
+            <div
+                class="alert alert-success account-message"
+                id="profileMessage"
+                role="status"
+                aria-live="polite"
+                hidden
+            >
+            </div>
+
+            <form
+                class="profile-form"
+                id="profileForm"
+                method="post"
+                novalidate
+                data-demo-form
+            >
+                {% csrf_token %}
+
+                <div
+                    class="profile-panel active"
+                    id="detailsPanel"
+                    data-profile-panel="details"
+                    role="tabpanel"
+                    aria-labelledby="detailsTab"
+                >
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="profileFirstName">
+                                First name
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="text"
+                                id="profileFirstName"
+                                name="first_name"
+                                value="Madam"
+                                disabled
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="profileLastName">
+                                Last name
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="text"
+                                id="profileLastName"
+                                name="last_name"
+                                value="HY"
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="profileEmail">
+                                Email
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="email"
+                                id="profileEmail"
+                                name="email"
+                                value="owner@madamhy.com"
+                                disabled
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="profilePhone">
+                                Phone
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="tel"
+                                id="profilePhone"
+                                name="phone"
+                                value="+234 800 000 0000"
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="profileAddress">
+                            Shop address
+                        </label>
+
+                        <textarea
+                            class="form-textarea"
+                            id="profileAddress"
+                            name="address"
+                            disabled
+                        >Main retail shop, Lagos</textarea>
+                    </div>
+                </div>
+
+                <div
+                    class="profile-panel"
+                    id="securityPanel"
+                    data-profile-panel="security"
+                    role="tabpanel"
+                    aria-labelledby="securityTab"
+                    hidden
+                >
+                    <div class="security-list">
+                        <div class="security-item">
+                            <div>
+                                <strong>Password</strong>
+                                <span>Last changed when authentication is connected.</span>
+                            </div>
+
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-sm"
+                                data-profile-security-action
+                            >
+                                Change
+                            </button>
+                        </div>
+
+                        <div class="security-item">
+                            <div>
+                                <strong>Two-step verification</strong>
+                                <span>Prepared for future account protection.</span>
+                            </div>
+
+                            <label class="switch-control">
+                                <input
+                                    type="checkbox"
+                                    aria-label="Two-step verification"
+                                    disabled
+                                >
+                                <span></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="profile-panel"
+                    id="preferencesPanel"
+                    data-profile-panel="preferences"
+                    role="tabpanel"
+                    aria-labelledby="preferencesTab"
+                    hidden
+                >
+                    <div class="preferences-grid">
+                        <label class="preference-card">
+                            <input type="checkbox" checked disabled>
+                            <span>
+                                <strong>Low stock alerts</strong>
+                                <small>Notify when items need attention.</small>
+                            </span>
+                        </label>
+
+                        <label class="preference-card">
+                            <input type="checkbox" checked disabled>
+                            <span>
+                                <strong>Order updates</strong>
+                                <small>Track customer and shop orders.</small>
+                            </span>
+                        </label>
+
+                        <label class="preference-card">
+                            <input type="checkbox" disabled>
+                            <span>
+                                <strong>Product requests</strong>
+                                <small>Review customer sourcing requests.</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/ajax/accounts/profile.ajax.js' %}"></script>
+<script src="{% static 'js/pages/accounts/profile.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,264 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Register | MADAM HY</title>
+
+    <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/modals.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages/accounts/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages/accounts/register.css' %}">
+</head>
+
+<body>
+    <main class="auth-shell auth-shell-wide">
+        <section class="auth-panel" aria-labelledby="registerTitle">
+            <a href="#" class="auth-brand" aria-label="MADAM HY home">
+                <span class="auth-logo">HY</span>
+                <span>
+                    <strong>MADAM HY</strong>
+                    <small>Smart Shop</small>
+                </span>
+            </a>
+
+            <div class="auth-card">
+                <div class="auth-header">
+                    <span class="badge badge-primary">Account setup</span>
+
+                    <h1 id="registerTitle">Create your account</h1>
+
+                    <p>
+                        Prepare access for shopping, requests, orders,
+                        or shop operations.
+                    </p>
+                </div>
+
+                <div
+                    class="alert alert-error account-message"
+                    id="registerMessage"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                >
+                </div>
+
+                <form
+                    class="account-form"
+                    id="registerForm"
+                    method="post"
+                    novalidate
+                    data-demo-form
+                >
+                    {% csrf_token %}
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="firstName">
+                                First name
+                                <span class="required">*</span>
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="text"
+                                id="firstName"
+                                name="first_name"
+                                autocomplete="given-name"
+                                required
+                            >
+
+                            <span class="form-error" data-error-for="firstName"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="lastName">
+                                Last name
+                                <span class="required">*</span>
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="text"
+                                id="lastName"
+                                name="last_name"
+                                autocomplete="family-name"
+                                required
+                            >
+
+                            <span class="form-error" data-error-for="lastName"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="registerEmail">
+                            Email address
+                            <span class="required">*</span>
+                        </label>
+
+                        <input
+                            class="form-control"
+                            type="email"
+                            id="registerEmail"
+                            name="email"
+                            autocomplete="email"
+                            placeholder="customer@example.com"
+                            required
+                        >
+
+                        <span class="form-error" data-error-for="registerEmail"></span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="registerPhone">
+                                Phone number
+                            </label>
+
+                            <input
+                                class="form-control"
+                                type="tel"
+                                id="registerPhone"
+                                name="phone"
+                                autocomplete="tel"
+                                placeholder="+234"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="accountRole">
+                                Account type
+                                <span class="required">*</span>
+                            </label>
+
+                            <select
+                                class="form-select"
+                                id="accountRole"
+                                name="role"
+                                required
+                            >
+                                <option value="">Select type</option>
+                                <option value="CUSTOMER">Customer</option>
+                                <option value="STAFF">Staff</option>
+                                <option value="CASHIER">Cashier</option>
+                                <option value="MANAGER">Manager</option>
+                            </select>
+
+                            <span class="form-error" data-error-for="accountRole"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="registerPassword">
+                                Password
+                                <span class="required">*</span>
+                            </label>
+
+                            <div class="password-field">
+                                <input
+                                    class="form-control"
+                                    type="password"
+                                    id="registerPassword"
+                                    name="password"
+                                    autocomplete="new-password"
+                                    required
+                                    data-strength-source
+                                >
+
+                                <button
+                                    type="button"
+                                    class="password-toggle"
+                                    data-password-toggle="registerPassword"
+                                    aria-label="Show password"
+                                >
+                                    Show
+                                </button>
+                            </div>
+
+                            <div
+                                class="password-strength"
+                                data-strength-meter
+                                aria-hidden="true"
+                            >
+                                <span></span>
+                            </div>
+
+                            <span class="form-help" data-strength-label>
+                                Use at least 8 characters.
+                            </span>
+
+                            <span class="form-error" data-error-for="registerPassword"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">
+                                Confirm password
+                                <span class="required">*</span>
+                            </label>
+
+                            <div class="password-field">
+                                <input
+                                    class="form-control"
+                                    type="password"
+                                    id="confirmPassword"
+                                    name="confirm_password"
+                                    autocomplete="new-password"
+                                    required
+                                    data-confirm-password="registerPassword"
+                                >
+
+                                <button
+                                    type="button"
+                                    class="password-toggle"
+                                    data-password-toggle="confirmPassword"
+                                    aria-label="Show password"
+                                >
+                                    Show
+                                </button>
+                            </div>
+
+                            <span class="form-error" data-error-for="confirmPassword"></span>
+                        </div>
+                    </div>
+
+                    <label class="check-control terms-control">
+                        <input type="checkbox" name="terms" required>
+                        <span>
+                            I understand access will follow MADAM HY role
+                            permissions when backend security is connected.
+                        </span>
+                    </label>
+
+                    <button class="btn btn-primary btn-block btn-lg" type="submit">
+                        Create account
+                    </button>
+                </form>
+
+                <p class="auth-footer">
+                    Already have an account?
+                    <a href="#" class="text-link">Sign in</a>
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <script src="{% static 'js/ajax/accounts/register.ajax.js' %}"></script>
+    <script src="{% static 'js/pages/accounts/register.js' %}"></script>
+</body>
+
+</html>
