@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Payment Detail | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Payment Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/payments/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="payment-detail-page">
+    <section class="payments-hero">
+        <div>
+            <span class="badge badge-primary">Details</span>
+            <h2>Payment detail</h2>
+            <p>Complete payment information and transaction history.</p>
+        </div>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3 id="detailPaymentRef">Payment Ref</h3>
+                    <p id="detailPaymentDate">-</p>
+                </div>
+                <span id="detailPaymentStatus" class="status-pill">Pending</span>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <span class="detail-label">Order Reference</span>
+                    <strong id="detailOrderRef">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Customer</span>
+                    <strong id="detailCustomer">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Customer Phone</span>
+                    <strong id="detailCustomerPhone">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Payment Date</span>
+                    <strong id="detailPaymentDateField">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4 class="section-title">Payment Information</h4>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Payment Method</span>
+                        <strong id="detailPaymentMethod">-</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Amount Paid</span>
+                        <strong id="detailAmountPaid">₦ 0</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Payment Status</span>
+                        <strong id="detailStatusField">-</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Cashier/Agent</span>
+                        <strong id="detailCashier">-</strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <aside class="card detail-order-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order Summary</h3>
+                    <p>Associated order details.</p>
+                </div>
+            </div>
+
+            <div class="detail-order-info">
+                <div class="order-info-row">
+                    <span>Order Number</span>
+                    <strong id="detailOrderNumber">-</strong>
+                </div>
+                <div class="order-info-row">
+                    <span>Order Date</span>
+                    <strong id="detailOrderDate">-</strong>
+                </div>
+                <div class="order-info-row">
+                    <span>Order Total</span>
+                    <strong id="detailOrderTotal">₦ 0</strong>
+                </div>
+            </div>
+
+            <div class="payment-timeline">
+                <h4 class="section-title">Payment Timeline</h4>
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <p id="timelineEvent">Payment initiated</p>
+                        <small id="timelineTime">-</small>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/payments/detail.js' %}"></script>
+{% endblock %}

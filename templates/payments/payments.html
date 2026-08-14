@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Payments | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Payments
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/payments/payments.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="payments-page">
+    <section class="payments-hero">
+        <div>
+            <span class="badge badge-primary">Transactions</span>
+            <h2>Payment history</h2>
+            <p>View and manage all payment transactions, reconcile payments, and monitor payment status.</p>
+        </div>
+    </section>
+
+    <section class="payments-summary" aria-label="Payments summary">
+        <article class="summary-card">
+            <span>Total transactions</span>
+            <strong id="totalPaymentsCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Successful</span>
+            <strong id="successfulPaymentsCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Pending</span>
+            <strong id="pendingPaymentsCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Total amount</span>
+            <strong id="totalPaymentAmount">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="card payments-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Transaction ledger</h3>
+                <p>Review and reconcile all payment transactions.</p>
+            </div>
+        </div>
+
+        <div class="payments-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="paymentsSearch">Search payments</label>
+                <input id="paymentsSearch" class="form-control" type="search" placeholder="Search by reference, order number, or customer" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="paymentsStatusFilter">Filter by status</label>
+                <select id="paymentsStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Successful">Successful</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Refunded">Refunded</option>
+                </select>
+
+                <label class="visually-hidden" for="paymentsMethodFilter">Filter by method</label>
+                <select id="paymentsMethodFilter" class="form-select">
+                    <option value="all">All methods</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="Card">Card</option>
+                    <option value="Credit">Credit</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table payments-table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="paymentsEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No payments match your filters</h3>
+            <p>Adjust the search terms or filters to view more transactions.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/payments/payments.js' %}"></script>
+{% endblock %}

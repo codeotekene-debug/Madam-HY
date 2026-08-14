@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Payment Failed | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Payment Failed
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/payments/failed.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="payment-failed-page">
+    <section class="failed-container">
+        <div class="failed-card">
+            <div class="failed-icon">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="40" cy="40" r="40" fill="#fff0f0" />
+                    <path d="M45 35L35 45M35 35L45 45" stroke="var(--danger)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+
+            <h2>Payment Failed</h2>
+            <p class="failed-message">We were unable to process your payment. Please try again.</p>
+
+            <div class="failed-details">
+                <div class="detail-row">
+                    <span>Payment Reference</span>
+                    <strong id="failedPaymentRef">-</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Order Number</span>
+                    <strong id="failedOrderNumber">-</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Amount</span>
+                    <strong id="failedAmount">₦ 0</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Failed At</span>
+                    <strong id="failedDateTime">-</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Reason</span>
+                    <strong id="failedReason" class="reason-text">-</strong>
+                </div>
+            </div>
+
+            <div class="failed-actions">
+                <a href="/payments/" class="btn btn-primary">View Payment History</a>
+                <a href="/sales/pos/" class="btn btn-secondary">Return to POS</a>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/payments/failed.js' %}"></script>
+{% endblock %}

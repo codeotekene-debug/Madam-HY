@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Payment Successful | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Payment Success
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/payments/success.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="payment-success-page">
+    <section class="success-container">
+        <div class="success-card">
+            <div class="success-icon">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="40" cy="40" r="40" fill="var(--primary-light)" />
+                    <path d="M34 45L37.5 48.5L46 40" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+
+            <h2>Payment Successful</h2>
+            <p class="success-message">Your payment has been processed successfully.</p>
+
+            <div class="success-details">
+                <div class="detail-row">
+                    <span>Payment Reference</span>
+                    <strong id="successPaymentRef">-</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Amount</span>
+                    <strong id="successAmount">₦ 0</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Order Number</span>
+                    <strong id="successOrderNumber">-</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Date & Time</span>
+                    <strong id="successDateTime">-</strong>
+                </div>
+                <div class="detail-row">
+                    <span>Payment Method</span>
+                    <strong id="successPaymentMethod">-</strong>
+                </div>
+            </div>
+
+            <div class="success-actions">
+                <a href="/payments/" class="btn btn-primary">View All Payments</a>
+                <a href="/orders/" class="btn btn-secondary">View Orders</a>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/payments/success.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,157 @@
+/* =========================================================
+   MADAM HY - PAYMENT FAILED
+   ========================================================= */
+
+.payment-failed-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 200px);
+    padding: 40px 20px;
+}
+
+.failed-container {
+    width: 100%;
+    max-width: 500px;
+}
+
+.failed-card {
+    padding: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+.failed-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.failed-icon svg {
+    animation: failedShake 0.6s ease-out;
+}
+
+@keyframes failedShake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.failed-card h2 {
+    color: var(--danger);
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.failed-message {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+}
+
+.failed-details {
+    margin-bottom: 28px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fff0f0;
+    text-align: left;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row strong {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.reason-text {
+    color: var(--danger) !important;
+}
+
+.failed-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 10px 20px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--primary);
+    border-color: var(--border);
+}
+
+.btn-secondary:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+@media (max-width: 640px) {
+    .payment-failed-page {
+        min-height: calc(100vh - 100px);
+        padding: 20px;
+    }
+
+    .failed-card {
+        padding: 24px;
+    }
+
+    .failed-card h2 {
+        font-size: 22px;
+    }
+
+    .failed-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}
