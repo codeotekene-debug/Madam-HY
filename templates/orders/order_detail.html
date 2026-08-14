@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Order Detail | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Order Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/orders/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="order-detail-page">
+    <section class="orders-hero">
+        <div>
+            <span class="badge badge-primary">Details</span>
+            <h2>Order detail</h2>
+            <p>Complete order information, items breakdown, and current fulfillment status.</p>
+        </div>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3 id="detailOrderNumber">Order #0000</h3>
+                    <p id="detailOrderDate">-</p>
+                </div>
+                <span id="detailOrderStatus" class="status-pill">Pending</span>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <span class="detail-label">Customer</span>
+                    <strong id="detailCustomer">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Phone</span>
+                    <strong id="detailPhone">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Order date</span>
+                    <strong id="detailDateField">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Delivery address</span>
+                    <strong id="detailAddress">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4 class="section-title">Payment & Fulfillment</h4>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Payment method</span>
+                        <strong id="detailPaymentMethod">-</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Payment status</span>
+                        <strong id="detailPaymentStatus">-</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Order status</span>
+                        <strong id="detailStatusField">-</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Assigned staff</span>
+                        <strong id="detailAssignedStaff">-</strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <aside class="card detail-items-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Items ordered</h3>
+                    <p>Product breakdown for this order.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table detail-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailItemsBody"></tbody>
+                </table>
+            </div>
+
+            <div class="detail-totals">
+                <div class="totals-row">
+                    <span>Subtotal</span>
+                    <strong id="detailSubtotal">₦ 0</strong>
+                </div>
+                <div class="totals-row">
+                    <span>Discount</span>
+                    <strong id="detailDiscount">₦ 0</strong>
+                </div>
+                <div class="totals-row total-row">
+                    <span>Total</span>
+                    <strong id="detailTotal">₦ 0</strong>
+                </div>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/orders/detail.js' %}"></script>
+{% endblock %}

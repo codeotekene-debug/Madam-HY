@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Orders | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Orders
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/orders/orders.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="orders-page">
+    <section class="orders-hero">
+        <div>
+            <span class="badge badge-primary">Management</span>
+            <h2>Customer orders</h2>
+            <p>Track and manage customer orders, their fulfillment status, and payment information from the shop.</p>
+        </div>
+    </section>
+
+    <section class="orders-summary" aria-label="Orders summary">
+        <article class="summary-card">
+            <span>Total orders</span>
+            <strong id="totalOrdersCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Pending</span>
+            <strong id="pendingOrdersCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Completed</span>
+            <strong id="completedOrdersCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Order value</span>
+            <strong id="totalOrderValue">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="card orders-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Order ledger</h3>
+                <p>Filter and review customer orders across all sales channels.</p>
+            </div>
+        </div>
+
+        <div class="orders-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="ordersSearch">Search orders</label>
+                <input id="ordersSearch" class="form-control" type="search" placeholder="Search by order number, customer or cashier" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="ordersStatusFilter">Filter by status</label>
+                <select id="ordersStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+
+                <label class="visually-hidden" for="ordersPaymentFilter">Filter by payment</label>
+                <select id="ordersPaymentFilter" class="form-select">
+                    <option value="all">All payment types</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="Card">Card</option>
+                    <option value="Credit">Credit</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table orders-table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Order status</th>
+                        <th>Payment</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="ordersEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No orders match your filters</h3>
+            <p>Adjust the search terms or status filters to view more orders.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/orders/orders.js' %}"></script>
+{% endblock %}

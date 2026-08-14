@@ -1,0 +1,155 @@
+/* =========================================================
+   MADAM HY - ORDER DETAIL
+   ========================================================= */
+
+.detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 20px;
+}
+
+.detail-summary-card,
+.detail-items-card {
+    padding: 20px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.panel-header h3 {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.panel-header p {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.detail-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+    text-transform: uppercase;
+}
+
+.detail-section {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.section-title {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+.detail-table {
+    width: 100%;
+    margin-top: 14px;
+}
+
+.detail-totals {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.totals-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.totals-row strong {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.total-row {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 800;
+}
+
+.total-row strong {
+    font-size: 20px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-pill.pending {
+    background: #fff7df;
+    color: #9a6b00;
+}
+
+.status-pill.processing {
+    background: #e6f0ff;
+    color: #0052a3;
+}
+
+.status-pill.ready {
+    background: #f0f9ff;
+    color: #0369a1;
+}
+
+.status-pill.completed {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-pill.cancelled {
+    background: #fff0f0;
+    color: var(--danger);
+}
+
+@media (max-width: 960px) {
+    .detail-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-summary-card,
+    .detail-items-card {
+        padding: 16px;
+    }
+}
