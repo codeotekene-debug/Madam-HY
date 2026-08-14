@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Edit Product | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Edit Product
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/products/edit.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="product-form-page">
+    <section class="page-hero compact-hero">
+        <div>
+            <span class="badge badge-primary">Catalog</span>
+            <h2>Edit product</h2>
+            <p>Adjust product details, pricing, and inventory notes without disturbing the backend workflow.</p>
+        </div>
+        <a href="#" class="btn btn-secondary">View product</a>
+    </section>
+
+    <form class="card product-form" id="editProductForm" novalidate>
+        <div class="form-grid">
+            <div class="form-column">
+                <div class="form-group">
+                    <label class="form-label" for="editProductName">Product name <span class="required">*</span></label>
+                    <input id="editProductName" class="form-control" type="text" value="Green Ankara Fabric Premium" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editProductSku">SKU <span class="required">*</span></label>
+                    <input id="editProductSku" class="form-control" type="text" value="MH-FAB-104" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editProductCategory">Category <span class="required">*</span></label>
+                    <select id="editProductCategory" class="form-select" required>
+                        <option selected>Fashion</option>
+                        <option>Beauty</option>
+                        <option>Home</option>
+                        <option>Electronics</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editDescription">Description</label>
+                    <textarea id="editDescription" class="form-textarea">Premium quality Ankara fabric designed for stylish tailoring, event wear, and boutique retail display.</textarea>
+                </div>
+            </div>
+
+            <div class="form-column">
+                <div class="form-group">
+                    <label class="form-label" for="editRetailPrice">Retail price <span class="required">*</span></label>
+                    <input id="editRetailPrice" class="form-control" type="number" min="0" step="0.01" value="12500" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editCostPrice">Cost price</label>
+                    <input id="editCostPrice" class="form-control" type="number" min="0" step="0.01" value="9300" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editStockQty">Stock quantity <span class="required">*</span></label>
+                    <input id="editStockQty" class="form-control" type="number" min="0" value="24" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editReorderLevel">Reorder level</label>
+                    <input id="editReorderLevel" class="form-control" type="number" min="0" value="8" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editProductImage">Product image</label>
+                    <input id="editProductImage" class="form-control" type="file" accept="image/*" />
+                    <div class="image-preview-box image-preview-box--with-image" id="editImagePreviewBox" aria-live="polite">
+                        <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80" alt="Edited product preview" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary">Discard changes</button>
+            <button type="submit" class="btn btn-primary">Update product</button>
+        </div>
+
+        <div id="editProductMessage" class="alert alert-success" hidden role="status" aria-live="polite"></div>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/products/edit.js' %}"></script>
+{% endblock %}

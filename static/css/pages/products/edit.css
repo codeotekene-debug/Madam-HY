@@ -1,0 +1,62 @@
+/* =========================================================
+   MADAM HY - EDIT PRODUCT
+   ========================================================= */
+
+.product-form-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.product-form {
+    padding: 22px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.image-preview-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    margin-top: 8px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+    overflow: hidden;
+}
+
+.image-preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+@media (max-width: 760px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+}

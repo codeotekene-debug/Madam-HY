@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Product Detail | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Product Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/products/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="product-detail-page">
+    <div class="page-topbar-inline">
+        <a href="#" class="btn btn-secondary btn-sm">Back to products</a>
+        <div class="page-actions">
+            <button type="button" class="btn btn-secondary btn-sm">Edit product</button>
+            <button type="button" class="btn btn-primary btn-sm">Add to basket</button>
+        </div>
+    </div>
+
+    <section class="detail-hero card">
+        <div class="detail-image-panel">
+            <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80" alt="Green Ankara fabric product" />
+        </div>
+
+        <div class="detail-summary">
+            <div class="detail-meta-row">
+                <span class="badge badge-primary">Fashion</span>
+                <span class="detail-sku">SKU: MH-FAB-104</span>
+            </div>
+
+            <h2>Green Ankara Fabric Premium</h2>
+
+            <div class="detail-price-row">
+                <strong>₦ 12,500</strong>
+                <span class="detail-stock status-in-stock">In stock</span>
+            </div>
+
+            <p class="detail-description">
+                Premium quality Ankara fabric designed for stylish tailoring, event wear, and boutique retail display. The design offers vibrant colour depth with a soft hand feel and consistent weave finish.
+            </p>
+
+            <div class="detail-points">
+                <div>
+                    <span>Brand</span>
+                    <strong>Madam HY</strong>
+                </div>
+                <div>
+                    <span>Availability</span>
+                    <strong>24 rolls</strong>
+                </div>
+                <div>
+                    <span>Category</span>
+                    <strong>Fashion</strong>
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <button type="button" class="btn btn-primary">Add to cart</button>
+                <button type="button" class="btn btn-outline">Quick reorder</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="detail-grid">
+        <article class="card detail-panel">
+            <div class="card-header compact">
+                <div>
+                    <h3>Product details</h3>
+                </div>
+            </div>
+
+            <div class="info-list">
+                <div>
+                    <span>Product name</span>
+                    <strong>Green Ankara Fabric Premium</strong>
+                </div>
+                <div>
+                    <span>Supplier</span>
+                    <strong>Madam HY Studio</strong>
+                </div>
+                <div>
+                    <span>Unit cost</span>
+                    <strong>₦ 9,300</strong>
+                </div>
+                <div>
+                    <span>Retail margin</span>
+                    <strong>34%</strong>
+                </div>
+                <div>
+                    <span>Reorder level</span>
+                    <strong>8 rolls</strong>
+                </div>
+                <div>
+                    <span>Tags</span>
+                    <strong>Featured, trending, boutique</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="card detail-panel">
+            <div class="card-header compact">
+                <div>
+                    <h3>Stock status</h3>
+                </div>
+            </div>
+
+            <div class="stock-panel">
+                <div class="stock-row">
+                    <span>Available stock</span>
+                    <strong>24 units</strong>
+                </div>
+                <div class="stock-row">
+                    <span>Low stock alert</span>
+                    <strong>Normal</strong>
+                </div>
+                <div class="stock-row">
+                    <span>Last restocked</span>
+                    <strong>18 July 2026</strong>
+                </div>
+                <div class="stock-row">
+                    <span>Inventory status</span>
+                    <strong class="status-chip status-in-stock">Ready to sell</strong>
+                </div>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/products/detail.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Add Product | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Add Product
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/products/add.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="product-form-page">
+    <section class="page-hero compact-hero">
+        <div>
+            <span class="badge badge-primary">Inventory</span>
+            <h2>Add product</h2>
+            <p>Create a new product entry for the shop catalog and prepare it for future stock tracking.</p>
+        </div>
+        <a href="#" class="btn btn-secondary">Back to product list</a>
+    </section>
+
+    <form class="card product-form" id="addProductForm" novalidate>
+        <div class="form-grid">
+            <div class="form-column">
+                <div class="form-group">
+                    <label class="form-label" for="productName">Product name <span class="required">*</span></label>
+                    <input id="productName" class="form-control" type="text" required placeholder="e.g. Premium Ankara Fabric" />
+                    <small class="form-help">Use the exact retail name shoppers will see.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="productSku">SKU <span class="required">*</span></label>
+                    <input id="productSku" class="form-control" type="text" required placeholder="e.g. MH-FAB-104" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="productCategory">Category <span class="required">*</span></label>
+                    <select id="productCategory" class="form-select" required>
+                        <option value="">Select category</option>
+                        <option>Fashion</option>
+                        <option>Beauty</option>
+                        <option>Home</option>
+                        <option>Electronics</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="productDescription">Description</label>
+                    <textarea id="productDescription" class="form-textarea" placeholder="Add a product summary, material details or style notes"></textarea>
+                </div>
+            </div>
+
+            <div class="form-column">
+                <div class="form-group">
+                    <label class="form-label" for="retailPrice">Retail price <span class="required">*</span></label>
+                    <input id="retailPrice" class="form-control" type="number" min="0" step="0.01" required placeholder="0.00" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="costPrice">Cost price</label>
+                    <input id="costPrice" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="stockQty">Stock quantity <span class="required">*</span></label>
+                    <input id="stockQty" class="form-control" type="number" min="0" required placeholder="0" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="reorderLevel">Reorder level</label>
+                    <input id="reorderLevel" class="form-control" type="number" min="0" placeholder="0" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="productImage">Product image</label>
+                    <input id="productImage" class="form-control" type="file" accept="image/*" />
+                    <div class="image-preview-box" id="imagePreviewBox" aria-live="polite">
+                        <span>No image selected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="reset" class="btn btn-secondary">Reset</button>
+            <button type="submit" class="btn btn-primary">Save product</button>
+        </div>
+
+        <div id="productFormMessage" class="alert alert-success" hidden role="status" aria-live="polite"></div>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/products/add.js' %}"></script>
+{% endblock %}

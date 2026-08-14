@@ -1,0 +1,91 @@
+/* =========================================================
+   MADAM HY - PRODUCT CATEGORIES
+   ========================================================= */
+
+.categories-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.category-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    gap: 20px;
+}
+
+.category-form-card,
+.category-list-card {
+    padding: 20px;
+}
+
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+}
+
+.category-item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.category-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.06);
+}
+
+.category-name {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.category-meta {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.category-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.icon-button:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+@media (max-width: 840px) {
+    .category-layout {
+        grid-template-columns: 1fr;
+    }
+}
