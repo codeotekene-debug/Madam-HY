@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credits | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Credits
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/credits.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="credits-page">
+    <section class="credits-hero">
+        <div>
+            <span class="badge badge-primary">Accounts</span>
+            <h2>Customer credit</h2>
+            <p>Manage customer credit accounts, monitor balances, and track credit payments.</p>
+        </div>
+    </section>
+
+    <section class="credits-summary" aria-label="Credits summary">
+        <article class="summary-card">
+            <span>Total issued</span>
+            <strong id="totalCreditIssued">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Outstanding</span>
+            <strong id="totalOutstanding">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Overdue</span>
+            <strong id="totalOverdue">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Accounts</span>
+            <strong id="totalAccountsCount">0</strong>
+        </article>
+    </section>
+
+    <section class="card credits-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Credit accounts</h3>
+                <p>View and manage all customer credit accounts.</p>
+            </div>
+        </div>
+
+        <div class="credits-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="creditsSearch">Search credits</label>
+                <input id="creditsSearch" class="form-control" type="search" placeholder="Search by customer name or phone" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="creditsStatusFilter">Filter by status</label>
+                <select id="creditsStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Partially Paid">Partially Paid</option>
+                    <option value="Due">Due</option>
+                    <option value="Overdue">Overdue</option>
+                    <option value="Suspended">Suspended</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table credits-table">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Credit Limit</th>
+                        <th>Used</th>
+                        <th>Available</th>
+                        <th>Outstanding</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="creditsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="creditsEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No credit accounts match your filters</h3>
+            <p>Adjust the search terms or filters to view more accounts.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/credits/credits.js' %}"></script>
+{% endblock %}

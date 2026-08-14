@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credit Detail | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Credit Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="credit-detail-page">
+    <section class="credits-hero">
+        <div>
+            <span class="badge badge-primary">Account</span>
+            <h2>Credit detail</h2>
+            <p>Complete credit account information and payment history.</p>
+        </div>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3 id="detailCustomerName">Customer Name</h3>
+                    <p id="detailCustomerPhone">-</p>
+                </div>
+                <span id="detailCreditStatus" class="status-pill">Active</span>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <span class="detail-label">Credit Limit</span>
+                    <strong id="detailCreditLimit">₦ 0</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Amount Used</span>
+                    <strong id="detailAmountUsed">₦ 0</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Available Credit</span>
+                    <strong id="detailAvailableCredit">₦ 0</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Account Status</span>
+                    <strong id="detailAccountStatus">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4 class="section-title">Outstanding Balance</h4>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Total Issued</span>
+                        <strong id="detailTotalIssued">₦ 0</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Total Paid</span>
+                        <strong id="detailTotalPaid">₦ 0</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Outstanding Balance</span>
+                        <strong id="detailOutstanding" class="outstanding-amount">₦ 0</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Due Date</span>
+                        <strong id="detailDueDate">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4 class="section-title">Overdue Information</h4>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Overdue Amount</span>
+                        <strong id="detailOverdueAmount" class="overdue-amount">₦ 0</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Days Overdue</span>
+                        <strong id="detailDaysOverdue">0 days</strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <aside class="card detail-transactions-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Recent transactions</h3>
+                    <p>Latest credit and payment activity.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailTransactionsBody"></tbody>
+                </table>
+            </div>
+
+            <div class="detail-actions">
+                <a href="/credits/payment/" class="btn btn-primary">Record Payment</a>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/credits/detail.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credit Payment | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Credit Payment
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/payment.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="credit-payment-page">
+    <section class="credits-hero">
+        <div>
+            <span class="badge badge-primary">Payment</span>
+            <h2>Record credit payment</h2>
+            <p>Process a credit payment from a customer and update their account.</p>
+        </div>
+    </section>
+
+    <section class="payment-layout">
+        <article class="card payment-form-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Payment details</h3>
+                    <p>Enter payment information to process credit payment.</p>
+                </div>
+            </div>
+
+            <form id="creditPaymentForm" class="payment-form">
+                <div class="form-group">
+                    <label for="paymentCustomer" class="form-label">Customer</label>
+                    <select id="paymentCustomer" class="form-select" required>
+                        <option value="">Select customer</option>
+                        <option value="aisha-bello">Aisha Bello</option>
+                        <option value="musa-adamu">Musa Adamu</option>
+                        <option value="grace-nnaji">Grace Nnaji</option>
+                        <option value="emeka-ibe">Emeka Ibe</option>
+                        <option value="zainab-hassan">Zainab Hassan</option>
+                        <option value="james-obi">James Obi</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="paymentMethod" class="form-label">Payment Method</label>
+                    <select id="paymentMethod" class="form-select" required>
+                        <option value="">Select method</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Transfer">Bank Transfer</option>
+                        <option value="Card">Card</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="paymentAmount" class="form-label">Payment Amount (₦)</label>
+                    <input id="paymentAmount" class="form-control" type="number" placeholder="0" min="0" step="100" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="paymentReference" class="form-label">Reference / Receipt</label>
+                    <input id="paymentReference" class="form-control" type="text" placeholder="E.g. bank receipt number or cash ref" />
+                </div>
+
+                <div class="form-group">
+                    <label for="paymentNotes" class="form-label">Notes</label>
+                    <textarea id="paymentNotes" class="form-control" placeholder="Optional payment notes" rows="3"></textarea>
+                </div>
+
+                <div id="formError" class="form-error hidden"></div>
+
+                <button type="submit" class="btn btn-primary btn-full">Process Payment</button>
+            </form>
+        </article>
+
+        <aside class="card payment-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Summary</h3>
+                    <p>Payment preview and balance update.</p>
+                </div>
+            </div>
+
+            <div class="summary-info">
+                <div class="info-row">
+                    <span>Selected Customer</span>
+                    <strong id="summaryCustomer">-</strong>
+                </div>
+                <div class="info-row">
+                    <span>Current Balance</span>
+                    <strong id="summaryCurrentBalance">₦ 0</strong>
+                </div>
+                <div class="info-row">
+                    <span>Payment Amount</span>
+                    <strong id="summaryPaymentAmount">₦ 0</strong>
+                </div>
+                <div class="info-row border-top">
+                    <span>Remaining Balance</span>
+                    <strong id="summaryRemainingBalance">₦ 0</strong>
+                </div>
+            </div>
+
+            <div id="successMessage" class="success-message hidden">
+                <div class="success-icon">✓</div>
+                <h4>Payment recorded</h4>
+                <p>The credit payment has been successfully processed.</p>
+                <a href="/credits/" class="btn btn-primary btn-full">Back to Credits</a>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/credits/payment.js' %}"></script>
+{% endblock %}
