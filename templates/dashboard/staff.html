@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Staff Dashboard | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Staff Dashboard
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/dashboard/staff.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="staff-dashboard">
+    <section class="staff-hero" aria-labelledby="staffDashboardTitle">
+        <div>
+            <span class="badge badge-primary">Operations</span>
+            <h2 id="staffDashboardTitle">Shop work queue</h2>
+            <p>
+                Track assigned shop tasks, customer requests, stock attention,
+                and handover notes without exposing owner-only business analytics.
+            </p>
+        </div>
+
+        <div class="staff-shift-card" aria-label="Current shift">
+            <span>Current shift</span>
+            <strong id="staffShiftDate">-</strong>
+        </div>
+    </section>
+
+    <section class="staff-metrics" aria-label="Operational summary">
+        <article class="staff-metric-card">
+            <span>Open tasks</span>
+            <strong id="openTasks">0</strong>
+            <small>Assigned today</small>
+        </article>
+
+        <article class="staff-metric-card">
+            <span>Orders to prepare</span>
+            <strong id="ordersToPrepare">0</strong>
+            <small>Pickup and delivery</small>
+        </article>
+
+        <article class="staff-metric-card">
+            <span>Low-stock checks</span>
+            <strong id="stockChecks">0</strong>
+            <small>Needs shelf review</small>
+        </article>
+
+        <article class="staff-metric-card">
+            <span>Requests to review</span>
+            <strong id="requestsToReview">0</strong>
+            <small>Customer sourcing</small>
+        </article>
+    </section>
+
+    <section class="staff-layout">
+        <article class="staff-card staff-task-card">
+            <div class="staff-card-header">
+                <div>
+                    <h3>Assigned Tasks</h3>
+                    <p>Operational work prepared for role permissions.</p>
+                </div>
+
+                <select
+                    class="staff-filter"
+                    id="taskFilter"
+                    aria-label="Filter assigned tasks"
+                >
+                    <option value="all">All tasks</option>
+                    <option value="priority">Priority</option>
+                    <option value="stock">Stock</option>
+                    <option value="orders">Orders</option>
+                    <option value="requests">Requests</option>
+                </select>
+            </div>
+
+            <div class="staff-task-list" id="staffTaskList"></div>
+        </article>
+
+        <article class="staff-card">
+            <div class="staff-card-header">
+                <div>
+                    <h3>Quick Actions</h3>
+                    <p>Frontend placeholders for common shop work.</p>
+                </div>
+            </div>
+
+            <div class="staff-action-grid">
+                <button type="button" class="staff-action" data-staff-action>
+                    <span>POS</span>
+                    <strong>Open sale</strong>
+                </button>
+
+                <button type="button" class="staff-action" data-staff-action>
+                    <span>Stock</span>
+                    <strong>Check item</strong>
+                </button>
+
+                <button type="button" class="staff-action" data-staff-action>
+                    <span>Order</span>
+                    <strong>Prepare pickup</strong>
+                </button>
+
+                <button type="button" class="staff-action" data-staff-action>
+                    <span>Request</span>
+                    <strong>Review product</strong>
+                </button>
+            </div>
+
+            <div
+                class="alert alert-info staff-message"
+                id="staffMessage"
+                role="status"
+                aria-live="polite"
+                hidden
+            ></div>
+        </article>
+
+        <article class="staff-card staff-orders">
+            <div class="staff-card-header">
+                <div>
+                    <h3>Orders Needing Attention</h3>
+                    <p>Demo queue for customer and shop orders.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Work</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="staffOrdersTable"></tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="staff-card">
+            <div class="staff-card-header">
+                <div>
+                    <h3>Handover Notes</h3>
+                    <p>Frontend-only notes for shift continuity.</p>
+                </div>
+            </div>
+
+            <div class="handover-list" id="handoverList"></div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/dashboard/staff.js' %}"></script>
+{% endblock %}

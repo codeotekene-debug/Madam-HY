@@ -1,0 +1,358 @@
+/* =========================================================
+   MADAM HY - STAFF DASHBOARD
+   ========================================================= */
+
+.staff-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.staff-hero,
+.staff-card,
+.staff-metric-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.staff-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 22px;
+    background:
+        linear-gradient(135deg, var(--primary-light), rgba(255, 255, 255, 0.86)),
+        var(--surface);
+}
+
+.staff-hero h2 {
+    margin-top: 10px;
+    color: var(--text);
+    font-size: 25px;
+    font-weight: 780;
+}
+
+.staff-hero p {
+    max-width: 760px;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.staff-shift-card {
+    min-width: 170px;
+    padding: 13px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    text-align: right;
+}
+
+.staff-shift-card span,
+.staff-shift-card strong {
+    display: block;
+}
+
+.staff-shift-card span {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.staff-shift-card strong {
+    margin-top: 4px;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.staff-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.staff-metric-card {
+    padding: 18px;
+}
+
+.staff-metric-card span,
+.staff-metric-card strong,
+.staff-metric-card small {
+    display: block;
+}
+
+.staff-metric-card span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.staff-metric-card strong {
+    margin-top: 12px;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.staff-metric-card small {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.staff-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+    gap: 20px;
+}
+
+.staff-card {
+    padding: 20px;
+}
+
+.staff-orders {
+    grid-column: span 1;
+}
+
+.staff-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.staff-card-header h3 {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 750;
+}
+
+.staff-card-header p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.staff-filter {
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.staff-filter:focus,
+.staff-action:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.staff-task-list,
+.handover-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.staff-task {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background);
+}
+
+.staff-task strong,
+.staff-task small,
+.staff-note strong,
+.staff-note small {
+    display: block;
+}
+
+.staff-task strong,
+.staff-note strong {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.staff-task small,
+.staff-note small {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.staff-task em {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 750;
+}
+
+.staff-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.staff-action {
+    min-height: 86px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+}
+
+.staff-action:hover {
+    border-color: var(--primary);
+}
+
+.staff-action span,
+.staff-action strong {
+    display: block;
+}
+
+.staff-action span {
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.staff-action strong {
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+.staff-message {
+    margin-top: 14px;
+}
+
+.staff-note {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.staff-note:last-child {
+    border-bottom: 0;
+}
+
+.staff-empty-state {
+    min-height: 160px;
+}
+
+.status-badge {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.status-ready {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-pending {
+    background: #fff8df;
+    color: #9a6b00;
+}
+
+@media (max-width: 1100px) {
+
+    .staff-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .staff-layout {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 720px) {
+
+    .staff-hero,
+    .staff-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .staff-shift-card {
+        width: 100%;
+        text-align: left;
+    }
+
+    .staff-metrics,
+    .staff-action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-card {
+        padding: 15px;
+    }
+
+    .staff-task {
+        flex-direction: column;
+    }
+
+    .table-wrapper {
+        overflow: visible;
+        border: 0;
+    }
+
+    .table {
+        min-width: 0;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tr {
+        display: block;
+        margin-bottom: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+    }
+
+    .table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .table td[colspan] {
+        display: block;
+    }
+
+    .table td[colspan]::before {
+        content: none;
+    }
+
+}
