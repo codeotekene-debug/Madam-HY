@@ -1,0 +1,149 @@
+/* =========================================================
+   MADAM HY - GROWTH REPORT
+   ========================================================= */
+
+.report-summary {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.summary-card {
+    padding: 18px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-card span,
+.summary-card strong {
+    display: block;
+}
+
+.summary-card span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.summary-card strong {
+    margin-top: 12px;
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.report-panel {
+    padding: 20px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.panel-header h3 {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.panel-header p {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.growth-chart {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+    min-height: 220px;
+}
+
+.growth-point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: end;
+    gap: 8px;
+    min-height: 180px;
+}
+
+.growth-bar {
+    width: 100%;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: linear-gradient(180deg, var(--primary) 0%, rgba(8, 122, 61, 0.5) 100%);
+    min-height: 36px;
+    box-shadow: var(--shadow-sm);
+}
+
+.growth-point span {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.growth-list,
+.note-list {
+    display: grid;
+    gap: 12px;
+}
+
+.growth-item,
+.note-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: rgba(8, 122, 61, 0.02);
+}
+
+.growth-item strong,
+.note-item strong {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.growth-item span,
+.note-item span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+@media (max-width: 980px) {
+    .report-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .report-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .report-summary {
+        grid-template-columns: 1fr;
+    }
+}

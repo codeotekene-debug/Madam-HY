@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Sales Report | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Sales Report
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/reports/sales.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="report-page">
+    <section class="report-hero">
+        <div>
+            <span class="badge badge-primary">Sales</span>
+            <h2>Sales report</h2>
+            <p>Track revenue performance, transaction volume, payment mix, and sales activity across the selected period.</p>
+        </div>
+    </section>
+
+    <section class="report-summary" aria-label="Sales summary cards">
+        <article class="summary-card">
+            <span>Total sales</span>
+            <strong id="salesTotal">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Transactions</span>
+            <strong id="salesTransactions">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Avg. transaction</span>
+            <strong id="salesAverage">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Growth</span>
+            <strong id="salesGrowth">+0.0%</strong>
+        </article>
+    </section>
+
+    <section class="card report-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Filter sales report</h3>
+                <p>Review the selected reporting range and compare performance.</p>
+            </div>
+        </div>
+
+        <div class="report-toolbar">
+            <div class="date-filters">
+                <button type="button" class="range-button active" data-range="month">This month</button>
+                <button type="button" class="range-button" data-range="quarter">Quarter</button>
+                <button type="button" class="range-button" data-range="year">Year</button>
+            </div>
+
+            <div class="filter-controls">
+                <label class="visually-hidden" for="salesMethodFilter">Filter by payment method</label>
+                <select id="salesMethodFilter" class="form-select">
+                    <option value="all">All payment methods</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="Transfer">Transfer</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-grid">
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Sales trend</h3>
+                    <p>Revenue by date.</p>
+                </div>
+            </div>
+            <div class="bars-plot" id="salesTrendChart"></div>
+        </article>
+
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Payment mix</h3>
+                    <p>Contribution by payment channel.</p>
+                </div>
+            </div>
+            <div class="payment-mix" id="salesPaymentMix"></div>
+        </article>
+    </section>
+
+    <section class="card report-panel report-table-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Sales detail</h3>
+                <p>Recent transactions and value by period.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice</th>
+                        <th>Payment</th>
+                        <th>Customer</th>
+                        <th>Revenue</th>
+                        <th>Items</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="salesEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No sales match the selected filters</h3>
+            <p>Adjust the date or payment filters to review more sales data.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/reports/sales.js' %}"></script>
+{% endblock %}

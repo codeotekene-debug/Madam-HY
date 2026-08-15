@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Reports Overview | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Reports
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/reports/reports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="report-page">
+    <section class="report-hero">
+        <div>
+            <span class="badge badge-primary">Overview</span>
+            <h2>Business reports</h2>
+            <p>Monitor sales trends, profit health, expenses, and growth performance across the current operating period.</p>
+        </div>
+        <div class="report-actions">
+            <button type="button" class="btn btn-secondary">Download report</button>
+            <a href="/reports/sales/" class="btn btn-primary">Open sales report</a>
+        </div>
+    </section>
+
+    <section class="report-summary" aria-label="Reports overview summary">
+        <article class="summary-card">
+            <span>Total sales</span>
+            <strong id="overviewTotalSales">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Total expenses</span>
+            <strong id="overviewTotalExpenses">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Gross profit</span>
+            <strong id="overviewGrossProfit">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Net profit</span>
+            <strong id="overviewNetProfit">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Transactions</span>
+            <strong id="overviewTransactions">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Average order value</span>
+            <strong id="overviewAov">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="report-toolbar">
+        <div class="range-switcher" aria-label="Select report range">
+            <button type="button" class="range-button active" data-range="month">This month</button>
+            <button type="button" class="range-button" data-range="quarter">Quarter</button>
+            <button type="button" class="range-button" data-range="year">Year</button>
+        </div>
+        <div class="report-meta">
+            <span>Compared with previous period</span>
+            <strong id="overviewComparison">+0.0%</strong>
+        </div>
+    </section>
+
+    <section class="report-grid">
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Revenue trend</h3>
+                    <p>Sales momentum across the selected period.</p>
+                </div>
+            </div>
+
+            <div class="chart-bars" id="overviewChart" aria-label="Revenue chart">
+                <div class="chart-bar" style="--value: 42%"><span>Jan</span></div>
+                <div class="chart-bar" style="--value: 58%"><span>Feb</span></div>
+                <div class="chart-bar" style="--value: 65%"><span>Mar</span></div>
+                <div class="chart-bar" style="--value: 72%"><span>Apr</span></div>
+                <div class="chart-bar" style="--value: 84%"><span>May</span></div>
+                <div class="chart-bar" style="--value: 96%"><span>Jun</span></div>
+            </div>
+        </article>
+
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Key highlights</h3>
+                    <p>High-impact business signals.</p>
+                </div>
+            </div>
+
+            <div class="kpi-list">
+                <div class="kpi-item">
+                    <span>Top category</span>
+                    <strong id="overviewTopCategory">-</strong>
+                </div>
+                <div class="kpi-item">
+                    <span>Expense ratio</span>
+                    <strong id="overviewExpenseRatio">0%</strong>
+                </div>
+                <div class="kpi-item">
+                    <span>Profit margin</span>
+                    <strong id="overviewProfitMargin">0%</strong>
+                </div>
+                <div class="kpi-item">
+                    <span>Customer growth</span>
+                    <strong id="overviewCustomerGrowth">+0.0%</strong>
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <section class="card report-panel report-table-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Recent performance</h3>
+                <p>Latest operating snapshot for manager review.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table report-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Current</th>
+                        <th>Previous</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody id="overviewTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/reports/reports.js' %}"></script>
+{% endblock %}

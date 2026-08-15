@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Expense Report | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Expense Report
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/reports/expense.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="report-page">
+    <section class="report-hero">
+        <div>
+            <span class="badge badge-primary">Expenses</span>
+            <h2>Expense report</h2>
+            <p>Review business spending by category, compare trends, and identify the highest cost areas.</p>
+        </div>
+    </section>
+
+    <section class="report-summary" aria-label="Expense summary cards">
+        <article class="summary-card">
+            <span>Total expenses</span>
+            <strong id="expenseTotal">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Monthly average</span>
+            <strong id="expenseAverage">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Top category</span>
+            <strong id="expenseTopCategory">-</strong>
+        </article>
+        <article class="summary-card">
+            <span>Growth</span>
+            <strong id="expenseGrowth">+0.0%</strong>
+        </article>
+    </section>
+
+    <section class="report-grid">
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Expense trend</h3>
+                    <p>Monthly expense movement.</p>
+                </div>
+            </div>
+            <div class="bars-plot" id="expenseTrendChart"></div>
+        </article>
+
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Category breakdown</h3>
+                    <p>Share of expenses by category.</p>
+                </div>
+            </div>
+            <div class="category-list" id="expenseCategoryList"></div>
+        </article>
+    </section>
+
+    <section class="card report-panel report-table-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Expense detail</h3>
+                <p>Recent expense records for review.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table report-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Vendor</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="expenseEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No expense records found</h3>
+            <p>Try a wider date range to review all expense activity.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/reports/expense.js' %}"></script>
+{% endblock %}

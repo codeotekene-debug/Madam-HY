@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Profit Report | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Profit Report
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/reports/profit.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="report-page">
+    <section class="report-hero">
+        <div>
+            <span class="badge badge-primary">Profit</span>
+            <h2>Profit report</h2>
+            <p>Analyse revenue, cost, operating expenses, and net profit to understand business performance.</p>
+        </div>
+    </section>
+
+    <section class="report-summary" aria-label="Profit summary cards">
+        <article class="summary-card">
+            <span>Revenue</span>
+            <strong id="profitRevenue">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Cost of sales</span>
+            <strong id="profitCost">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Gross profit</span>
+            <strong id="profitGross">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Operating expenses</span>
+            <strong id="profitExpenses">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Net profit</span>
+            <strong id="profitNet">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Profit margin</span>
+            <strong id="profitMargin">0%</strong>
+        </article>
+    </section>
+
+    <section class="card report-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Profit trend</h3>
+                <p>Movement of profit and expense across the period.</p>
+            </div>
+        </div>
+        <div class="trend-grid" id="profitTrendChart"></div>
+    </section>
+
+    <section class="card report-panel report-table-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Profit breakdown</h3>
+                <p>Key account components for the selected reporting period.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table report-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Current</th>
+                        <th>Previous</th>
+                        <th>Variance</th>
+                    </tr>
+                </thead>
+                <tbody id="profitTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/reports/profit.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Growth Report | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Growth Report
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/reports/growth.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="report-page">
+    <section class="report-hero">
+        <div>
+            <span class="badge badge-primary">Growth</span>
+            <h2>Growth report</h2>
+            <p>Compare sales, customer, order, and profit growth across the selected reporting period.</p>
+        </div>
+    </section>
+
+    <section class="report-summary" aria-label="Growth summary cards">
+        <article class="summary-card">
+            <span>Sales growth</span>
+            <strong id="growthSales">+0.0%</strong>
+        </article>
+        <article class="summary-card">
+            <span>Revenue growth</span>
+            <strong id="growthRevenue">+0.0%</strong>
+        </article>
+        <article class="summary-card">
+            <span>Customer growth</span>
+            <strong id="growthCustomers">+0.0%</strong>
+        </article>
+        <article class="summary-card">
+            <span>Order growth</span>
+            <strong id="growthOrders">+0.0%</strong>
+        </article>
+        <article class="summary-card">
+            <span>Profit growth</span>
+            <strong id="growthProfit">+0.0%</strong>
+        </article>
+        <article class="summary-card">
+            <span>Avg. monthly growth</span>
+            <strong id="growthAverage">+0.0%</strong>
+        </article>
+    </section>
+
+    <section class="card report-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Growth trend</h3>
+                <p>Performance trajectory over the last six months.</p>
+            </div>
+        </div>
+        <div class="growth-chart" id="growthChart"></div>
+    </section>
+
+    <section class="report-grid">
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Growth drivers</h3>
+                    <p>Primary contributors to expansion.</p>
+                </div>
+            </div>
+
+            <div class="growth-list" id="growthDrivers"></div>
+        </article>
+
+        <article class="card report-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Performance notes</h3>
+                    <p>Signals from the current period.</p>
+                </div>
+            </div>
+
+            <div class="note-list" id="growthNotes"></div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/reports/growth.js' %}"></script>
+{% endblock %}
