@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Requests | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Requests
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/requests/requests.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="requests-page">
+    <section class="requests-hero">
+        <div>
+            <span class="badge badge-primary">Operations</span>
+            <h2>Request management</h2>
+            <p>Review incoming customer and staff requests, track priorities, and follow up on the latest updates.</p>
+        </div>
+
+        <div class="requests-actions">
+            <a href="/requests/create/" class="btn btn-primary">Create request</a>
+        </div>
+    </section>
+
+    <section class="requests-summary" aria-label="Requests summary">
+        <article class="summary-card">
+            <span>Total requests</span>
+            <strong id="totalRequestsCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Pending</span>
+            <strong id="pendingRequestsCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>In review</span>
+            <strong id="inReviewRequestsCount">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Urgent</span>
+            <strong id="urgentRequestsCount">0</strong>
+        </article>
+    </section>
+
+    <section class="card requests-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Request queue</h3>
+                <p>Search, sort, and filter the active request backlog.</p>
+            </div>
+        </div>
+
+        <div class="requests-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="requestsSearch">Search requests</label>
+                <input id="requestsSearch" class="form-control" type="search" placeholder="Search by ID, customer, subject or staff" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="requestsStatusFilter">Filter by status</label>
+                <select id="requestsStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Review">In Review</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+
+                <label class="visually-hidden" for="requestsPriorityFilter">Filter by priority</label>
+                <select id="requestsPriorityFilter" class="form-select">
+                    <option value="all">All priorities</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+
+                <label class="visually-hidden" for="requestsTypeFilter">Filter by type</label>
+                <select id="requestsTypeFilter" class="form-select">
+                    <option value="all">All types</option>
+                    <option value="Product Request">Product Request</option>
+                    <option value="Customer Support">Customer Support</option>
+                    <option value="Inventory Issue">Inventory Issue</option>
+                    <option value="Payment Concern">Payment Concern</option>
+                    <option value="Order Follow-up">Order Follow-up</option>
+                </select>
+
+                <label class="visually-hidden" for="requestsSort">Sort requests</label>
+                <select id="requestsSort" class="form-select">
+                    <option value="updated-desc">Newest update</option>
+                    <option value="updated-asc">Oldest update</option>
+                    <option value="priority-desc">Priority: High to Low</option>
+                    <option value="title-asc">Title A-Z</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table requests-table">
+                <thead>
+                    <tr>
+                        <th>Request</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Assigned</th>
+                        <th>Updated</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="requestsLoadingState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>Loading requests</h3>
+            <p>Please wait while the request queue is refreshed.</p>
+        </div>
+
+        <div id="requestsEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No requests match the filters</h3>
+            <p>Adjust the search terms or filters to view more requests.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/requests/requests.js' %}"></script>
+{% endblock %}

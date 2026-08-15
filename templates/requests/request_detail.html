@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Request Detail | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Request Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/requests/detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="request-detail-page">
+    <section class="request-detail-hero">
+        <div>
+            <span class="badge badge-primary">Request</span>
+            <h2 id="detailTitle">Request title</h2>
+            <p id="detailSubtitle">Loading request details</p>
+        </div>
+
+        <div class="request-detail-actions">
+            <button type="button" class="btn btn-secondary" id="requestActionReview">Mark in review</button>
+            <button type="button" class="btn btn-primary" id="requestActionApprove">Approve</button>
+        </div>
+    </section>
+
+    <section class="request-summary-grid" aria-label="Request summary details">
+        <article class="summary-card">
+            <span>Reference</span>
+            <strong id="detailReference">-</strong>
+        </article>
+        <article class="summary-card">
+            <span>Priority</span>
+            <strong id="detailPriority">-</strong>
+        </article>
+        <article class="summary-card">
+            <span>Status</span>
+            <strong id="detailStatus">-</strong>
+        </article>
+        <article class="summary-card">
+            <span>Assigned</span>
+            <strong id="detailAssignee">-</strong>
+        </article>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Request overview</h3>
+                    <p>Full request context and response notes.</p>
+                </div>
+            </div>
+
+            <div class="detail-meta-grid">
+                <div class="meta-item">
+                    <span>Customer</span>
+                    <strong id="detailCustomer">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Type</span>
+                    <strong id="detailType">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Created</span>
+                    <strong id="detailCreated">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Updated</span>
+                    <strong id="detailUpdated">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Description</h4>
+                <p id="detailDescription">-</p>
+            </div>
+
+            <div class="detail-section">
+                <h4>Notes</h4>
+                <p id="detailNotes">-</p>
+            </div>
+        </article>
+
+        <aside class="card detail-sidebar">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Activity timeline</h3>
+                    <p>Request history and updates.</p>
+                </div>
+            </div>
+
+            <div id="detailTimeline" class="timeline-list"></div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/requests/detail.js' %}"></script>
+{% endblock %}

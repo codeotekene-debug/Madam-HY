@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Create Request | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Create Request
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/requests/create.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="request-form-page">
+    <section class="request-form-hero">
+        <div>
+            <span class="badge badge-primary">New request</span>
+            <h2>Submit a request</h2>
+            <p>Capture the issue, request category, urgency, and customer context for follow-up by the shop team.</p>
+        </div>
+    </section>
+
+    <section class="card request-form-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Request details</h3>
+                <p>Frontend-only form preview for the next request workflow.</p>
+            </div>
+        </div>
+
+        <form id="requestForm" class="request-form" novalidate>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="requestType" class="form-label">Request type</label>
+                    <select id="requestType" class="form-select" required>
+                        <option value="">Select type</option>
+                        <option value="Product Request">Product Request</option>
+                        <option value="Customer Support">Customer Support</option>
+                        <option value="Inventory Issue">Inventory Issue</option>
+                        <option value="Payment Concern">Payment Concern</option>
+                        <option value="Order Follow-up">Order Follow-up</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="requestPriority" class="form-label">Priority</label>
+                    <select id="requestPriority" class="form-select" required>
+                        <option value="">Select priority</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="requestTitle" class="form-label">Title</label>
+                    <input id="requestTitle" class="form-control" type="text" placeholder="Briefly describe the request" required />
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="requestCustomer" class="form-label">Requester</label>
+                    <select id="requestCustomer" class="form-select" required>
+                        <option value="">Select customer or staff</option>
+                        <option value="Aisha Bello">Aisha Bello</option>
+                        <option value="Musa Adamu">Musa Adamu</option>
+                        <option value="Grace Nnaji">Grace Nnaji</option>
+                        <option value="Emeka Ibe">Emeka Ibe</option>
+                        <option value="Staff - Mary James">Staff - Mary James</option>
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="requestDescription" class="form-label">Description</label>
+                    <textarea id="requestDescription" class="form-control textarea-control" rows="6" placeholder="Describe the issue, requirement, or request in detail" required></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="requestNotes" class="form-label">Optional notes</label>
+                    <textarea id="requestNotes" class="form-control textarea-control" rows="4" placeholder="Add any context or follow-up instructions"></textarea>
+                </div>
+            </div>
+
+            <div id="requestFormError" class="form-alert form-alert-error hidden" role="alert"></div>
+            <div id="requestFormSuccess" class="form-alert form-alert-success hidden" role="status"></div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="requestCancelBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit request</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/requests/create.js' %}"></script>
+{% endblock %}
