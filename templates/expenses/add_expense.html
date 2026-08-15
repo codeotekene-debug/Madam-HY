@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Add Expense | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Add Expense
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/expenses/add.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="add-expense-page">
+    <section class="expenses-hero">
+        <div>
+            <span class="badge badge-primary">New Record</span>
+            <h2>Add expense</h2>
+            <p>Record a new business expense and categorize it for tracking and reporting.</p>
+        </div>
+    </section>
+
+    <section class="add-layout">
+        <article class="card add-form-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Expense details</h3>
+                    <p>Enter the expense information below to record it in the system.</p>
+                </div>
+            </div>
+
+            <form id="addExpenseForm" class="add-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expenseDate" class="form-label">Date</label>
+                        <input id="expenseDate" class="form-control" type="date" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseCategory" class="form-label">Category</label>
+                        <select id="expenseCategory" class="form-select" required>
+                            <option value="">Select category</option>
+                            <option value="Rent">Rent</option>
+                            <option value="Utilities">Utilities</option>
+                            <option value="Supplies">Supplies</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Salaries">Salaries</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expenseAmount" class="form-label">Amount (₦)</label>
+                        <input id="expenseAmount" class="form-control" type="number" placeholder="0" min="0" step="100" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="expensePaymentMethod" class="form-label">Payment Method</label>
+                        <select id="expensePaymentMethod" class="form-select" required>
+                            <option value="">Select method</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Transfer">Bank Transfer</option>
+                            <option value="Card">Card</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="expenseVendor" class="form-label">Vendor / Supplier</label>
+                    <input id="expenseVendor" class="form-control" type="text" placeholder="E.g. ABC Supplies Ltd" />
+                </div>
+
+                <div class="form-group">
+                    <label for="expenseDescription" class="form-label">Description</label>
+                    <textarea id="expenseDescription" class="form-control" placeholder="Describe the expense in detail" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="expenseReference" class="form-label">Reference / Receipt #</label>
+                    <input id="expenseReference" class="form-control" type="text" placeholder="E.g. invoice or receipt number" />
+                </div>
+
+                <div id="formError" class="form-error hidden"></div>
+
+                <button type="submit" class="btn btn-primary btn-full">Record Expense</button>
+            </form>
+        </article>
+
+        <aside class="card add-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Summary</h3>
+                    <p>Expense preview and details.</p>
+                </div>
+            </div>
+
+            <div class="summary-info">
+                <div class="info-row">
+                    <span>Date</span>
+                    <strong id="summaryDate">-</strong>
+                </div>
+                <div class="info-row">
+                    <span>Category</span>
+                    <strong id="summaryCategory">-</strong>
+                </div>
+                <div class="info-row">
+                    <span>Amount</span>
+                    <strong id="summaryAmount">₦ 0</strong>
+                </div>
+                <div class="info-row">
+                    <span>Payment Method</span>
+                    <strong id="summaryMethod">-</strong>
+                </div>
+                <div class="info-row">
+                    <span>Vendor</span>
+                    <strong id="summaryVendor">-</strong>
+                </div>
+            </div>
+
+            <div id="successMessage" class="success-message hidden">
+                <div class="success-icon">✓</div>
+                <h4>Expense recorded</h4>
+                <p>The expense has been successfully added to the system.</p>
+                <a href="/expenses/" class="btn btn-primary btn-full">Back to Expenses</a>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/expenses/add.js' %}"></script>
+{% endblock %}

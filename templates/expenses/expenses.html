@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Expenses | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Expenses
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/expenses/expenses.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="expenses-page">
+    <section class="expenses-hero">
+        <div>
+            <span class="badge badge-primary">Finance</span>
+            <h2>Business expenses</h2>
+            <p>Track and manage all business expenses, monitor spending by category, and view expense history.</p>
+        </div>
+        <a href="/expenses/add/" class="btn btn-primary">Add Expense</a>
+    </section>
+
+    <section class="expenses-summary" aria-label="Expenses summary">
+        <article class="summary-card">
+            <span>Total expenses</span>
+            <strong id="totalExpenses">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>This month</span>
+            <strong id="monthExpenses">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>This year</span>
+            <strong id="yearExpenses">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Top category</span>
+            <strong id="topCategory">-</strong>
+        </article>
+    </section>
+
+    <section class="card expenses-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Expense records</h3>
+                <p>View all business expenses with detailed breakdown.</p>
+            </div>
+        </div>
+
+        <div class="expenses-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="expensesSearch">Search expenses</label>
+                <input id="expensesSearch" class="form-control" type="search" placeholder="Search by description or category" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="expensesCategoryFilter">Filter by category</label>
+                <select id="expensesCategoryFilter" class="form-select">
+                    <option value="all">All categories</option>
+                    <option value="Rent">Rent</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Supplies">Supplies</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Salaries">Salaries</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table expenses-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Vendor</th>
+                        <th>Reference</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="expensesTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="expensesEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No expenses match your filters</h3>
+            <p>Adjust the search terms or filters to view more expenses.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/expenses/expenses.js' %}"></script>
+{% endblock %}
