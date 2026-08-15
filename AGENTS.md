@@ -1,701 +1,689 @@
-# MADAM HY — Codex Project Instructions
-
-## 1. PROJECT OVERVIEW
-
-This is MADAM HY, a Django-based shop management and customer shopping
-system for a physical retail business.
-
-The system serves both:
-
-- The physical shop
-- Customers who want to shop online or request products that are not
-  currently available in the shop
-
-The project uses:
-
-- Python
-- Django
-- MySQL
-- HTML
-- CSS
-- JavaScript
-- AJAX
-- Django templates
-
-The frontend is designed for:
-
-- Desktop
-- Tablet
-- Mobile
-
-The visual identity is based primarily on GREEN because the business
-owner prefers green.
-
-Business name:
-
-MADAM HY
 
 
---------------------------------------------------
-## 2. VERY IMPORTANT — EXISTING ARCHITECTURE
---------------------------------------------------
+Pasted markdown(1).md
+File
 
-DO NOT redesign or replace the existing project architecture.
 
-The project already has an established folder and file structure.
+Pasted markdown(2).md
+File
+
+Pasted markdown (2).md
+File
+is not time to update agent.md
+## Backend Documentation Result
+
+The official backend architecture document has been created/updated in MADAM_HY_BACKEND.md based strictly on the repository state and the required backend boundaries.
+
+## File
+
+- MADAM_HY_BACKEND.md
+
+## Sections Included
+
+- Project Overview
+- Architecture Principles
+- Business Rules
+- Roles and Access
+- Backend Modules
+- Current Implementation Status
+- Database Design Principles
+- Product Boundary
+- Inventory Boundary
+- Sales / POS Boundary
+- Orders Boundary
+- Payments Boundary
+- Credits Boundary
+- Expenses Boundary
+- Requests Boundary
+- Reports Boundary
+- Activity Logs
+- Notifications
+- Migration Safety
+- Testing Requirements
+- Backend Development Roadmap
+- Phase Rules
+- Current Repository State
+- Summary
+
+## Current Backend Status
+
+- Accounts: COMPLETE
+- Products: COMPLETE
+- Inventory: NEXT
+- Sales/POS: PLANNED
+- Orders: PLANNED
+- Payments: PLANNED
+- Credits: PLANNED
+- Expenses: PLANNED
+- Requests: PLANNED
+- Reports: PLANNED
+- Notifications: PLANNED
+- Activity Logs: PLANNED
+- Customer backend integration: PLANNED
+
+## Next Backend Phase
+
+- Inventory Foundation — NEXT
+
+## Verification
+
+Verified by:
+- reading the repository’s current Accounts and Products implementations
+- reviewing AGENTS.md and MADAM_HY_FRONTEND.md
+- checking the current working tree with git status --short
+
+Evidence from the repo check showed the existing mixed/uncommitted state and confirmed the doc was the only file changed in this documentation task.
+
+Yes. That's actually better. You can copy and paste one prompt into Copilot, let it update only AGENTS.md, then bring me the result. I won't make you spend extra turns on unnecessary checks.
+
+Use this exact prompt:
+
+Update ONLY AGENTS.md.
+
+Do not modify any other file.
+Do not create any new file.
+Do not commit.
+Do not push.
+
+First read:
+- AGENTS.md
+- docs/MADAM_HY_FRONTEND.md
+- docs/MADAM_HY_BACKEND.md
+
+The actual repository is the source of truth.
+
+The project has now moved from the FRONTEND DEVELOPMENT phase to the BACKEND DEVELOPMENT phase.
+
+Update AGENTS.md so it accurately reflects this transition.
+
+IMPORTANT:
+Do not copy the entire contents of MADAM_HY_FRONTEND.md or MADAM_HY_BACKEND.md into AGENTS.md.
+
+AGENTS.md should remain the high-level instruction file for the entire project.
+
+It should reference the detailed documentation files instead.
+
+The documentation hierarchy should be:
+
+AGENTS.md
+→ project-wide rules and instructions
+
+docs/MADAM_HY_FRONTEND.md
+→ frontend-specific rules
+
+docs/MADAM_HY_BACKEND.md
+→ backend-specific rules and roadmap
+
+
+AGENTS.md must reflect these current facts:
+
+PROJECT:
+That's enough for this step. Don't ask Copilot to do anything else yet.
+
+Once it finishes, paste its response here. I'll tell you if anything important is missing before we start Inventory.
+
+
+waht i mean is you crating it so i can copy and paste it just tell me where to past it
+
+Ah, yes — I understand now. You want me to prepare the prompt, and you only want me to tell you where to paste it in Copilot, without having to figure out the placement yourself.
+
+For the prompt I gave you:
+
+Where to paste it
+Since you're using GitHub Copilot in VS Code:
+
+Open your smart_shop project in VS Code.
+
+Open Copilot Chat.
+
+Select Agent mode (not Ask/Edit mode).
+
+Paste the entire prompt into the Copilot Chat box.
+
+Send it.
+
+The prompt will tell Copilot to update only AGENTS.md.
+
+Important
+Because your repository has now moved into the backend phase, don't let Copilot start Inventory yet.
+
+First let it update AGENTS.md.
+
+Then send me Copilot's response here. I'll review it and, if anything is missing, I'll give you the next copy-and-paste prompt.
+
+We'll work like this from now on:
+
+Me → prepare exact prompt → You paste into Copilot Agent → Copilot works → You paste result here → I review → next prompt.
+
+That will save your Copilot usage and prevent unnecessary tasks.
+
+
+not the prompt the file it selfe
+
+Yes — this is the file itself.
+
+Where to put it
+Download the prepared file:
+
+
+Then in your project:
+
+smart_shop/
+├── AGENTS.md          ← replace/update this one
+├── docs/
+│   ├── MADAM_HY_FRONTEND.md
+│   └── MADAM_HY_BACKEND.md
+├── apps/
+├── config/
+├── templates/
+└── static/
+So put AGENTS.md in the root of your smart_shop project, at the same level as manage.py.
+
+Important
+Do not put it inside:
+
+apps/
+docs/
+config/
+templates/
+static/
+It should be:
+
+C:\Users\ADMIN\OneDrive\Desktop\smart_shop\AGENTS.md
+You can replace your current AGENTS.md with the file I prepared.
+
+After that, don't ask Copilot to do anything yet. Show me the current git status and we'll make sure the documentation change itself is safe before moving to the Inventory backend.
+
+
+Library
+/
+AGENTS.md
+
+
+MADAM HY — Project Instructions
+1. Project Overview
+MADAM HY is a Django-based retail/shop management and customer commerce system.
+
+Technology:
+
+Python
+
+Django
+
+MySQL
+
+Django ORM
+
+Django Templates
+
+HTML
+
+CSS
+
+JavaScript
+
+AJAX
+
+The repository is developed in clearly separated frontend and backend phases.
+
+2. Source of Truth
+The actual repository is the source of truth.
 
 Before making changes:
 
-1. Inspect the repository.
-2. Inspect the existing templates folder.
-3. Inspect the existing static folder.
-4. Inspect existing CSS files.
-5. Inspect existing JavaScript files.
-6. Inspect existing Django apps.
-7. Reuse existing files whenever possible.
+Inspect the existing repository.
 
-DO NOT create duplicate files.
+Read the relevant documentation.
 
-DO NOT create a second folder structure.
+Inspect the current implementation.
 
-DO NOT rename existing files unless explicitly instructed.
+Check git status.
 
-DO NOT move existing files unless explicitly instructed.
+Do not recreate existing architecture.
 
-DO NOT replace the existing architecture with a different architecture.
+If documentation conflicts with the repository:
 
-If a file already exists, modify it instead of creating another version.
+Inspect the code first.
 
+Identify the discrepancy.
 
---------------------------------------------------
-## 3. CURRENT DEVELOPMENT PHASE
---------------------------------------------------
+Preserve working architecture.
 
-The current development phase is:
+Report the discrepancy.
 
-FRONTEND PAGE DEVELOPMENT.
+Do not blindly overwrite existing work.
 
-The immediate goal is to complete the existing pages.
+Do not create duplicate files or folders.
 
-For this phase:
+Do not rename or move existing files unless explicitly instructed.
 
-FOCUS ON:
+3. Documentation
+Frontend
+Detailed frontend rules and architecture:
 
-- HTML
-- Django templates
-- CSS
-- responsive design
-- page JavaScript
-- UI interactions
+docs/MADAM_HY_FRONTEND.md
 
-DO NOT implement the complete backend yet.
+Backend
+Detailed backend architecture, business rules, module boundaries, database principles, testing requirements, and roadmap:
 
-DO NOT implement database-dependent functionality yet unless required
-for the page structure.
+docs/MADAM_HY_BACKEND.md
 
-DO NOT build the complete AJAX/API layer yet.
+AGENTS.md is the high-level project instruction file and should not unnecessarily duplicate those documents.
 
-DO NOT create unnecessary Django models.
+4. Current Development Phase
+FRONTEND
+COMPLETE
 
-DO NOT redesign the database architecture during frontend development.
+The completed frontend modules include:
 
+Accounts
 
---------------------------------------------------
-## 4. FRONTEND ARCHITECTURE
---------------------------------------------------
+Dashboard
 
-The project separates frontend responsibilities.
+Products
 
-The general architecture is:
+Inventory
 
-HTML
-↓
-Page CSS
-↓
-Page JavaScript
-↓
-AJAX JavaScript
-↓
-Django backend
-↓
-Database
+Sales/POS
 
+Orders
 
-### HTML
+Payments
 
-HTML/Django templates define:
+Credits
 
-- page structure
-- layout
-- content areas
-- forms
-- tables
-- buttons
-- cards
-- modals
-- navigation
+Expenses
 
+Reports
 
-### PAGE CSS
+Requests
 
-Page-specific styling belongs in the appropriate page CSS file.
+Customer
 
-Do not put large amounts of page-specific CSS into the core CSS files.
+Do not redesign completed frontend modules unless explicitly instructed.
 
+BACKEND
+ACTIVE
 
-### CORE CSS
+Current backend phase:
 
-The project already has core CSS files.
+Inventory Foundation — NEXT
 
-Existing core CSS includes:
+Backend development must proceed one phase at a time.
 
-- variables.css
-- reset.css
-- typography.css
-- navbar.css
-- sidebar.css
-- forms.css
-- modals.css
-- tables.css
-- components.css
-- responsive.css
+Do not implement future backend modules early.
 
-components.css is intentionally part of the existing MADAM HY design
-system. Do not delete it or recreate it.
+5. Backend Roadmap
+Accounts Foundation — COMPLETE
 
-Do not duplicate styles already handled by:
+Products Foundation — COMPLETE
 
-- forms.css
-- modals.css
-- tables.css
-- navbar.css
-- sidebar.css
-- components.css
-- responsive.css
+Inventory Foundation — NEXT
 
+Sales/POS — PLANNED
 
-### PAGE JAVASCRIPT
+Orders — PLANNED
 
-Page JavaScript handles:
+Payments — PLANNED
 
-- UI interactions
-- dropdowns
-- tabs
-- filters
-- search UI
-- modal opening/closing
-- client-side calculations
-- UI state
-- page-specific interactions
+Credits — PLANNED
 
+Expenses — PLANNED
 
-### AJAX JAVASCRIPT
+Requests — PLANNED
 
-AJAX JavaScript is responsible for communication with Django.
+Activity Logs / Notifications — PLANNED
 
-Keep AJAX communication separate from general page interaction JavaScript.
+Reports — PLANNED
 
-Do not put large AJAX requests directly inside page JavaScript when an
-AJAX file already exists for that page.
+Customer Backend Integration — PLANNED
 
+A module must not be marked COMPLETE until it has actually been implemented and verified in the repository.
 
---------------------------------------------------
-## 5. EXISTING TEMPLATE STRUCTURE
---------------------------------------------------
+For detailed backend rules, follow:
 
-The project already contains a template structure.
+docs/MADAM_HY_BACKEND.md
 
-IMPORTANT:
+6. Backend Module Boundaries
+Keep responsibilities separated between:
 
-Inspect the actual repository before modifying it.
+Accounts
 
-The established template organization includes areas for:
+Products
 
-- accounts
-- dashboard
-- products
-- inventory
-- sales
-- orders
-- payments
-- credits
-- expenses
-- reports
-- requests
-- customers
-- staff
-- notifications
-- settings
-- customer
+Inventory
 
-There is also:
+Sales/POS
 
-templates/base.html
+Orders
 
-Use the existing files.
+Payments
 
-Do not recreate pages that already exist.
+Credits
 
+Expenses
 
---------------------------------------------------
-## 6. EXISTING STATIC STRUCTURE
---------------------------------------------------
+Requests
 
-The project already contains a structured static directory.
+Reports
 
-It separates:
+Notifications
 
-- core CSS
-- page CSS
-- core JavaScript
-- page JavaScript
-- AJAX JavaScript
-- images
-- icons
+Activity Logs
 
-Inspect the existing static directory before creating anything.
+Customer backend
 
-Do not create duplicate CSS or JS files.
+Important boundaries:
 
+Do not put inventory stock logic inside Products.
 
---------------------------------------------------
-## 7. BASE TEMPLATE
---------------------------------------------------
+Do not duplicate transactional data unnecessarily for Reports.
 
-base.html is the common layout for the application.
+Do not move responsibilities between modules without reviewing docs/MADAM_HY_BACKEND.md.
 
-It should provide the shared application shell.
+Do not implement a future module merely because another module depends on it conceptually.
 
-The shared layout includes:
+7. Confirmed Business Rules
+Preserve these confirmed rules:
 
-- MADAM HY branding
-- sidebar
-- navigation
-- topbar
-- user information
-- notification area
-- main content area
-- mobile navigation
-- shared CSS
-- shared JavaScript
+OWNER has full system access.
 
-Individual pages should extend base.html whenever appropriate.
+MANAGER, CASHIER, STAFF, and CUSTOMER have restricted access.
 
-Do not duplicate the entire application shell in every page.
+Customers may use credit only when they have an approved credit allowance.
 
+Staff are not assigned to orders.
 
---------------------------------------------------
-## 8. RESPONSIVE DESIGN
---------------------------------------------------
+The business currently operates one shop/location.
 
-Every page must work on:
+Products support multiple images.
 
-- Desktop
-- Tablet
-- Mobile
+Product price changes must preserve historical pricing.
 
-Do not design desktop only.
+Supported payment methods are:
 
-Do not simply shrink the desktop layout.
+CASH
 
-Mobile layouts should be intentionally designed.
+BANK_TRANSFER
 
-Consider:
+CARD
 
-- navigation
-- sidebar
-- cards
-- tables
-- forms
-- buttons
-- spacing
-- typography
-- modals
-- filters
-- search
-- charts
-- touch interaction
+CREDIT
 
+Do not invent additional business rules without explicit instruction.
 
---------------------------------------------------
-## 9. DESIGN SYSTEM
---------------------------------------------------
+For detailed rules, consult:
 
-Use the existing design tokens in:
+docs/MADAM_HY_BACKEND.md
 
-css/core/variables.css
+8. Frontend Rules
+Frontend development is complete.
 
-Do not hard-code colors everywhere.
+For frontend-specific work, follow:
 
-Use the existing variables for:
+docs/MADAM_HY_FRONTEND.md
 
-- primary green
-- darker green
-- lighter green
-- background
-- surface
-- text
-- muted text
-- borders
-- shadows
-- spacing
-- border radius
+The frontend uses an established shared design system.
 
-The visual design should feel:
+Reuse:
 
-- professional
-- clean
-- modern
-- trustworthy
-- simple
-- suitable for a retail business
+core CSS
 
+existing components
 
---------------------------------------------------
-## 10. USER ROLES
---------------------------------------------------
+existing layout patterns
 
-The application has different user roles.
+existing responsive patterns
 
-Primary roles:
+existing JavaScript conventions
 
-OWNER
-MANAGER
-CASHIER
-STAFF
-CUSTOMER
+Do not duplicate generic core CSS styles unnecessarily.
 
-Different roles have different access privileges.
+Do not recreate existing templates, components, folders, or assets.
 
-Never assume that every authenticated user can access every page.
+Any future frontend changes must remain narrowly scoped.
 
-The UI should respect the user's role.
+9. Backend Development Rules
+Backend work must:
 
-The backend will later enforce permissions as the authoritative security
-layer.
+Follow the existing Django architecture.
 
-Frontend hiding is NOT considered security.
+Reuse existing models and relationships where appropriate.
 
+Avoid unnecessary abstractions.
 
---------------------------------------------------
-## 11. OWNER
---------------------------------------------------
+Avoid unnecessary dependencies.
 
-The OWNER has the highest business-management privileges.
+Preserve existing data.
 
-The owner should be able to manage:
+Keep module boundaries clear.
 
-- dashboard
-- products
-- inventory
-- sales
-- orders
-- payments
-- customers
-- credits
-- expenses
-- reports
-- business growth
-- product requests
-- staff
-- notifications
-- settings
-- permissions
+Implement only the current phase.
 
+Avoid modifying completed modules unless required by the current phase.
 
---------------------------------------------------
-## 12. MANAGER
---------------------------------------------------
+Before changing backend code, inspect:
 
-The MANAGER has business operational privileges according to the
-application permission system.
+existing models
 
-The manager may work with:
+migrations
 
-- products
-- inventory
-- sales
-- orders
-- customers
-- credits
-- reports
+admin configuration
 
-Do not automatically give manager owner-only settings or permissions.
+views
 
+URLs
 
---------------------------------------------------
-## 13. CASHIER
---------------------------------------------------
+settings
 
-The CASHIER is primarily responsible for shop transactions.
+tests
 
-Important functions include:
+related module boundaries
 
-- POS
-- creating sales
-- checkout
-- accepting payments
-- card payments
-- transfer payments
-- receipts
-- customer lookup
-- order handling
+Do not assume that a missing feature means a new model or app is required.
 
-The cashier should not automatically have access to owner financial
-settings or sensitive business-management functions.
+10. Database and Migration Safety
+Never:
 
+Drop the database to solve migration problems.
 
---------------------------------------------------
-## 14. STAFF
---------------------------------------------------
+Delete migrations casually.
 
-STAFF permissions depend on their assigned permissions.
+Fake migrations without understanding the migration state.
 
-Do not assume every staff member has identical access.
+Reset working migrations destructively.
 
-Use the application's permission system when it is implemented.
+Remove existing data to make a migration easier.
 
+Always:
 
---------------------------------------------------
-## 15. CUSTOMER
---------------------------------------------------
+Inspect existing migrations.
 
-Customers have a separate customer-facing experience.
+Run python manage.py makemigrations when model changes are made.
 
-Customers should be able to:
+Review generated migrations.
 
-- browse products
-- view product details
-- add products to cart
-- checkout
-- view orders
-- view order details
-- view credit
-- view activities
-- request products
-- manage profile
+Run python manage.py migrate.
 
-A customer can request a product that is not currently available in
-the shop.
+Run python manage.py check.
 
-The shop can then help find/source that product from the market.
+Run relevant tests.
 
+Resolve migration conflicts explicitly.
 
---------------------------------------------------
-## 16. PHYSICAL SHOP PAYMENTS
---------------------------------------------------
+Database changes must preserve existing data and existing working functionality.
 
-The system must support transactions made physically inside the shop.
+11. Testing Requirements
+After backend changes, run the relevant checks.
 
-A customer should not be required to visit the public website just to
-pay at the physical shop.
+At minimum where applicable:
 
-The shop interface/POS must eventually support:
+python manage.py check
+python manage.py test <relevant_app>
+git diff --check
+For JavaScript changes:
 
-- cash
-- bank transfer
-- card payment
+node --check <relevant-file>
+Do not claim a phase is complete unless the relevant verification has actually been performed.
 
-Payment processing will be connected later.
+If a check cannot run because of the local environment:
 
-Do not invent payment provider APIs during the frontend phase.
+Report the exact error.
 
+Do not modify the environment unless explicitly instructed.
 
---------------------------------------------------
-## 17. BUSINESS MANAGEMENT
---------------------------------------------------
+12. Git Rules
+Before committing:
 
-The system is intended to help the owner understand the business.
+git status
+git diff --name-only
+git diff --check
+Verify that only files belonging to the current phase are included.
 
-The owner dashboard/reports should eventually provide information such
-as:
+Do not commit unrelated work.
 
-- today's sales
-- monthly sales
-- profit
-- loss
-- expenses
-- customer credit
-- inventory
-- low-stock products
-- orders
-- sales trends
-- profit trends
-- business growth
-- product demand
+Do not use destructive Git commands to remove work that may belong to another phase.
 
+Do not push to GitHub unless explicitly instructed.
 
---------------------------------------------------
-## 18. PRODUCT REQUESTS
---------------------------------------------------
+When a phase is complete:
 
-Customers can request products that are not currently available.
+Report the commit hash.
 
-The request system should eventually allow:
+Report the commit message.
 
-CUSTOMER
-→ submit product request
+Report the files included.
 
-SHOP
-→ receive request
+Report the final git status.
 
-OWNER/STAFF
-→ review request
+13. Scope Discipline
+Every task must remain strictly scoped.
 
-SHOP
-→ search/source product
+If asked to work on Inventory:
 
-SHOP
-→ update request status
+Work only on Inventory and the minimum required integration.
 
-CUSTOMER
-→ see request status
+Do not start Sales/POS.
 
+Do not start Orders.
 
---------------------------------------------------
-## 19. PAGE DEVELOPMENT RULE
---------------------------------------------------
+Do not start Payments.
 
-When building a page:
+Do not start Credits.
 
-1. Inspect the existing HTML file.
-2. Inspect its existing CSS file.
-3. Inspect its existing JavaScript file.
-4. Inspect related core CSS.
-5. Reuse existing classes and variables.
-6. Complete the page.
-7. Make it responsive.
-8. Do not duplicate existing components.
-9. Do not redesign unrelated pages.
-10. Keep changes scoped to the current task.
+Do not start Expenses.
 
+Do not start Requests.
 
---------------------------------------------------
-## 20. DO NOT CONNECT BACKEND YET
---------------------------------------------------
+Do not start Reports.
 
-During the current frontend phase, use realistic placeholder/demo data
-when necessary to make the interface visually complete.
+Do not start Customer backend integration.
 
-Clearly separate placeholder data from real backend data.
+If a required dependency belongs to a future phase, stop and report it rather than silently implementing the future phase.
 
-Do not create fake database records.
+14. Change Management
+Before editing:
 
-Do not pretend an API exists when it has not been implemented.
+Inspect.
 
+Plan.
 
---------------------------------------------------
-## 21. DO NOT BREAK EXISTING WORK
---------------------------------------------------
+Identify the exact files that need changes.
 
-Before changing a file:
+During editing:
 
-Inspect it.
+Modify only necessary files.
 
-Preserve useful existing code.
+Preserve established architecture.
 
-Do not overwrite working code unnecessarily.
+Avoid unrelated cleanup.
 
-Do not remove existing functionality simply to simplify the code.
+Avoid redesigning completed work.
 
-If an architectural conflict is discovered:
+After editing:
 
-STOP and explain the conflict before making a large architectural change.
+Run relevant verification.
 
+Inspect the final diff.
 
---------------------------------------------------
-## 22. CODE QUALITY
---------------------------------------------------
+Confirm scope.
 
-Prefer:
+Report any remaining issues.
 
-- readable code
-- simple code
-- semantic HTML
-- accessible controls
-- reusable styles
-- meaningful class names
-- maintainable JavaScript
-- minimal duplication
+15. Current Repository State
+The frontend has been completed across the established modules.
 
-Avoid:
+Backend foundations currently completed:
 
-- unnecessary frameworks
-- unnecessary dependencies
-- huge JavaScript files
-- inline styles
-- inline JavaScript
-- duplicated CSS
-- magic values
-- unnecessary abstractions
+Accounts Foundation
 
+Products Foundation
 
---------------------------------------------------
-## 23. ACCESSIBILITY
---------------------------------------------------
+Backend work now proceeds with:
 
-Use:
+Inventory Foundation
 
-- semantic HTML
-- labels for form fields
-- accessible buttons
-- keyboard-friendly controls
-- appropriate ARIA attributes when needed
-- visible focus states
-- readable contrast
+The repository may contain earlier or mixed working-tree changes. Do not assume every uncommitted file belongs to the current phase.
 
+Always inspect git status and git diff before committing.
 
---------------------------------------------------
-## 24. FRONTEND COMPLETION GOAL
---------------------------------------------------
+16. Phase Completion Standard
+A backend phase is COMPLETE only when:
 
-The goal of this phase is to make all existing pages visually complete
-and responsive before connecting the backend.
+Required models and backend logic are implemented.
 
-The pages should look like one consistent application.
+Required migrations are created and applied safely.
 
-Do not make each page look like a separate website.
+Admin configuration is complete where appropriate.
 
+Relevant tests pass.
 
---------------------------------------------------
-## 25. AFTER FRONTEND COMPLETION
---------------------------------------------------
+python manage.py check passes.
 
-Only after the frontend pages are complete should we proceed to:
+git diff --check passes.
 
-1. Django URLs
-2. Django views
-3. Models
-4. Database
-5. Forms
-6. Authentication
-7. Permissions
-8. AJAX/API endpoints
-9. Payment integration
-10. Inventory logic
-11. Sales logic
-12. Credit system
-13. Reports
-14. Analytics
-15. Notifications
-16. Testing
+The final diff is scoped correctly.
 
+No unrelated work is committed.
 
---------------------------------------------------
-## 26. IMPORTANT FINAL RULE
---------------------------------------------------
+Remaining limitations are documented.
 
-Before every task:
+17. Priority Rule
+When instructions conflict, use this priority:
 
-INSPECT FIRST.
+Explicit current user instruction
 
-Do not assume the repository matches documentation.
+Existing repository architecture
 
-The actual files in the repository are the source of truth.
+AGENTS.md
 
-If documentation and the repository disagree:
+docs/MADAM_HY_BACKEND.md
 
-- inspect the code
-- preserve existing working architecture
-- report the discrepancy
-- do not blindly recreate the documented structure.
+docs/MADAM_HY_FRONTEND.md
+
+General implementation preferences
+
+Never silently make architectural decisions that contradict the current repository.
+
+18. Immediate Next Task
+The next backend task is:
+
+Inventory Foundation
+
+Before implementing it:
+
+Read AGENTS.md.
+
+Read docs/MADAM_HY_BACKEND.md.
+
+Inspect the existing Inventory app.
+
+Inspect Products because Inventory depends on Product records.
+
+Inspect existing migrations.
+
+Check git status.
+
+Confirm the exact Inventory scope.
+
+Then implement only the Inventory Foundation.
