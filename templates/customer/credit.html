@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credit | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    My Credit
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/credit.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-credit-page">
+    <section class="credit-hero">
+        <div>
+            <h2>Your credit account</h2>
+            <p>Manage your credit balance and payment history</p>
+        </div>
+    </section>
+
+    <section class="credit-summary" aria-label="Credit account summary">
+        <article class="summary-card">
+            <span>Credit limit</span>
+            <strong id="creditLimit">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Used credit</span>
+            <strong id="usedCredit">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Available credit</span>
+            <strong id="availableCreditAmount">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Outstanding balance</span>
+            <strong id="outstandingBalance">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="credit-layout">
+        <article class="card credit-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Credit details</h3>
+                </div>
+            </div>
+
+            <div class="detail-meta-grid">
+                <div class="meta-item">
+                    <span>Account status</span>
+                    <strong id="creditStatus">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Last payment</span>
+                    <strong id="lastPaymentDate">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Next payment due</span>
+                    <strong id="nextPaymentDue">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Account information</h4>
+                <p id="creditDescription">Your credit account allows you to purchase on credit and settle at a later date.</p>
+            </div>
+        </article>
+
+        <article class="card credit-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Payment history</h3>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table credit-history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="creditHistoryBody"></tbody>
+                </table>
+            </div>
+
+            <div id="creditHistoryEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+                <h3>No payment history</h3>
+                <p>Your payment history will appear here.</p>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/credit.js' %}"></script>
+{% endblock %}

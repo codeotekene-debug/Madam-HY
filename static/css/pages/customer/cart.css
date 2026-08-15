@@ -1,0 +1,181 @@
+/* =========================================================
+   MADAM HY - CUSTOMER CART
+   ========================================================= */
+
+.customer-cart-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cart-hero {
+    padding: 24px 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary-light), rgba(255, 255, 255, 0.92));
+    box-shadow: var(--shadow-sm);
+}
+
+.cart-hero h2 {
+    margin: 0 0 6px 0;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.cart-hero p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+}
+
+.cart-items-panel,
+.cart-summary-panel {
+    padding: 20px;
+}
+
+.cart-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(8, 122, 61, 0.02);
+    align-items: center;
+}
+
+.cart-item-image {
+    width: 80px;
+    height: 80px;
+    background: rgba(8, 122, 61, 0.08);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cart-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cart-item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.cart-item-price {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-remove-btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: rgba(206, 60, 60, 0.12);
+    color: var(--danger);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.cart-remove-btn:hover {
+    background: rgba(206, 60, 60, 0.2);
+}
+
+.summary-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 0;
+}
+
+.summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.summary-row span {
+    color: var(--muted);
+}
+
+.summary-row strong {
+    color: var(--text);
+}
+
+.summary-total {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.summary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.summary-actions .btn {
+    width: 100%;
+}
+
+@media (max-width: 980px) {
+    .cart-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .cart-item {
+        grid-template-columns: 70px 1fr 80px;
+    }
+}
+
+@media (max-width: 640px) {
+    .cart-hero h2 {
+        font-size: 22px;
+    }
+
+    .cart-item {
+        grid-template-columns: 60px 1fr;
+        gap: 12px;
+    }
+
+    .cart-item-actions {
+        grid-column: 1 / -1;
+        margin-top: 10px;
+    }
+}

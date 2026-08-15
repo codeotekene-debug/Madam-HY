@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Products | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Products
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/products.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-products-page">
+    <section class="products-hero">
+        <div>
+            <h2>Shop our collection</h2>
+            <p>Discover quality products at MADAM HY</p>
+        </div>
+
+        <div class="products-actions">
+            <a href="/customer/cart/" class="btn btn-primary">View cart</a>
+        </div>
+    </section>
+
+    <section class="card products-toolbar" aria-label="Product filters">
+        <div class="toolbar-search">
+            <label class="visually-hidden" for="customerProductSearch">Search products</label>
+            <input id="customerProductSearch" class="form-control" type="search" placeholder="Search by name or category" />
+        </div>
+
+        <div class="toolbar-filters">
+            <label class="visually-hidden" for="customerCategoryFilter">Filter by category</label>
+            <select id="customerCategoryFilter" class="form-select">
+                <option value="all">All categories</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Beauty">Beauty</option>
+                <option value="Home">Home</option>
+                <option value="Electronics">Electronics</option>
+            </select>
+
+            <label class="visually-hidden" for="customerStockFilter">Filter by availability</label>
+            <select id="customerStockFilter" class="form-select">
+                <option value="all">All items</option>
+                <option value="in-stock">In stock</option>
+                <option value="low-stock">Low stock</option>
+            </select>
+
+            <label class="visually-hidden" for="customerSortSelect">Sort products</label>
+            <select id="customerSortSelect" class="form-select">
+                <option value="name">Sort: Name</option>
+                <option value="price-low">Price: Low to high</option>
+                <option value="price-high">Price: High to low</option>
+            </select>
+        </div>
+    </section>
+
+    <section class="products-summary" aria-label="Products overview">
+        <article class="summary-card">
+            <span>Available products</span>
+            <strong id="availableProductsCount">0</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>In your cart</span>
+            <strong id="cartItemCount">0</strong>
+        </article>
+    </section>
+
+    <section id="customerProductGrid" class="customer-product-grid" aria-live="polite"></section>
+
+    <div id="customerProductsEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+        <h3>No products match your filters</h3>
+        <p>Try adjusting your search or filters.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/products.js' %}"></script>
+{% endblock %}

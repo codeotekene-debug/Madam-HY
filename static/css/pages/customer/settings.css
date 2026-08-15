@@ -1,0 +1,117 @@
+/* =========================================================
+   MADAM HY - CUSTOMER SETTINGS
+   ========================================================= */
+
+.customer-settings-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.settings-hero {
+    padding: 24px 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary-light), rgba(255, 255, 255, 0.92));
+    box-shadow: var(--shadow-sm);
+}
+
+.settings-hero h2 {
+    margin: 0 0 6px 0;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.settings-hero p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.settings-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.settings-panel {
+    padding: 20px;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.settings-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.settings-option:hover {
+    background: rgba(8, 122, 61, 0.04);
+}
+
+.settings-option input[type="checkbox"] {
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.settings-option span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.settings-help {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-field .form-label {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.settings-actions .btn {
+    min-width: 140px;
+}
+
+@media (max-width: 640px) {
+    .settings-hero h2 {
+        font-size: 22px;
+    }
+
+    .settings-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .settings-actions .btn {
+        width: 100%;
+    }
+}

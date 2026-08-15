@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Dashboard | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Dashboard
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-dashboard-page">
+    <section class="dashboard-hero">
+        <div>
+            <h2>Welcome back</h2>
+            <p id="welcomeMessage">Your shopping hub at MADAM HY</p>
+        </div>
+    </section>
+
+    <section class="dashboard-summary" aria-label="Customer account summary">
+        <article class="summary-card">
+            <span>Total orders</span>
+            <strong id="totalOrders">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Credit balance</span>
+            <strong id="creditBalance">₦ 0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Recent requests</span>
+            <strong id="recentRequests">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Available credit</span>
+            <strong id="availableCredit">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="card dashboard-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Recent orders</h3>
+                    <p>Your latest shopping activity</p>
+                </div>
+                <a href="/customer/orders/" class="btn btn-secondary btn-sm">View all</a>
+            </div>
+
+            <div id="recentOrdersList" class="orders-list"></div>
+
+            <div id="recentOrdersEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+                <h3>No orders yet</h3>
+                <p>Start shopping to see your order history here.</p>
+            </div>
+        </article>
+
+        <article class="card dashboard-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Quick actions</h3>
+                    <p>Get started faster</p>
+                </div>
+            </div>
+
+            <nav class="quick-actions-list">
+                <a href="/customer/products/" class="quick-action-item">
+                    <span>Browse products</span>
+                    <strong>→</strong>
+                </a>
+                <a href="/customer/cart/" class="quick-action-item">
+                    <span>View cart</span>
+                    <strong>→</strong>
+                </a>
+                <a href="/customer/requests/" class="quick-action-item">
+                    <span>My requests</span>
+                    <strong>→</strong>
+                </a>
+                <a href="/customer/profile/" class="quick-action-item">
+                    <span>Account settings</span>
+                    <strong>→</strong>
+                </a>
+            </nav>
+        </article>
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="card dashboard-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Recent activity</h3>
+                    <p>Your account timeline</p>
+                </div>
+                <a href="/customer/activity/" class="btn btn-secondary btn-sm">View all</a>
+            </div>
+
+            <div id="recentActivityList" class="activity-list"></div>
+
+            <div id="recentActivityEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+                <h3>No activity yet</h3>
+                <p>Your activity will appear here.</p>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/dashboard.js' %}"></script>
+{% endblock %}

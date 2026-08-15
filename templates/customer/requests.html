@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Requests | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    My Requests
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/requests.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-requests-page">
+    <section class="requests-hero">
+        <div>
+            <h2>My requests</h2>
+            <p>Track your product requests and special inquiries</p>
+        </div>
+
+        <div class="requests-actions">
+            <a href="/customer/requests/create/" class="btn btn-primary">Create request</a>
+        </div>
+    </section>
+
+    <section class="requests-summary" aria-label="Requests summary">
+        <article class="summary-card">
+            <span>Total requests</span>
+            <strong id="customerTotalRequests">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Pending</span>
+            <strong id="customerPendingRequests">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Completed</span>
+            <strong id="customerCompletedRequests">0</strong>
+        </article>
+    </section>
+
+    <section class="card requests-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Request queue</h3>
+            </div>
+        </div>
+
+        <div class="requests-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="customerRequestsSearch">Search requests</label>
+                <input id="customerRequestsSearch" class="form-control" type="search" placeholder="Search by request ID or subject" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="customerRequestsStatusFilter">Filter by status</label>
+                <select id="customerRequestsStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Review">In Review</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table customer-requests-table">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="customerRequestsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="customerRequestsEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No requests yet</h3>
+            <p>Create a request to get started.</p>
+            <a href="/customer/requests/create/" class="btn btn-primary">Create request</a>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/requests.js' %}"></script>
+{% endblock %}

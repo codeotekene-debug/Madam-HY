@@ -1,0 +1,114 @@
+/* =========================================================
+   MADAM HY - CUSTOMER PROFILE
+   ========================================================= */
+
+.customer-profile-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-hero {
+    padding: 24px 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary-light), rgba(255, 255, 255, 0.92));
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-hero h2 {
+    margin: 0 0 6px 0;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.profile-hero p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.profile-panel {
+    padding: 20px;
+}
+
+.profile-view {
+    display: block;
+}
+
+.profile-edit {
+    display: block;
+}
+
+.profile-edit.hidden {
+    display: none;
+}
+
+.profile-edit .form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.profile-edit .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.profile-edit .form-label {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.profile-edit .textarea-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.profile-edit .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.info-list > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-list span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+}
+
+.info-list strong {
+    font-size: 13px;
+    color: var(--text);
+}
+
+@media (max-width: 640px) {
+    .profile-hero h2 {
+        font-size: 22px;
+    }
+}

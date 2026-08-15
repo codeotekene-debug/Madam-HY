@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Order Details | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Order Details
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/order-detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-order-detail-page">
+    <div class="page-topbar-inline">
+        <a href="/customer/orders/" class="btn btn-secondary btn-sm">Back to orders</a>
+    </div>
+
+    <section class="order-detail-hero">
+        <div>
+            <span class="badge badge-primary" id="detailOrderStatus">Status</span>
+            <h2 id="detailOrderRef">Order #ORD-0001</h2>
+            <p id="detailOrderDate">Date placed</p>
+        </div>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order overview</h3>
+                </div>
+            </div>
+
+            <div class="detail-meta-grid">
+                <div class="meta-item">
+                    <span>Order reference</span>
+                    <strong id="detailReference">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Date</span>
+                    <strong id="detailPlacedDate">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Total</span>
+                    <strong id="detailOrderTotal">₦ 0</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Payment status</span>
+                    <strong id="detailPaymentStatus">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Delivery information</h4>
+                <div class="info-list">
+                    <div>
+                        <span>Delivery address</span>
+                        <strong id="detailDeliveryAddress">-</strong>
+                    </div>
+                    <div>
+                        <span>Delivery method</span>
+                        <strong id="detailDeliveryMethod">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Order items</h4>
+                <div id="detailOrderItems" class="order-items-list"></div>
+            </div>
+        </article>
+
+        <aside class="card detail-sidebar">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order timeline</h3>
+                </div>
+            </div>
+
+            <div id="detailTimeline" class="timeline-list"></div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/order-detail.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Orders | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    My Orders
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/orders.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-orders-page">
+    <section class="orders-hero">
+        <div>
+            <h2>My orders</h2>
+            <p>Track your shopping history and order status</p>
+        </div>
+    </section>
+
+    <section class="orders-summary" aria-label="Orders summary">
+        <article class="summary-card">
+            <span>Total orders</span>
+            <strong id="customerTotalOrders">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Pending</span>
+            <strong id="customerPendingOrders">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Completed</span>
+            <strong id="customerCompletedOrders">0</strong>
+        </article>
+        <article class="summary-card">
+            <span>Total spent</span>
+            <strong id="customerTotalSpent">₦ 0</strong>
+        </article>
+    </section>
+
+    <section class="card orders-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Order history</h3>
+                <p>Your shopping activity</p>
+            </div>
+        </div>
+
+        <div class="orders-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="customerOrdersSearch">Search orders</label>
+                <input id="customerOrdersSearch" class="form-control" type="search" placeholder="Search by order number" />
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="customerOrdersStatusFilter">Filter by status</label>
+                <select id="customerOrdersStatusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table customer-orders-table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="customerOrdersTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="customerOrdersEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No orders yet</h3>
+            <p>Start shopping to see your orders here.</p>
+            <a href="/customer/products/" class="btn btn-primary">Browse products</a>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/orders.js' %}"></script>
+{% endblock %}

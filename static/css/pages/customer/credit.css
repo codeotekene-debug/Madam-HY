@@ -1,0 +1,140 @@
+/* =========================================================
+   MADAM HY - CUSTOMER CREDIT
+   ========================================================= */
+
+.customer-credit-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.credit-hero {
+    padding: 24px 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary-light), rgba(255, 255, 255, 0.92));
+    box-shadow: var(--shadow-sm);
+}
+
+.credit-hero h2 {
+    margin: 0 0 6px 0;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.credit-hero p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.credit-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.credit-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.credit-panel {
+    padding: 20px;
+}
+
+.detail-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(8, 122, 61, 0.02);
+}
+
+.meta-item span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.meta-item strong {
+    color: var(--text);
+    font-size: 14px;
+}
+
+.detail-section {
+    margin-top: 20px;
+}
+
+.detail-section h4 {
+    margin: 0 0 8px 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.detail-section p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: 13px;
+}
+
+.credit-history-table {
+    min-width: 600px;
+}
+
+.credit-history-table tbody tr {
+    border-bottom: 1px solid var(--border);
+}
+
+.credit-history-table td {
+    padding: 12px;
+    font-size: 12px;
+}
+
+.credit-history-table strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+@media (max-width: 980px) {
+    .credit-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .detail-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .credit-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .credit-hero h2 {
+        font-size: 22px;
+    }
+
+    .detail-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Cart | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Shopping Cart
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-cart-page">
+    <section class="cart-hero">
+        <div>
+            <h2>Your cart</h2>
+            <p id="cartItemsCount">0 items in your cart</p>
+        </div>
+    </section>
+
+    <section class="cart-layout">
+        <article class="card cart-items-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Cart items</h3>
+                </div>
+            </div>
+
+            <div id="cartItemsList" class="cart-items-list"></div>
+
+            <div id="cartEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+                <h3>Your cart is empty</h3>
+                <p>Add items to get started.</p>
+                <a href="/customer/products/" class="btn btn-primary">Continue shopping</a>
+            </div>
+        </article>
+
+        <aside class="card cart-summary-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order summary</h3>
+                </div>
+            </div>
+
+            <div class="summary-breakdown">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <strong id="cartSubtotal">₦ 0</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Tax (estimate)</span>
+                    <strong id="cartTax">₦ 0</strong>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total</span>
+                    <strong id="cartTotal">₦ 0</strong>
+                </div>
+            </div>
+
+            <div class="summary-actions">
+                <button type="button" id="checkoutBtn" class="btn btn-primary">Proceed to checkout</button>
+                <a href="/customer/products/" class="btn btn-secondary">Continue shopping</a>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/cart.js' %}"></script>
+{% endblock %}

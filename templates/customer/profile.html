@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Profile | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    My Profile
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-profile-page">
+    <section class="profile-hero">
+        <div>
+            <h2>My profile</h2>
+            <p>Manage your account information</p>
+        </div>
+    </section>
+
+    <section class="profile-layout">
+        <article class="card profile-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Personal information</h3>
+                </div>
+                <button type="button" id="editProfileBtn" class="btn btn-secondary btn-sm">Edit profile</button>
+            </div>
+
+            <div id="profileViewMode" class="profile-view">
+                <div class="info-list">
+                    <div>
+                        <span>Full name</span>
+                        <strong id="profileName">-</strong>
+                    </div>
+                    <div>
+                        <span>Email</span>
+                        <strong id="profileEmail">-</strong>
+                    </div>
+                    <div>
+                        <span>Phone</span>
+                        <strong id="profilePhone">-</strong>
+                    </div>
+                    <div>
+                        <span>Address</span>
+                        <strong id="profileAddress">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <form id="profileEditForm" class="profile-edit hidden" novalidate>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="profileEditName" class="form-label">Full name</label>
+                        <input id="profileEditName" class="form-control" type="text" placeholder="Your full name" />
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="profileEditEmail" class="form-label">Email</label>
+                        <input id="profileEditEmail" class="form-control" type="email" placeholder="your@email.com" />
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="profileEditPhone" class="form-label">Phone</label>
+                        <input id="profileEditPhone" class="form-control" type="tel" placeholder="Your phone number" />
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="profileEditAddress" class="form-label">Address</label>
+                        <textarea id="profileEditAddress" class="form-control textarea-control" rows="3" placeholder="Your address"></textarea>
+                    </div>
+                </div>
+
+                <div id="profileEditError" class="form-alert form-alert-error hidden" role="alert"></div>
+                <div id="profileEditSuccess" class="form-alert form-alert-success hidden" role="status"></div>
+
+                <div class="form-actions">
+                    <button type="button" id="profileCancelBtn" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </article>
+
+        <article class="card profile-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Account information</h3>
+                </div>
+            </div>
+
+            <div class="info-list">
+                <div>
+                    <span>Member since</span>
+                    <strong id="profileMemberSince">-</strong>
+                </div>
+                <div>
+                    <span>Account status</span>
+                    <strong id="profileAccountStatus">-</strong>
+                </div>
+                <div>
+                    <span>Total orders</span>
+                    <strong id="profileTotalOrders">0</strong>
+                </div>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/profile.js' %}"></script>
+{% endblock %}

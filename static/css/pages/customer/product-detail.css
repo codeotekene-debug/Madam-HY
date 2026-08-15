@@ -1,0 +1,261 @@
+/* =========================================================
+   MADAM HY - CUSTOMER PRODUCT DETAIL
+   ========================================================= */
+
+.customer-product-detail-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.page-topbar-inline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.detail-hero {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.detail-image-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 122, 61, 0.04);
+    border-radius: var(--radius-sm);
+    min-height: 400px;
+    overflow: hidden;
+}
+
+.detail-image-panel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail-summary {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+.detail-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.detail-sku {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.detail-summary h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 26px;
+    font-weight: 800;
+}
+
+.detail-price-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.detail-price-row strong {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.detail-stock {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(56, 161, 105, 0.12);
+    color: var(--success);
+}
+
+.detail-stock.status-in-stock {
+    background: rgba(56, 161, 105, 0.12);
+    color: var(--success);
+}
+
+.detail-stock.status-low-stock {
+    background: rgba(214, 152, 68, 0.1);
+    color: #a96b06;
+}
+
+.detail-stock.status-out-of-stock {
+    background: rgba(206, 60, 60, 0.12);
+    color: var(--danger);
+}
+
+.detail-description {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.detail-points {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-points > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-points span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.detail-points strong {
+    font-size: 13px;
+    color: var(--text);
+}
+
+.detail-quantity-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-quantity-section label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    width: fit-content;
+}
+
+.qty-btn {
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.qty-btn:hover {
+    background: rgba(8, 122, 61, 0.08);
+}
+
+.qty-input {
+    width: 50px;
+    padding: 8px 4px;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.qty-input:focus {
+    outline: none;
+}
+
+.detail-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.detail-panel {
+    padding: 20px;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.info-list > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-list span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+}
+
+.info-list strong {
+    font-size: 13px;
+    color: var(--text);
+}
+
+@media (max-width: 980px) {
+    .detail-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-points {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 640px) {
+    .detail-hero {
+        padding: 16px;
+    }
+
+    .detail-image-panel {
+        min-height: 250px;
+    }
+
+    .detail-summary h2 {
+        font-size: 20px;
+    }
+
+    .detail-actions {
+        flex-direction: column;
+    }
+
+    .detail-actions .btn {
+        width: 100%;
+    }
+}

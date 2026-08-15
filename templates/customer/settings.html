@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Settings | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Settings
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/settings.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-settings-page">
+    <section class="settings-hero">
+        <div>
+            <h2>Settings</h2>
+            <p>Manage your preferences and communication</p>
+        </div>
+    </section>
+
+    <section class="settings-layout">
+        <article class="card settings-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Notifications</h3>
+                    <p>Control how you receive updates</p>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-option">
+                    <input type="checkbox" id="orderNotifications" checked />
+                    <span>Order updates</span>
+                    <p class="settings-help">Receive notifications about order status changes</p>
+                </label>
+
+                <label class="settings-option">
+                    <input type="checkbox" id="promotionNotifications" checked />
+                    <span>Promotions and deals</span>
+                    <p class="settings-help">Get notified about new products and special offers</p>
+                </label>
+
+                <label class="settings-option">
+                    <input type="checkbox" id="requestNotifications" checked />
+                    <span>Request updates</span>
+                    <p class="settings-help">Receive updates on your product requests</p>
+                </label>
+
+                <label class="settings-option">
+                    <input type="checkbox" id="paymentNotifications" checked />
+                    <span>Payment reminders</span>
+                    <p class="settings-help">Get reminders for credit payments</p>
+                </label>
+            </div>
+        </article>
+
+        <article class="card settings-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Preferences</h3>
+                    <p>Customize your experience</p>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-field">
+                    <label for="languageSelect" class="form-label">Language</label>
+                    <select id="languageSelect" class="form-select">
+                        <option value="en">English</option>
+                        <option value="yo">Yoruba</option>
+                        <option value="ig">Igbo</option>
+                    </select>
+                </div>
+
+                <div class="settings-field">
+                    <label for="currencySelect" class="form-label">Currency</label>
+                    <select id="currencySelect" class="form-select">
+                        <option value="NGN">Nigerian Naira (₦)</option>
+                        <option value="USD">US Dollar ($)</option>
+                    </select>
+                </div>
+
+                <label class="settings-option">
+                    <input type="checkbox" id="marketingEmails" checked />
+                    <span>Allow marketing emails</span>
+                    <p class="settings-help">Receive personalized recommendations and updates</p>
+                </label>
+            </div>
+        </article>
+
+        <article class="card settings-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Delivery preferences</h3>
+                    <p>Set your default delivery options</p>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-field">
+                    <label for="defaultDelivery" class="form-label">Preferred delivery method</label>
+                    <select id="defaultDelivery" class="form-select">
+                        <option value="">Select option</option>
+                        <option value="Delivery">Home delivery</option>
+                        <option value="Pickup">Pickup at shop</option>
+                    </select>
+                </div>
+            </div>
+        </article>
+
+        <article class="card settings-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Privacy & Security</h3>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <a href="#" class="btn btn-secondary btn-sm">Change password</a>
+                <a href="#" class="btn btn-secondary btn-sm">View account activity</a>
+                <button type="button" id="deleteAccountBtn" class="btn btn-danger btn-sm">Delete account</button>
+            </div>
+        </article>
+
+        <div class="settings-actions">
+            <button type="button" id="settingsSaveBtn" class="btn btn-primary">Save preferences</button>
+            <button type="button" id="settingsResetBtn" class="btn btn-secondary">Reset to defaults</button>
+        </div>
+
+        <div id="settingsSaveSuccess" class="form-alert form-alert-success hidden" role="status">
+            Your preferences have been saved.
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/settings.js' %}"></script>
+{% endblock %}

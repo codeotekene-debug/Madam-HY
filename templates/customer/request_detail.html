@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Request Detail | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Request Details
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/requests.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-request-detail-page">
+    <div class="page-topbar-inline">
+        <a href="/customer/requests/" class="btn btn-secondary btn-sm">Back to requests</a>
+    </div>
+
+    <section class="request-detail-hero">
+        <div>
+            <span class="badge badge-primary" id="detailReqStatus">Status</span>
+            <h2 id="detailReqTitle">Request title</h2>
+            <p id="detailReqSubtitle">Request information</p>
+        </div>
+    </section>
+
+    <section class="detail-layout">
+        <article class="card detail-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Request overview</h3>
+                </div>
+            </div>
+
+            <div class="detail-meta-grid">
+                <div class="meta-item">
+                    <span>Request ID</span>
+                    <strong id="detailReqReference">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Type</span>
+                    <strong id="detailReqType">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Created</span>
+                    <strong id="detailReqCreated">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Updated</span>
+                    <strong id="detailReqUpdated">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Description</h4>
+                <p id="detailReqDescription">-</p>
+            </div>
+
+            <div class="detail-section">
+                <h4>Notes</h4>
+                <p id="detailReqNotes">-</p>
+            </div>
+        </article>
+
+        <aside class="card detail-sidebar">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Activity timeline</h3>
+                </div>
+            </div>
+
+            <div id="detailReqTimeline" class="timeline-list"></div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/requests.js' %}"></script>
+{% endblock %}

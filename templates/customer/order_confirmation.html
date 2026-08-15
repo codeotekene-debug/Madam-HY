@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Order Confirmation | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Order Confirmed
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/checkout.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-order-confirmation-page">
+    <section class="confirmation-hero">
+        <div class="confirmation-badge">✓</div>
+        <h2>Order confirmed!</h2>
+        <p>Thank you for your purchase at MADAM HY.</p>
+        <p id="confirmationMessage">Your order has been received and is being processed.</p>
+    </section>
+
+    <section class="confirmation-details">
+        <article class="card detail-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order details</h3>
+                </div>
+            </div>
+
+            <div class="detail-meta-grid">
+                <div class="meta-item">
+                    <span>Order reference</span>
+                    <strong id="confirmationReference">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Date</span>
+                    <strong id="confirmationDate">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Total amount</span>
+                    <strong id="confirmationTotal">₦ 0</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Payment method</span>
+                    <strong id="confirmationPayment">-</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Delivery information</h4>
+                <div class="info-list">
+                    <div>
+                        <span>Delivery address</span>
+                        <strong id="confirmationAddress">-</strong>
+                    </div>
+                    <div>
+                        <span>Estimated delivery</span>
+                        <strong id="confirmationDelivery">-</strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="card detail-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order items</h3>
+                </div>
+            </div>
+
+            <div id="confirmationItemsList" class="confirmation-items-list"></div>
+        </article>
+    </section>
+
+    <section class="confirmation-actions">
+        <a href="/customer/orders/" class="btn btn-primary">View all orders</a>
+        <a href="/customer/products/" class="btn btn-secondary">Continue shopping</a>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/checkout.js' %}"></script>
+{% endblock %}

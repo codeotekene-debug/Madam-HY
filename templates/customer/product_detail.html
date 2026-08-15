@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Product | MADAM HY Customer
+{% endblock %}
+
+{% block page_title %}
+    Product Details
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/product-detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="customer-product-detail-page">
+    <div class="page-topbar-inline">
+        <a href="/customer/products/" class="btn btn-secondary btn-sm">Back to products</a>
+    </div>
+
+    <section class="detail-hero card">
+        <div class="detail-image-panel">
+            <img id="productImage" src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80" alt="Product image" />
+        </div>
+
+        <div class="detail-summary">
+            <div class="detail-meta-row">
+                <span class="badge badge-primary" id="productCategory">Category</span>
+                <span class="detail-stock" id="productStockStatus">In stock</span>
+            </div>
+
+            <h2 id="productName">Product name</h2>
+
+            <div class="detail-price-row">
+                <strong id="productPrice">₦ 0</strong>
+            </div>
+
+            <p id="productDescription" class="detail-description">
+                Product description appears here.
+            </p>
+
+            <div class="detail-quantity-section">
+                <label for="quantityInput">Quantity</label>
+                <div class="quantity-control">
+                    <button type="button" id="quantityDecrement" class="qty-btn">−</button>
+                    <input type="number" id="quantityInput" class="qty-input" value="1" min="1" />
+                    <button type="button" id="quantityIncrement" class="qty-btn">+</button>
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <button type="button" id="addToCartBtn" class="btn btn-primary">Add to cart</button>
+                <button type="button" id="continueShoppingBtn" class="btn btn-secondary">Continue shopping</button>
+            </div>
+
+            <div id="productSuccessAlert" class="form-alert form-alert-success hidden" role="status"></div>
+        </div>
+    </section>
+
+    <section class="detail-grid">
+        <article class="card detail-panel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Product details</h3>
+                </div>
+            </div>
+
+            <div class="info-list">
+                <div>
+                    <span>Product name</span>
+                    <strong id="detailName">-</strong>
+                </div>
+                <div>
+                    <span>Category</span>
+                    <strong id="detailCategory">-</strong>
+                </div>
+                <div>
+                    <span>Price</span>
+                    <strong id="detailPrice">₦ 0</strong>
+                </div>
+                <div>
+                    <span>Stock available</span>
+                    <strong id="detailStock">-</strong>
+                </div>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/customer/product-detail.js' %}"></script>
+{% endblock %}
