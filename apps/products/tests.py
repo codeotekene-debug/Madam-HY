@@ -2,10 +2,15 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from io import BytesIO
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import TestCase, Client
 from django.urls import reverse
 import json
+
+from PIL import Image
 
 from .models import Product, ProductCategory, ProductImage, ProductPriceHistory
 
@@ -529,6 +534,255 @@ class ProductManagementTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn('new_price', response.json()['errors'])
+
+
+class ProductImageManagementTests(TestCase):
+    """Tests for product image management endpoints."""
+
+    def setUp(self):
+        self.client = Client()
+        self.owner = User.objects.create_user(
+            email='owner@test.com',
+            username='owner',
+            password='testpass123',
+            role='OWNER',
+        )
+        self.manager = User.objects.create_user(
+            email='manager@test.com',
+            username='manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+        self.cashier = User.objects.create_user(
+            email='cashier@test.com',
+            username='cashier',
+            password='testpass123',
+            role='CASHIER',
+        )
+        self.staff = User.objects.create_user(
+            email='staff@test.com',
+            username='staff',
+            password='testpass123',
+            role='STAFF',
+        )
+        self.customer = User.objects.create_user(
+            email='customer@test.com',
+            username='customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        self.category = ProductCategory.objects.create(
+            name='Image Category',
+            slug='image-category',
+            description='Category for image tests',
+        )
+        self.product = Product.objects.create(
+            name='Product for Images',
+            slug='product-for-images',
+            sku='IMG-001',
+            category=self.category,
+            selling_price=Decimal('120.00'),
+        )
+
+    def _make_image_file(self, filename='test-image.jpg', image_format='JPEG', color=(255, 0, 0)):
+        buffer = BytesIO()
+        image = Image.new('RGB', (20, 20), color=color)
+        image.save(buffer, format=image_format)
+        buffer.seek(0)
+        return SimpleUploadedFile(name=filename, content=buffer.read(), content_type=f'image/{image_format.lower()}')
+
+    def test_manager_can_upload_valid_jpeg(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:upload_image', args=[self.product.id]),
+            {'image': self._make_image_file('front.jpg', 'JPEG')},
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()['success'])
+        self.assertEqual(self.product.images.count(), 1)
+
+    def test_owner_can_upload_valid_png(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:upload_image', args=[self.product.id]),
+            {'image': self._make_image_file('front.png', 'PNG')},
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()['success'])
+
+    def test_customer_cannot_upload_image(self):
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:upload_image', args=[self.product.id]),
+            {'image': self._make_image_file('front.jpg', 'JPEG')},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_invalid_extension_rejected(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:upload_image', args=[self.product.id]),
+            {'image': self._make_image_file('bad.exe', 'PNG')},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('image', response.json()['errors'])
+
+    def test_svg_rejected(self):
+        self.client.force_login(self.manager)
+        svg = SimpleUploadedFile('bad.svg', b'<svg></svg>', content_type='image/svg+xml')
+        response = self.client.post(
+            reverse('products:upload_image', args=[self.product.id]),
+            {'image': svg},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_corrupted_image_rejected(self):
+        self.client.force_login(self.manager)
+        corrupted = SimpleUploadedFile('corrupt.jpg', b'not-a-real-image', content_type='image/jpeg')
+        response = self.client.post(
+            reverse('products:upload_image', args=[self.product.id]),
+            {'image': corrupted},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('image', response.json()['errors'])
+
+    def test_patch_with_true_is_primary_sets_primary(self):
+        first = ProductImage.objects.create(product=self.product, image='products/first.jpg', alt_text='first', display_order=1, is_primary=False)
+        second = ProductImage.objects.create(product=self.product, image='products/second.jpg', alt_text='second', display_order=2, is_primary=False)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, first.id]),
+            data=json.dumps({'is_primary': True}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertTrue(first.is_primary)
+        self.assertFalse(second.is_primary)
+
+    def test_patch_missing_is_primary_is_treated_as_missing(self):
+        first = ProductImage.objects.create(product=self.product, image='products/first.jpg', alt_text='first', display_order=1, is_primary=True)
+        second = ProductImage.objects.create(product=self.product, image='products/second.jpg', alt_text='second', display_order=2, is_primary=False)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, first.id]),
+            data=json.dumps({'alt_text': 'Updated alt'}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first.refresh_from_db()
+        self.assertEqual(first.alt_text, 'Updated alt')
+        self.assertTrue(first.is_primary)
+        self.assertFalse(second.is_primary)
+
+    def test_patch_invalid_string_is_primary_rejected(self):
+        first = ProductImage.objects.create(product=self.product, image='products/first.jpg', alt_text='first', display_order=1, is_primary=True)
+        second = ProductImage.objects.create(product=self.product, image='products/second.jpg', alt_text='second', display_order=2, is_primary=False)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, first.id]),
+            data=json.dumps({'is_primary': 'false'}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('is_primary', response.json()['errors'])
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertTrue(first.is_primary)
+        self.assertFalse(second.is_primary)
+
+    def test_unsetting_current_primary_promotes_next_image(self):
+        first = ProductImage.objects.create(product=self.product, image='products/first.jpg', alt_text='first', display_order=1, is_primary=True)
+        second = ProductImage.objects.create(product=self.product, image='products/second.jpg', alt_text='second', display_order=2, is_primary=False)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, first.id]),
+            data=json.dumps({'is_primary': False}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertFalse(first.is_primary)
+        self.assertTrue(second.is_primary)
+
+    def test_unsetting_only_primary_leaves_no_primary(self):
+        image = ProductImage.objects.create(product=self.product, image='products/only.jpg', alt_text='only', display_order=1, is_primary=True)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, image.id]),
+            data=json.dumps({'is_primary': False}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        image.refresh_from_db()
+        self.assertFalse(image.is_primary)
+        self.assertFalse(self.product.images.filter(is_primary=True).exists())
+
+    def test_setting_second_image_primary_unsets_first(self):
+        first = ProductImage.objects.create(product=self.product, image='products/first.jpg', alt_text='first', display_order=1, is_primary=True)
+        second = ProductImage.objects.create(product=self.product, image='products/second.jpg', alt_text='second', display_order=2, is_primary=False)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, second.id]),
+            data=json.dumps({'is_primary': True}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertFalse(first.is_primary)
+        self.assertTrue(second.is_primary)
+
+    def test_patching_metadata_updates_alt_text_and_order(self):
+        image = ProductImage.objects.create(product=self.product, image='products/patch.jpg', alt_text='Old', display_order=1, is_primary=True)
+
+        self.client.force_login(self.manager)
+        response = self.client.patch(
+            reverse('products:image_detail', args=[self.product.id, image.id]),
+            data=json.dumps({'alt_text': 'Updated alt', 'display_order': 3}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        image.refresh_from_db()
+        self.assertEqual(image.alt_text, 'Updated alt')
+        self.assertEqual(image.display_order, 3)
+
+    def test_deleting_primary_promotes_next_image(self):
+        first = ProductImage.objects.create(product=self.product, image='products/first.jpg', alt_text='first', display_order=1, is_primary=True)
+        second = ProductImage.objects.create(product=self.product, image='products/second.jpg', alt_text='second', display_order=2, is_primary=False)
+
+        self.client.force_login(self.manager)
+        response = self.client.delete(reverse('products:image_detail', args=[self.product.id, first.id]))
+
+        self.assertEqual(response.status_code, 200)
+        second.refresh_from_db()
+        self.assertTrue(second.is_primary)
+        self.assertFalse(ProductImage.objects.filter(id=first.id).exists())
+
+    def test_deleting_only_image_leaves_product_valid(self):
+        image = ProductImage.objects.create(product=self.product, image='products/only.jpg', alt_text='only', display_order=1, is_primary=True)
+
+        self.client.force_login(self.manager)
+        response = self.client.delete(reverse('products:image_detail', args=[self.product.id, image.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.images.count(), 0)
 
 
 class CategoryManagementTests(TestCase):

@@ -16,6 +16,10 @@ urlpatterns = [
     path('<int:product_id>/deactivate/', views.product_deactivate, name='deactivate'),
     path('<int:product_id>/change-price/', views.product_change_price, name='change_price'),
 
+    # Product image management
+    path('<int:product_id>/images/', views.product_image_upload, name='upload_image'),
+    path('<int:product_id>/images/<int:image_id>/', views.product_image_detail, name='image_detail'),
+
     # Category management
     path('categories/create/', views.category_create, name='category_create'),
     path('categories/<int:category_id>/update/', views.category_update, name='category_update'),

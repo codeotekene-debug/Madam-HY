@@ -9,6 +9,15 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
 from .models import Product, ProductCategory, ProductImage, ProductPriceHistory
+from .services import (
+    MAX_PRODUCT_IMAGE_SIZE,
+    _can_manage_product_images,
+    _serialize_product_image,
+    delete_product_image,
+    set_primary_product_image,
+    update_product_image,
+    upload_product_image,
+)
 
 User = get_user_model()
 
@@ -347,6 +356,111 @@ def _can_change_prices(user):
     if not user or not user.is_authenticated:
         return False
     return user.role in ('OWNER', 'MANAGER')
+
+
+# ============================================================================
+# PRODUCT IMAGE MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@require_http_methods(['POST'])
+def product_image_upload(request, product_id):
+    """POST /products/<id>/images/"""
+    if not _is_authenticated(request):
+        return _json_response(message='Authentication required.', success=False, status=401)
+
+    if not _can_manage_product_images(request.user):
+        return _json_response(message='You do not have permission to upload product images.', success=False, status=403)
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return _json_response(message='Product not found.', success=False, status=404)
+
+    uploaded_file = request.FILES.get('image')
+    if not uploaded_file:
+        return _json_response(message='Validation failed.', success=False, status=400, errors={'image': 'Image file is required.'})
+
+    try:
+        image = upload_product_image(
+            product_id=product.id,
+            uploaded_file=uploaded_file,
+            alt_text=request.POST.get('alt_text', ''),
+            display_order=request.POST.get('display_order'),
+            is_primary=request.POST.get('is_primary') in ('true', 'True', '1', 'yes', 'on'),
+        )
+    except ValidationError as exc:
+        return _json_response(message='Image upload failed.', success=False, status=400, errors=exc.message_dict if hasattr(exc, 'message_dict') else {'image': str(exc)})
+    except Exception as exc:
+        return _json_response(message='An error occurred while uploading the image.', success=False, status=500, errors={'detail': str(exc)})
+
+    return _json_response(data=_serialize_product_image(image), message='Image uploaded successfully.', status=201)
+
+
+@require_http_methods(['PATCH', 'DELETE'])
+def product_image_detail(request, product_id, image_id):
+    """PATCH/DELETE /products/<id>/images/<image_id>/"""
+    if not _is_authenticated(request):
+        return _json_response(message='Authentication required.', success=False, status=401)
+
+    if not _can_manage_product_images(request.user):
+        return _json_response(message='You do not have permission to manage product images.', success=False, status=403)
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return _json_response(message='Product not found.', success=False, status=404)
+
+    try:
+        image = ProductImage.objects.get(product=product, id=image_id)
+    except ProductImage.DoesNotExist:
+        return _json_response(message='Image not found.', success=False, status=404)
+
+    if request.method == 'PATCH':
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                payload = json.loads(request.body)
+            except json.JSONDecodeError:
+                return _json_response(message='Invalid JSON.', success=False, status=400, errors={'body': 'Request body must be valid JSON.'})
+        else:
+            payload = request.POST.dict()
+
+        if not payload:
+            return _json_response(message='Validation failed.', success=False, status=400, errors={'detail': 'No valid image fields were provided for update.'})
+
+        alt_text = payload.get('alt_text', None)
+        display_order = payload.get('display_order', None)
+        is_primary_value = payload.get('is_primary', None)
+
+        if 'is_primary' in payload:
+            if not isinstance(is_primary_value, bool):
+                return _json_response(
+                    message='Image update failed.',
+                    success=False,
+                    status=400,
+                    errors={'is_primary': 'is_primary must be a boolean value.'},
+                )
+
+        try:
+            updated = update_product_image(
+                product_id=product.id,
+                image_id=image.id,
+                alt_text=alt_text,
+                display_order=display_order,
+                is_primary=is_primary_value,
+            )
+        except ValidationError as exc:
+            return _json_response(message='Image update failed.', success=False, status=400, errors=exc.message_dict if hasattr(exc, 'message_dict') else {'detail': str(exc)})
+        except Exception as exc:
+            return _json_response(message='An error occurred while updating the image.', success=False, status=500, errors={'detail': str(exc)})
+
+        return _json_response(data=_serialize_product_image(updated), message='Image updated successfully.')
+
+    try:
+        result = delete_product_image(product.id, image.id)
+    except Exception as exc:
+        return _json_response(message='An error occurred while deleting the image.', success=False, status=500, errors={'detail': str(exc)})
+
+    return _json_response(data=result, message='Image deleted successfully.')
 
 
 # ============================================================================
