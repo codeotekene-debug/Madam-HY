@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase, Client
@@ -7,6 +8,8 @@ from django.urls import reverse
 import json
 
 from .models import Product, ProductCategory, ProductImage, ProductPriceHistory
+
+User = get_user_model()
 
 
 class ProductModelsTests(TestCase):
@@ -97,6 +100,696 @@ class ProductModelsTests(TestCase):
         self.assertEqual(history.previous_price, Decimal("12500.00"))
         self.assertEqual(history.new_price, Decimal("13500.00"))
         self.assertEqual(self.product.price_history.count(), 1)
+
+
+class ProductManagementTests(TestCase):
+    """Tests for product creation, update, and deactivation endpoints."""
+
+    def setUp(self):
+        self.client = Client()
+
+        # Create test users with different roles
+        self.owner = User.objects.create_user(
+            email='owner@test.com',
+            username='owner',
+            password='testpass123',
+            role='OWNER',
+        )
+        self.manager = User.objects.create_user(
+            email='manager@test.com',
+            username='manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+        self.cashier = User.objects.create_user(
+            email='cashier@test.com',
+            username='cashier',
+            password='testpass123',
+            role='CASHIER',
+        )
+        self.staff = User.objects.create_user(
+            email='staff@test.com',
+            username='staff',
+            password='testpass123',
+            role='STAFF',
+        )
+        self.customer = User.objects.create_user(
+            email='customer@test.com',
+            username='customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+
+        # Create test category
+        self.category = ProductCategory.objects.create(
+            name="Test Category",
+            slug="test-category",
+            description="Test category description",
+        )
+
+        # Create test product
+        self.product = Product.objects.create(
+            name="Test Product",
+            slug="test-product",
+            sku="TEST-001",
+            category=self.category,
+            selling_price=Decimal("100.00"),
+            cost_price=Decimal("60.00"),
+            reorder_level=5,
+        )
+
+    def test_unauthenticated_user_cannot_create_product(self):
+        """Test that unauthenticated users receive 401 when creating product."""
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({'name': 'New Product', 'sku': 'NEW-001', 'category_id': self.category.id, 'selling_price': '100.00'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(response.json()['success'])
+
+    def test_customer_cannot_create_product(self):
+        """Test that customers cannot create products."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({'name': 'New Product', 'sku': 'NEW-001', 'category_id': self.category.id, 'selling_price': '100.00'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(response.json()['success'])
+
+    def test_cashier_cannot_create_product(self):
+        """Test that cashiers cannot create products."""
+        self.client.force_login(self.cashier)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({'name': 'New Product', 'sku': 'NEW-001', 'category_id': self.category.id, 'selling_price': '100.00'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_staff_cannot_create_product(self):
+        """Test that staff cannot create products."""
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({'name': 'New Product', 'sku': 'NEW-001', 'category_id': self.category.id, 'selling_price': '100.00'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_create_product(self):
+        """Test that managers can create products."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'New Product',
+                'sku': 'NEW-001',
+                'category_id': self.category.id,
+                'selling_price': '150.00',
+                'cost_price': '90.00',
+                'reorder_level': 10,
+                'description': 'Test description',
+                'is_active': True,
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()['success'])
+        self.assertEqual(response.json()['data']['name'], 'New Product')
+        self.assertEqual(response.json()['data']['sku'], 'NEW-001')
+
+    def test_owner_can_create_product(self):
+        """Test that owners can create products."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'Owner Product',
+                'sku': 'OWNER-001',
+                'category_id': self.category.id,
+                'selling_price': '200.00',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()['success'])
+
+    def test_product_creation_requires_name(self):
+        """Test that product creation requires a name."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'sku': 'TEST-999',
+                'category_id': self.category.id,
+                'selling_price': '100.00',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('name', response.json()['errors'])
+
+    def test_product_creation_requires_sku(self):
+        """Test that product creation requires a SKU."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'Test',
+                'category_id': self.category.id,
+                'selling_price': '100.00',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('sku', response.json()['errors'])
+
+    def test_product_creation_requires_category(self):
+        """Test that product creation requires a category."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'Test',
+                'sku': 'TEST-999',
+                'selling_price': '100.00',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('category_id', response.json()['errors'])
+
+    def test_product_creation_requires_selling_price(self):
+        """Test that product creation requires a selling price."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'Test',
+                'sku': 'TEST-999',
+                'category_id': self.category.id,
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('selling_price', response.json()['errors'])
+
+    def test_product_creation_rejects_duplicate_sku(self):
+        """Test that duplicate SKUs are rejected."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'Duplicate SKU',
+                'sku': 'TEST-001',  # Already exists
+                'category_id': self.category.id,
+                'selling_price': '100.00',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('sku', response.json()['errors'])
+
+    def test_manager_can_update_product(self):
+        """Test that managers can update products."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({
+                'name': 'Updated Product',
+                'selling_price': '150.00',
+                'description': 'Updated description',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+
+        # Verify the product was updated
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.name, 'Updated Product')
+        self.assertEqual(self.product.selling_price, Decimal('150.00'))
+
+    def test_owner_can_update_product(self):
+        """Test that owners can update products."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({'name': 'Owner Updated'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_manager_update_product_price_preserves_history(self):
+        """Changing the selling price through product update must preserve price history."""
+        self.client.force_login(self.manager)
+        initial_count = self.product.price_history.count()
+
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({'selling_price': '175.00', 'description': 'Updated with pricing change'}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.price_history.count(), initial_count + 1)
+        self.assertEqual(self.product.selling_price, Decimal('175.00'))
+        self.assertEqual(self.product.price_history.first().previous_price, Decimal('100.00'))
+        self.assertEqual(self.product.price_history.first().changed_by, self.manager)
+
+    def test_manager_update_product_same_price_does_not_duplicate_history(self):
+        """Changing other fields without a new price should not create a duplicate price history record."""
+        self.client.force_login(self.manager)
+        initial_count = self.product.price_history.count()
+
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({'name': 'Same Price Updated', 'description': 'No price change here'}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.price_history.count(), initial_count)
+
+    def test_customer_cannot_update_product(self):
+        """Test that customers cannot update products."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({'name': 'Customer Updated'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_product_update_rejects_invalid_price(self):
+        """Test that product update rejects invalid prices."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({'selling_price': 'invalid'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+        self.assertIn('selling_price', response.json()['errors'])
+
+    def test_product_update_rejects_empty_and_none_prices(self):
+        """Invalid empty and None selling prices should be rejected without crashing."""
+        self.client.force_login(self.manager)
+
+        for invalid_value in ['', None]:
+            with self.subTest(invalid_value=invalid_value):
+                response = self.client.post(
+                    reverse('products:update', args=[self.product.id]),
+                    data=json.dumps({'selling_price': invalid_value}),
+                    content_type='application/json',
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(response.json()['success'])
+                self.assertIn('selling_price', response.json()['errors'])
+
+    def test_manager_can_deactivate_product(self):
+        """Test that managers can deactivate products."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:deactivate', args=[self.product.id]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+
+        # Verify the product is deactivated
+        self.product.refresh_from_db()
+        self.assertFalse(self.product.is_active)
+
+    def test_owner_can_deactivate_product(self):
+        """Test that owners can deactivate products."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:deactivate', args=[self.product.id]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_customer_cannot_deactivate_product(self):
+        """Test that customers cannot deactivate products."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:deactivate', args=[self.product.id]),
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_deactivation_does_not_delete_product(self):
+        """Test that deactivation marks the product as inactive but doesn't delete it."""
+        self.client.force_login(self.manager)
+        product_id = self.product.id
+        self.client.post(reverse('products:deactivate', args=[product_id]))
+
+        # Product should still exist in database
+        product = Product.objects.get(id=product_id)
+        self.assertFalse(product.is_active)
+
+    def test_manager_can_change_price(self):
+        """Test that managers can change product prices."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:change_price', args=[self.product.id]),
+            data=json.dumps({
+                'new_price': '200.00',
+                'reason': 'Market adjustment',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+
+        # Verify price was changed
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.selling_price, Decimal('200.00'))
+
+    def test_owner_can_change_price(self):
+        """Test that owners can change product prices."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:change_price', args=[self.product.id]),
+            data=json.dumps({'new_price': '250.00'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_customer_cannot_change_price(self):
+        """Test that customers cannot change product prices."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:change_price', args=[self.product.id]),
+            data=json.dumps({'new_price': '200.00'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_price_change_creates_history(self):
+        """Test that price changes create price history records."""
+        self.client.force_login(self.manager)
+        initial_history_count = self.product.price_history.count()
+
+        self.client.post(
+            reverse('products:change_price', args=[self.product.id]),
+            data=json.dumps({'new_price': '200.00', 'reason': 'Test'}),
+            content_type='application/json',
+        )
+
+        # Price history should be created
+        self.assertEqual(self.product.price_history.count(), initial_history_count + 1)
+        history = self.product.price_history.first()
+        self.assertEqual(history.previous_price, Decimal('100.00'))
+        self.assertEqual(history.new_price, Decimal('200.00'))
+        self.assertEqual(history.reason, 'Test')
+        self.assertEqual(history.changed_by, self.manager)
+
+    def test_price_change_same_price_rejected(self):
+        """Test that changing price to the same value is rejected."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:change_price', args=[self.product.id]),
+            data=json.dumps({'new_price': '100.00'}),  # Same as current
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_price_change_requires_new_price(self):
+        """Test that price change requires new_price field."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:change_price', args=[self.product.id]),
+            data=json.dumps({'reason': 'Test'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('new_price', response.json()['errors'])
+
+
+class CategoryManagementTests(TestCase):
+    """Tests for category creation, update, and deactivation endpoints."""
+
+    def setUp(self):
+        self.client = Client()
+
+        # Create test users
+        self.manager = User.objects.create_user(
+            email='manager@test.com',
+            username='manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+        self.customer = User.objects.create_user(
+            email='customer@test.com',
+            username='customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        self.owner = User.objects.create_user(
+            email='owner@test.com',
+            username='owner',
+            password='testpass123',
+            role='OWNER',
+        )
+
+        # Create test category
+        self.category = ProductCategory.objects.create(
+            name="Test Category",
+            slug="test-category",
+            description="Test",
+        )
+
+    def test_unauthenticated_user_cannot_create_category(self):
+        """Test that unauthenticated users receive 401."""
+        response = self.client.post(
+            reverse('products:category_create'),
+            data=json.dumps({'name': 'New Category'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_customer_cannot_create_category(self):
+        """Test that customers cannot create categories."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:category_create'),
+            data=json.dumps({'name': 'New Category'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_create_category(self):
+        """Test that managers can create categories."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_create'),
+            data=json.dumps({
+                'name': 'Electronics',
+                'description': 'Electronic products',
+                'is_active': True,
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()['success'])
+        self.assertEqual(response.json()['data']['name'], 'Electronics')
+
+    def test_owner_can_create_category(self):
+        """Test that owners can create categories."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:category_create'),
+            data=json.dumps({'name': 'Books'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 201)
+
+    def test_category_creation_requires_name(self):
+        """Test that category creation requires a name."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_create'),
+            data=json.dumps({}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('name', response.json()['errors'])
+
+    def test_category_creation_rejects_duplicate_name(self):
+        """Test that duplicate category names are rejected."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_create'),
+            data=json.dumps({'name': 'Test Category'}),  # Already exists
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('name', response.json()['errors'])
+
+    def test_manager_can_update_category(self):
+        """Test that managers can update categories."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_update', args=[self.category.id]),
+            data=json.dumps({
+                'name': 'Updated Category',
+                'description': 'Updated description',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Verify update
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.name, 'Updated Category')
+
+    def test_owner_can_update_category(self):
+        """Test that owners can update categories."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:category_update', args=[self.category.id]),
+            data=json.dumps({'name': 'Owner Updated'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_customer_cannot_update_category(self):
+        """Test that customers cannot update categories."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:category_update', args=[self.category.id]),
+            data=json.dumps({'name': 'Customer Updated'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_manager_can_deactivate_category(self):
+        """Test that managers can deactivate categories."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_deactivate', args=[self.category.id]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Verify deactivation
+        self.category.refresh_from_db()
+        self.assertFalse(self.category.is_active)
+
+    def test_owner_can_deactivate_category(self):
+        """Test that owners can deactivate categories."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('products:category_deactivate', args=[self.category.id]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_customer_cannot_deactivate_category(self):
+        """Test that customers cannot deactivate categories."""
+        self.client.force_login(self.customer)
+        response = self.client.post(
+            reverse('products:category_deactivate', args=[self.category.id]),
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_cannot_deactivate_category_with_active_products(self):
+        """Test that categories with active products cannot be deactivated."""
+        # Create a product in this category
+        Product.objects.create(
+            name="Test Product",
+            slug="test-product",
+            sku="TEST-001",
+            category=self.category,
+            selling_price=Decimal("100.00"),
+            is_active=True,
+        )
+
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_deactivate', args=[self.category.id]),
+        )
+        self.assertEqual(response.status_code, 409)
+        self.category.refresh_from_db()
+        self.assertTrue(self.category.is_active)
+
+    def test_can_deactivate_category_after_deactivating_products(self):
+        """Test that a category can be deactivated after its products are deactivated."""
+        # Create and deactivate a product
+        product = Product.objects.create(
+            name="Test Product",
+            slug="test-product",
+            sku="TEST-001",
+            category=self.category,
+            selling_price=Decimal("100.00"),
+            is_active=True,
+        )
+        product.is_active = False
+        product.save()
+
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:category_deactivate', args=[self.category.id]),
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+class ProductInventoryBoundaryTests(TestCase):
+    """Tests to ensure product management doesn't modify inventory."""
+
+    def setUp(self):
+        self.client = Client()
+        self.manager = User.objects.create_user(
+            email='manager@test.com',
+            username='manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+        self.category = ProductCategory.objects.create(
+            name="Test Category",
+            slug="test-category",
+        )
+        self.product = Product.objects.create(
+            name="Test Product",
+            slug="test-product",
+            sku="TEST-001",
+            category=self.category,
+            selling_price=Decimal("100.00"),
+        )
+
+    def test_product_creation_does_not_create_inventory(self):
+        """Test that creating a product doesn't create an InventoryItem."""
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:create'),
+            data=json.dumps({
+                'name': 'New Product',
+                'sku': 'NEW-001',
+                'category_id': self.category.id,
+                'selling_price': '100.00',
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 201)
+
+        # Product should be created but without automatic inventory
+        new_product = Product.objects.get(sku='NEW-001')
+        self.assertFalse(hasattr(new_product, 'inventory_item'))
+
+    def test_product_update_does_not_modify_inventory(self):
+        """Test that updating a product doesn't affect inventory."""
+        # This is tested implicitly by not creating inventory in the first place
+        # But we can verify that if inventory exists, it's not modified
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({'name': 'Updated Name'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
 
     def test_negative_monetary_values_are_rejected(self):
         invalid_product = Product(

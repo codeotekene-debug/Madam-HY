@@ -1,10 +1,16 @@
-from decimal import Decimal
+import json
+from decimal import Decimal, InvalidOperation
 
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db.models import Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_http_methods
 
-from .models import Product, ProductCategory, ProductImage
+from .models import Product, ProductCategory, ProductImage, ProductPriceHistory
+
+User = get_user_model()
 
 
 def _json_response(data=None, message="Success", success=True, status=200, errors=None):
@@ -310,4 +316,802 @@ def categories_list(request):
     return _json_response(
         data=data,
         message='Categories retrieved successfully.',
+    )
+
+
+# ============================================================================
+# AUTHORIZATION HELPERS
+# ============================================================================
+
+def _is_authenticated(request):
+    """Check if user is authenticated."""
+    return request.user and request.user.is_authenticated
+
+
+def _can_manage_products(user):
+    """Check if user can create/update/deactivate products."""
+    if not user or not user.is_authenticated:
+        return False
+    return user.role in ('OWNER', 'MANAGER')
+
+
+def _can_manage_categories(user):
+    """Check if user can create/update/deactivate categories."""
+    if not user or not user.is_authenticated:
+        return False
+    return user.role in ('OWNER', 'MANAGER')
+
+
+def _can_change_prices(user):
+    """Check if user can change product prices."""
+    if not user or not user.is_authenticated:
+        return False
+    return user.role in ('OWNER', 'MANAGER')
+
+
+# ============================================================================
+# PRODUCT MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@require_http_methods(['POST'])
+def product_create(request):
+    """
+    POST /products/create/
+
+    Create a new product.
+
+    Required authentication: OWNER or MANAGER
+
+    Request body:
+    {
+        "name": "Product Name",
+        "sku": "UNIQUE-SKU",
+        "category_id": 1,
+        "selling_price": "100.00",
+        "cost_price": "60.00" (optional),
+        "reorder_level": 5 (optional, default: 0),
+        "description": "Product description" (optional),
+        "is_active": true (optional, default: true)
+    }
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_manage_products(request.user):
+        return _json_response(
+            message='You do not have permission to create products.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _json_response(
+            message='Invalid JSON.',
+            success=False,
+            status=400,
+            errors={'body': 'Request body must be valid JSON.'},
+        )
+
+    errors = {}
+
+    # Validate required fields
+    if not data.get('name'):
+        errors['name'] = 'Product name is required.'
+    if not data.get('sku'):
+        errors['sku'] = 'SKU is required.'
+    if 'category_id' not in data:
+        errors['category_id'] = 'Category ID is required.'
+    if 'selling_price' not in data:
+        errors['selling_price'] = 'Selling price is required.'
+
+    if errors:
+        return _json_response(
+            message='Validation failed.',
+            success=False,
+            status=400,
+            errors=errors,
+        )
+
+    # Get and validate category
+    try:
+        category_id = int(data['category_id'])
+        category = ProductCategory.objects.get(id=category_id)
+    except (ValueError, TypeError):
+        return _json_response(
+            message='Invalid category ID.',
+            success=False,
+            status=400,
+            errors={'category_id': 'Category ID must be an integer.'},
+        )
+    except ProductCategory.DoesNotExist:
+        return _json_response(
+            message='Category not found.',
+            success=False,
+            status=404,
+            errors={'category_id': 'Category does not exist.'},
+        )
+
+    # Validate prices
+    try:
+        selling_price = Decimal(str(data['selling_price']))
+        if selling_price < 0:
+            raise ValueError('Selling price cannot be negative.')
+    except (ValueError, TypeError) as e:
+        return _json_response(
+            message='Invalid selling price.',
+            success=False,
+            status=400,
+            errors={'selling_price': str(e) or 'Selling price must be a valid decimal.'},
+        )
+
+    cost_price = None
+    if data.get('cost_price') is not None:
+        try:
+            cost_price = Decimal(str(data['cost_price']))
+            if cost_price < 0:
+                raise ValueError('Cost price cannot be negative.')
+        except (ValueError, TypeError) as e:
+            return _json_response(
+                message='Invalid cost price.',
+                success=False,
+                status=400,
+                errors={'cost_price': str(e) or 'Cost price must be a valid decimal.'},
+            )
+
+    # Validate reorder level
+    reorder_level = data.get('reorder_level', 0)
+    try:
+        reorder_level = int(reorder_level)
+        if reorder_level < 0:
+            raise ValueError('Reorder level cannot be negative.')
+    except (ValueError, TypeError) as e:
+        return _json_response(
+            message='Invalid reorder level.',
+            success=False,
+            status=400,
+            errors={'reorder_level': str(e) or 'Reorder level must be a non-negative integer.'},
+        )
+
+    # Check for duplicate SKU
+    if Product.objects.filter(sku=data['sku'].strip()).exists():
+        return _json_response(
+            message='SKU already exists.',
+            success=False,
+            status=409,
+            errors={'sku': 'A product with this SKU already exists.'},
+        )
+
+    # Create product
+    try:
+        product = Product.objects.create(
+            name=data['name'].strip(),
+            sku=data['sku'].strip(),
+            category=category,
+            selling_price=selling_price,
+            cost_price=cost_price,
+            reorder_level=reorder_level,
+            description=data.get('description', '').strip() or '',
+            is_active=data.get('is_active', True),
+        )
+    except ValidationError as e:
+        return _json_response(
+            message='Product creation failed.',
+            success=False,
+            status=400,
+            errors=e.error_dict if hasattr(e, 'error_dict') else {'detail': str(e)},
+        )
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while creating the product.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    product_data = _serialize_product_detail(product)
+    return _json_response(
+        data=product_data,
+        message='Product created successfully.',
+        status=201,
+    )
+
+
+@require_http_methods(['POST'])
+def product_update(request, product_id):
+    """
+    POST /products/<id>/update/
+
+    Update an existing product.
+
+    Required authentication: OWNER or MANAGER
+
+    Request body (all fields optional):
+    {
+        "name": "New Name",
+        "category_id": 2,
+        "selling_price": "120.00",
+        "cost_price": "70.00",
+        "reorder_level": 8,
+        "description": "Updated description",
+        "is_active": true
+    }
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_manage_products(request.user):
+        return _json_response(
+            message='You do not have permission to update products.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return _json_response(
+            message='Product not found.',
+            success=False,
+            status=404,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _json_response(
+            message='Invalid JSON.',
+            success=False,
+            status=400,
+            errors={'body': 'Request body must be valid JSON.'},
+        )
+
+    errors = {}
+
+    # Update name if provided
+    if 'name' in data:
+        if not data['name']:
+            errors['name'] = 'Product name cannot be empty.'
+        else:
+            product.name = data['name'].strip()
+
+    # Update category if provided
+    if 'category_id' in data:
+        try:
+            category_id = int(data['category_id'])
+            category = ProductCategory.objects.get(id=category_id)
+            product.category = category
+        except (ValueError, TypeError):
+            errors['category_id'] = 'Category ID must be an integer.'
+        except ProductCategory.DoesNotExist:
+            errors['category_id'] = 'Category does not exist.'
+
+    # Update selling price if provided
+    if 'selling_price' in data:
+        raw_price = data['selling_price']
+
+        if raw_price is None or (isinstance(raw_price, str) and not raw_price.strip()):
+            errors['selling_price'] = 'Selling price is required.'
+        else:
+            try:
+                price = Decimal(str(raw_price))
+                if not price.is_finite():
+                    raise ValueError('Selling price must be a valid decimal.')
+                if price < 0:
+                    raise ValueError('Selling price cannot be negative.')
+
+                if price != product.selling_price:
+                    product.record_price_change(
+                        new_price=price,
+                        changed_by=request.user,
+                        reason=(data.get('price_change_reason') or data.get('reason') or '').strip(),
+                    )
+                else:
+                    product.selling_price = price
+            except (InvalidOperation, ValueError, TypeError) as e:
+                errors['selling_price'] = str(e) or 'Selling price must be a valid decimal.'
+
+    # Update cost price if provided
+    if 'cost_price' in data:
+        if data['cost_price'] is None:
+            product.cost_price = None
+        else:
+            try:
+                price = Decimal(str(data['cost_price']))
+                if price < 0:
+                    raise ValueError('Cost price cannot be negative.')
+                product.cost_price = price
+            except (ValueError, TypeError) as e:
+                errors['cost_price'] = str(e) or 'Cost price must be a valid decimal.'
+
+    # Update reorder level if provided
+    if 'reorder_level' in data:
+        try:
+            level = int(data['reorder_level'])
+            if level < 0:
+                raise ValueError('Reorder level cannot be negative.')
+            product.reorder_level = level
+        except (ValueError, TypeError) as e:
+            errors['reorder_level'] = str(e) or 'Reorder level must be a non-negative integer.'
+
+    # Update description if provided
+    if 'description' in data:
+        product.description = data['description'].strip() if data['description'] else ''
+
+    # Update is_active if provided
+    if 'is_active' in data:
+        product.is_active = bool(data['is_active'])
+
+    if errors:
+        return _json_response(
+            message='Validation failed.',
+            success=False,
+            status=400,
+            errors=errors,
+        )
+
+    # Save product
+    try:
+        product.save()
+    except ValidationError as e:
+        return _json_response(
+            message='Product update failed.',
+            success=False,
+            status=400,
+            errors=e.error_dict if hasattr(e, 'error_dict') else {'detail': str(e)},
+        )
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while updating the product.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    product_data = _serialize_product_detail(product)
+    return _json_response(
+        data=product_data,
+        message='Product updated successfully.',
+    )
+
+
+@require_http_methods(['POST'])
+def product_deactivate(request, product_id):
+    """
+    POST /products/<id>/deactivate/
+
+    Deactivate a product (mark as inactive without deleting).
+
+    Required authentication: OWNER or MANAGER
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_manage_products(request.user):
+        return _json_response(
+            message='You do not have permission to deactivate products.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return _json_response(
+            message='Product not found.',
+            success=False,
+            status=404,
+        )
+
+    if not product.is_active:
+        return _json_response(
+            message='Product is already deactivated.',
+            success=False,
+            status=400,
+        )
+
+    product.is_active = False
+    try:
+        product.save()
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while deactivating the product.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    product_data = _serialize_product_detail(product)
+    return _json_response(
+        data=product_data,
+        message='Product deactivated successfully.',
+    )
+
+
+@require_http_methods(['POST'])
+def product_change_price(request, product_id):
+    """
+    POST /products/<id>/change-price/
+
+    Change the selling price of a product and record price history.
+
+    Required authentication: OWNER or MANAGER
+
+    Request body:
+    {
+        "new_price": "150.00",
+        "reason": "Market adjustment" (optional)
+    }
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_change_prices(request.user):
+        return _json_response(
+            message='You do not have permission to change prices.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return _json_response(
+            message='Product not found.',
+            success=False,
+            status=404,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _json_response(
+            message='Invalid JSON.',
+            success=False,
+            status=400,
+            errors={'body': 'Request body must be valid JSON.'},
+        )
+
+    if 'new_price' not in data:
+        return _json_response(
+            message='Validation failed.',
+            success=False,
+            status=400,
+            errors={'new_price': 'New price is required.'},
+        )
+
+    try:
+        new_price = Decimal(str(data['new_price']))
+        if new_price < 0:
+            raise ValueError('Price cannot be negative.')
+    except (ValueError, TypeError) as e:
+        return _json_response(
+            message='Invalid price.',
+            success=False,
+            status=400,
+            errors={'new_price': str(e) or 'Price must be a valid decimal.'},
+        )
+
+    reason = data.get('reason', '').strip() or ''
+
+    try:
+        history = product.record_price_change(
+            new_price=new_price,
+            changed_by=request.user,
+            reason=reason,
+        )
+    except ValidationError as e:
+        return _json_response(
+            message='Price change failed.',
+            success=False,
+            status=400,
+            errors={'detail': str(e)},
+        )
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while changing the price.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    # If price didn't actually change, record that
+    if history is None:
+        return _json_response(
+            message='Price did not change.',
+            success=False,
+            status=400,
+            errors={'detail': 'New price is the same as current price.'},
+        )
+
+    product_data = _serialize_product_detail(product)
+    return _json_response(
+        data=product_data,
+        message='Product price changed successfully.',
+    )
+
+
+# ============================================================================
+# CATEGORY MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@require_http_methods(['POST'])
+def category_create(request):
+    """
+    POST /products/categories/create/
+
+    Create a new product category.
+
+    Required authentication: OWNER or MANAGER
+
+    Request body:
+    {
+        "name": "Category Name",
+        "description": "Category description" (optional),
+        "is_active": true (optional, default: true)
+    }
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_manage_categories(request.user):
+        return _json_response(
+            message='You do not have permission to create categories.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _json_response(
+            message='Invalid JSON.',
+            success=False,
+            status=400,
+            errors={'body': 'Request body must be valid JSON.'},
+        )
+
+    errors = {}
+
+    # Validate required fields
+    if not data.get('name'):
+        errors['name'] = 'Category name is required.'
+
+    if errors:
+        return _json_response(
+            message='Validation failed.',
+            success=False,
+            status=400,
+            errors=errors,
+        )
+
+    # Check for duplicate name
+    if ProductCategory.objects.filter(name=data['name'].strip()).exists():
+        return _json_response(
+            message='Category name already exists.',
+            success=False,
+            status=409,
+            errors={'name': 'A category with this name already exists.'},
+        )
+
+    # Create category
+    try:
+        category = ProductCategory.objects.create(
+            name=data['name'].strip(),
+            description=data.get('description', '').strip() or '',
+            is_active=data.get('is_active', True),
+        )
+    except ValidationError as e:
+        return _json_response(
+            message='Category creation failed.',
+            success=False,
+            status=400,
+            errors=e.error_dict if hasattr(e, 'error_dict') else {'detail': str(e)},
+        )
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while creating the category.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    category_data = _serialize_category(category)
+    return _json_response(
+        data=category_data,
+        message='Category created successfully.',
+        status=201,
+    )
+
+
+@require_http_methods(['POST'])
+def category_update(request, category_id):
+    """
+    POST /products/categories/<id>/update/
+
+    Update an existing product category.
+
+    Required authentication: OWNER or MANAGER
+
+    Request body (all fields optional):
+    {
+        "name": "New Category Name",
+        "description": "Updated description",
+        "is_active": true
+    }
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_manage_categories(request.user):
+        return _json_response(
+            message='You do not have permission to update categories.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        category = ProductCategory.objects.get(id=category_id)
+    except ProductCategory.DoesNotExist:
+        return _json_response(
+            message='Category not found.',
+            success=False,
+            status=404,
+        )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _json_response(
+            message='Invalid JSON.',
+            success=False,
+            status=400,
+            errors={'body': 'Request body must be valid JSON.'},
+        )
+
+    errors = {}
+
+    # Update name if provided
+    if 'name' in data:
+        if not data['name']:
+            errors['name'] = 'Category name cannot be empty.'
+        else:
+            # Check for duplicate name (excluding current category)
+            if ProductCategory.objects.filter(name=data['name'].strip()).exclude(id=category.id).exists():
+                errors['name'] = 'A category with this name already exists.'
+            else:
+                category.name = data['name'].strip()
+
+    # Update description if provided
+    if 'description' in data:
+        category.description = data['description'].strip() if data['description'] else ''
+
+    # Update is_active if provided
+    if 'is_active' in data:
+        category.is_active = bool(data['is_active'])
+
+    if errors:
+        return _json_response(
+            message='Validation failed.',
+            success=False,
+            status=400,
+            errors=errors,
+        )
+
+    # Save category
+    try:
+        category.save()
+    except ValidationError as e:
+        return _json_response(
+            message='Category update failed.',
+            success=False,
+            status=400,
+            errors=e.error_dict if hasattr(e, 'error_dict') else {'detail': str(e)},
+        )
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while updating the category.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    category_data = _serialize_category(category)
+    return _json_response(
+        data=category_data,
+        message='Category updated successfully.',
+    )
+
+
+@require_http_methods(['POST'])
+def category_deactivate(request, category_id):
+    """
+    POST /products/categories/<id>/deactivate/
+
+    Deactivate a category (mark as inactive).
+
+    Required authentication: OWNER or MANAGER
+
+    Note: Cannot deactivate a category that has active products.
+    """
+    if not _is_authenticated(request):
+        return _json_response(
+            message='Authentication required.',
+            success=False,
+            status=401,
+        )
+
+    if not _can_manage_categories(request.user):
+        return _json_response(
+            message='You do not have permission to deactivate categories.',
+            success=False,
+            status=403,
+        )
+
+    try:
+        category = ProductCategory.objects.get(id=category_id)
+    except ProductCategory.DoesNotExist:
+        return _json_response(
+            message='Category not found.',
+            success=False,
+            status=404,
+        )
+
+    if not category.is_active:
+        return _json_response(
+            message='Category is already deactivated.',
+            success=False,
+            status=400,
+        )
+
+    # Check if category has active products
+    active_products = category.products.filter(is_active=True).count()
+    if active_products > 0:
+        return _json_response(
+            message='Cannot deactivate a category with active products.',
+            success=False,
+            status=409,
+            errors={'detail': f'This category has {active_products} active product(s).'},
+        )
+
+    category.is_active = False
+    try:
+        category.save()
+    except Exception as e:
+        return _json_response(
+            message='An error occurred while deactivating the category.',
+            success=False,
+            status=500,
+            errors={'detail': str(e)},
+        )
+
+    category_data = _serialize_category(category)
+    return _json_response(
+        data=category_data,
+        message='Category deactivated successfully.',
     )
