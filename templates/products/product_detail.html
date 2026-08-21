@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="product-detail-page">
+<div class="product-detail-page" data-product-id="{{ product_id|default:'' }}">
     <div class="page-topbar-inline">
         <a href="#" class="btn btn-secondary btn-sm">Back to products</a>
         <div class="page-actions">
@@ -26,25 +26,24 @@
 
     <section class="detail-hero card">
         <div class="detail-image-panel">
-            <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80" alt="Green Ankara fabric product" />
+            <img id="productMainImage" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Product" />
+            <div id="productImageGallery" class="product-image-gallery" aria-label="Product images"></div>
         </div>
 
         <div class="detail-summary">
             <div class="detail-meta-row">
-                <span class="badge badge-primary">Fashion</span>
-                <span class="detail-sku">SKU: MH-FAB-104</span>
+                <span id="productCategory" class="badge badge-primary">Loading...</span>
+                <span id="productSku" class="detail-sku">SKU:</span>
             </div>
 
-            <h2>Green Ankara Fabric Premium</h2>
+            <h2 id="productName">Loading product...</h2>
 
             <div class="detail-price-row">
-                <strong>₦ 12,500</strong>
-                <span class="detail-stock status-in-stock">In stock</span>
+                <strong id="productPrice">₦ 0</strong>
+                <span id="productStockStatus" class="detail-stock">Loading...</span>
             </div>
 
-            <p class="detail-description">
-                Premium quality Ankara fabric designed for stylish tailoring, event wear, and boutique retail display. The design offers vibrant colour depth with a soft hand feel and consistent weave finish.
-            </p>
+            <p id="productDescription" class="detail-description">Loading product details...</p>
 
             <div class="detail-points">
                 <div>
@@ -53,11 +52,11 @@
                 </div>
                 <div>
                     <span>Availability</span>
-                    <strong>24 rolls</strong>
+                    <strong id="productAvailability">0 units</strong>
                 </div>
                 <div>
                     <span>Category</span>
-                    <strong>Fashion</strong>
+                    <strong id="productCategoryDetail">Loading...</strong>
                 </div>
             </div>
 
@@ -79,7 +78,7 @@
             <div class="info-list">
                 <div>
                     <span>Product name</span>
-                    <strong>Green Ankara Fabric Premium</strong>
+                    <strong id="productNameDetail">Loading...</strong>
                 </div>
                 <div>
                     <span>Supplier</span>
@@ -87,7 +86,7 @@
                 </div>
                 <div>
                     <span>Unit cost</span>
-                    <strong>₦ 9,300</strong>
+                    <strong id="productUnitCost">Not available</strong>
                 </div>
                 <div>
                     <span>Retail margin</span>
@@ -95,7 +94,7 @@
                 </div>
                 <div>
                     <span>Reorder level</span>
-                    <strong>8 rolls</strong>
+                    <strong id="productReorderLevel">0 units</strong>
                 </div>
                 <div>
                     <span>Tags</span>
@@ -114,19 +113,19 @@
             <div class="stock-panel">
                 <div class="stock-row">
                     <span>Available stock</span>
-                    <strong>24 units</strong>
+                    <strong id="productAvailableStock">0 units</strong>
                 </div>
                 <div class="stock-row">
                     <span>Low stock alert</span>
-                    <strong>Normal</strong>
+                    <strong id="productCreatedAt">Not available</strong>
                 </div>
                 <div class="stock-row">
                     <span>Last restocked</span>
-                    <strong>18 July 2026</strong>
+                    <strong id="productUpdatedAt">Not available</strong>
                 </div>
                 <div class="stock-row">
                     <span>Inventory status</span>
-                    <strong class="status-chip status-in-stock">Ready to sell</strong>
+                    <strong id="productInventoryStatus" class="status-chip">Loading...</strong>
                 </div>
             </div>
         </article>

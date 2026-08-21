@@ -3,74 +3,15 @@
  * Frontend-only product catalog for customers
  */
 
-const customerProductsData = [
-    {
-        id: 1,
-        name: "Green Ankara Fabric Premium",
-        category: "Fashion",
-        price: 12500,
-        stock: 24,
-        status: "in-stock",
-        description: "Premium quality Ankara fabric designed for statement tailoring.",
-        image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 2,
-        name: "Velvet Evening Gown",
-        category: "Fashion",
-        price: 28000,
-        stock: 7,
-        status: "low-stock",
-        description: "Elegant evening wear with a smooth finish.",
-        image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 3,
-        name: "Radiant Glow Serum",
-        category: "Beauty",
-        price: 9500,
-        stock: 18,
-        status: "in-stock",
-        description: "A lightweight skincare serum for brighter complexion.",
-        image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 4,
-        name: "Kitchen Storage Basket",
-        category: "Home",
-        price: 6200,
-        stock: 3,
-        status: "low-stock",
-        description: "Organised storage for kitchens and shelves.",
-        image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 5,
-        name: "Wireless Speaker Mini",
-        category: "Electronics",
-        price: 22000,
-        stock: 0,
-        status: "out-of-stock",
-        description: "Compact wireless speaker with rich sound.",
-        image: "https://images.unsplash.com/photo-1518444065439-e933c06ce9cd?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 6,
-        name: "Leather Office Tote",
-        category: "Fashion",
-        price: 18500,
-        stock: 15,
-        status: "in-stock",
-        description: "Smart office accessory that combines durability.",
-        image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80"
-    }
-];
-
 let customerCart = [];
+const customerProductState = { page: 1, pageSize: 10, requestId: 0 };
+const customerProductPlaceholder = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 document.addEventListener('DOMContentLoaded', () => {
     setupFilters();
-    renderProducts();
+    loadCategories();
+    loadProducts();
+    setupPagination();
     updateCartCount();
 });
 
@@ -80,39 +21,64 @@ function setupFilters() {
     const stock = document.getElementById('customerStockFilter');
     const sort = document.getElementById('customerSortSelect');
 
-    const applyFilters = () => renderProducts();
-    search?.addEventListener('input', applyFilters);
+    const applyFilters = () => {
+        customerProductState.page = 1;
+        loadProducts();
+    };
+    let searchTimer;
+    search?.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(applyFilters, 300);
+    });
     category?.addEventListener('change', applyFilters);
     stock?.addEventListener('change', applyFilters);
     sort?.addEventListener('change', applyFilters);
 }
 
-function renderProducts() {
+function setupPagination() {
+    document.getElementById('customerProductsPrevious')?.addEventListener('click', () => {
+        if (customerProductState.page > 1) {
+            customerProductState.page -= 1;
+            loadProducts();
+        }
+    });
+    document.getElementById('customerProductsNext')?.addEventListener('click', () => {
+        customerProductState.page += 1;
+        loadProducts();
+    });
+}
+
+async function loadProducts() {
     const grid = document.getElementById('customerProductGrid');
     const empty = document.getElementById('customerProductsEmpty');
     if (!grid) return;
 
-    const searchValue = document.getElementById('customerProductSearch')?.value.toLowerCase() || '';
-    const categoryFilter = document.getElementById('customerCategoryFilter')?.value || 'all';
-    const stockFilter = document.getElementById('customerStockFilter')?.value || 'all';
-    const sortValue = document.getElementById('customerSortSelect')?.value || 'name';
-
-    let filtered = customerProductsData.filter(item => {
-        const matchesSearch = !searchValue || item.name.toLowerCase().includes(searchValue);
-        const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-        const matchesStock = stockFilter === 'all' || item.status === stockFilter || (stockFilter === 'low-stock' && item.stock < 10 && item.stock > 0);
-        return matchesSearch && matchesCategory && matchesStock;
+    const params = new URLSearchParams({
+        page: String(customerProductState.page),
+        page_size: String(customerProductState.pageSize),
+        search: document.getElementById('customerProductSearch')?.value.trim() || '',
+        category: getFilterValue('customerCategoryFilter'),
+        stock: getFilterValue('customerStockFilter'),
+        sort_by: document.getElementById('customerSortSelect')?.value || 'name'
+    });
+    ['search', 'category', 'stock'].forEach(key => {
+        if (!params.get(key)) params.delete(key);
     });
 
-    if (sortValue === 'price-high') {
-        filtered.sort((a, b) => b.price - a.price);
-    } else if (sortValue === 'price-low') {
-        filtered.sort((a, b) => a.price - b.price);
-    } else {
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
+    const requestId = ++customerProductState.requestId;
+    const response = await apiRequest(`/products/?${params.toString()}`);
+    if (requestId !== customerProductState.requestId) return;
+    if (!response.success) {
+        grid.replaceChildren();
+        empty?.classList.add('empty-state-hidden');
+        showCustomerProductMessage(response.message || 'Unable to load products.', true, loadProducts);
+        return;
     }
 
-    if (!filtered.length) {
+    const products = response.data?.products || [];
+    updatePagination(response.data?.pagination || {});
+
+    if (!products.length) {
         grid.innerHTML = '';
         empty?.classList.remove('empty-state-hidden');
         updateSummary(0);
@@ -120,25 +86,96 @@ function renderProducts() {
     }
 
     empty?.classList.add('empty-state-hidden');
-    grid.innerHTML = filtered.map(product => `
+    hideCustomerProductMessage();
+    grid.innerHTML = products.map(product => {
+        const status = normalizeStatus(product.stock?.status);
+        const image = product.image?.url || customerProductPlaceholder;
+        return `
         <div class="customer-product-card">
             <div class="product-card-image">
-                <img src="${product.image}" alt="${product.name}" />
+                <img src="${image}" alt="${product.image?.alt_text || product.name}" onerror="this.src='${customerProductPlaceholder}'" />
             </div>
             <div class="product-card-content">
-                <span class="product-card-category">${product.category}</span>
+                <span class="product-card-category">${product.category?.name || 'Uncategorised'}</span>
                 <h3 class="product-card-name">${product.name}</h3>
-                <div class="product-card-price">₦${formatCurrency(product.price)}</div>
-                <div class="product-card-stock">${product.status === 'in-stock' ? 'In stock' : product.status === 'low-stock' ? `Low stock (${product.stock} left)` : 'Out of stock'}</div>
+                <div class="product-card-price">₦${formatCurrency(product.selling_price)}</div>
+                <div class="product-card-stock">${formatStatus(status, product.stock?.quantity)}</div>
                 <div class="product-card-actions">
-                    <a href="/customer/product/${product.id}/" class="btn btn-secondary btn-sm">View</a>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="addProductToCart(${product.id}, '${product.name}', ${product.price})">Add</button>
+                    <a href="/preview/customer/product-detail/?id=${product.id}" class="btn btn-secondary btn-sm">View</a>
+                    <button type="button" class="btn btn-primary btn-sm" data-product-id="${product.id}">Add</button>
                 </div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
-    updateSummary(filtered.length);
+    grid.querySelectorAll('[data-product-id]').forEach(button => {
+        button.addEventListener('click', () => {
+            const product = products.find(item => String(item.id) === button.dataset.productId);
+            if (product) addProductToCart(product.id, product.name, product.selling_price);
+        });
+    });
+
+    updateSummary(response.data?.pagination?.total_count || products.length);
+}
+
+async function loadCategories() {
+    const select = document.getElementById('customerCategoryFilter');
+    if (!select) return;
+    const response = await apiRequest('/products/categories/');
+    if (!response.success) return;
+    const selected = select.value;
+    select.replaceChildren(new Option('All categories', 'all'));
+    (response.data?.categories || []).forEach(category => select.add(new Option(category.name, category.slug)));
+    select.value = selected;
+}
+
+function getFilterValue(id) {
+    const value = document.getElementById(id)?.value || '';
+    return value === 'all' ? '' : value;
+}
+
+function normalizeStatus(status) {
+    return String(status || 'OUT_OF_STOCK').toLowerCase().replaceAll('_', '-');
+}
+
+function formatStatus(status, quantity = 0) {
+    if (status === 'in-stock') return 'In stock';
+    if (status === 'low-stock') return `Low stock (${quantity} left)`;
+    return 'Out of stock';
+}
+
+function updatePagination(pagination) {
+    const page = pagination.page || customerProductState.page;
+    const totalPages = pagination.total_pages || 0;
+    customerProductState.page = page;
+    const previous = document.getElementById('customerProductsPrevious');
+    const next = document.getElementById('customerProductsNext');
+    if (previous) previous.disabled = page <= 1;
+    if (next) next.disabled = page >= totalPages || totalPages === 0;
+    document.getElementById('customerProductsPage')?.replaceChildren(document.createTextNode(`Page ${page} of ${totalPages}`));
+}
+
+function showCustomerProductMessage(message, isError, retry) {
+    const empty = document.getElementById('customerProductsEmpty');
+    if (!empty) return;
+    empty.replaceChildren();
+    const text = document.createElement('p');
+    text.textContent = message;
+    empty.append(text);
+    if (isError && retry) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-secondary btn-sm';
+        button.textContent = 'Retry';
+        button.addEventListener('click', retry);
+        empty.append(button);
+    }
+    empty.classList.remove('empty-state-hidden');
+}
+
+function hideCustomerProductMessage() {
+    document.getElementById('customerProductsEmpty')?.classList.add('empty-state-hidden');
 }
 
 function updateSummary(count) {
@@ -150,7 +187,7 @@ function addProductToCart(id, name, price) {
     if (existing) {
         existing.quantity += 1;
     } else {
-        customerCart.push({ id, name, price, quantity: 1 });
+        customerCart.push({ id, name, price: Number(price), quantity: 1 });
     }
     updateCartCount();
     alert(`${name} added to cart!`);

@@ -48,17 +48,16 @@
             <label class="visually-hidden" for="stockFilter">Filter by stock status</label>
             <select id="stockFilter" class="form-select">
                 <option value="all">All stock</option>
-                <option value="in-stock">In stock</option>
-                <option value="low-stock">Low stock</option>
-                <option value="out-of-stock">Out of stock</option>
+                <option value="IN_STOCK">In stock</option>
+                <option value="LOW_STOCK">Low stock</option>
+                <option value="OUT_OF_STOCK">Out of stock</option>
             </select>
 
             <label class="visually-hidden" for="sortSelect">Sort products</label>
             <select id="sortSelect" class="form-select">
                 <option value="name">Sort: Name</option>
-                <option value="price-high">Price: High to low</option>
-                <option value="price-low">Price: Low to high</option>
-                <option value="stock">Stock: High to low</option>
+                <option value="price_desc">Price: High to low</option>
+                <option value="price_asc">Price: Low to high</option>
             </select>
         </div>
     </section>
@@ -85,12 +84,19 @@
         </article>
     </section>
 
+    <div id="productStatus" class="empty-state empty-state-hidden" aria-live="polite"></div>
     <section id="productGrid" class="product-grid" aria-live="polite"></section>
 
     <div id="productEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
         <h3>No products match your filters</h3>
         <p>Try another keyword or reset the category and stock filters.</p>
     </div>
+
+    <nav class="products-pagination" aria-label="Product pagination">
+        <button type="button" class="btn btn-secondary btn-sm" id="productsPrevious">Previous</button>
+        <span id="productsPage">Page 1 of 1</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="productsNext">Next</button>
+    </nav>
 </div>
 {% endblock %}
 

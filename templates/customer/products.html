@@ -37,24 +37,21 @@
             <label class="visually-hidden" for="customerCategoryFilter">Filter by category</label>
             <select id="customerCategoryFilter" class="form-select">
                 <option value="all">All categories</option>
-                <option value="Fashion">Fashion</option>
-                <option value="Beauty">Beauty</option>
-                <option value="Home">Home</option>
-                <option value="Electronics">Electronics</option>
             </select>
 
             <label class="visually-hidden" for="customerStockFilter">Filter by availability</label>
             <select id="customerStockFilter" class="form-select">
                 <option value="all">All items</option>
-                <option value="in-stock">In stock</option>
-                <option value="low-stock">Low stock</option>
+                <option value="IN_STOCK">In stock</option>
+                <option value="LOW_STOCK">Low stock</option>
+                <option value="OUT_OF_STOCK">Out of stock</option>
             </select>
 
             <label class="visually-hidden" for="customerSortSelect">Sort products</label>
             <select id="customerSortSelect" class="form-select">
                 <option value="name">Sort: Name</option>
-                <option value="price-low">Price: Low to high</option>
-                <option value="price-high">Price: High to low</option>
+                <option value="price_asc">Price: Low to high</option>
+                <option value="price_desc">Price: High to low</option>
             </select>
         </div>
     </section>
@@ -77,6 +74,12 @@
         <h3>No products match your filters</h3>
         <p>Try adjusting your search or filters.</p>
     </div>
+
+    <nav class="products-pagination" aria-label="Product pagination">
+        <button type="button" class="btn btn-secondary btn-sm" id="customerProductsPrevious">Previous</button>
+        <span id="customerProductsPage">Page 1 of 1</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="customerProductsNext">Next</button>
+    </nav>
 </div>
 {% endblock %}
 

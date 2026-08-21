@@ -3,96 +3,48 @@
  * Product detail view for customers
  */
 
-const allProducts = [
-    {
-        id: 1,
-        name: "Green Ankara Fabric Premium",
-        category: "Fashion",
-        price: 12500,
-        stock: 24,
-        status: "in-stock",
-        description: "Premium quality Ankara fabric designed for statement tailoring and event wear.",
-        image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 2,
-        name: "Velvet Evening Gown",
-        category: "Fashion",
-        price: 28000,
-        stock: 7,
-        status: "low-stock",
-        description: "Elegant evening wear with a smooth finish, ideal for special occasions.",
-        image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 3,
-        name: "Radiant Glow Serum",
-        category: "Beauty",
-        price: 9500,
-        stock: 18,
-        status: "in-stock",
-        description: "A lightweight skincare serum for a brighter and more refreshed complexion.",
-        image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 4,
-        name: "Kitchen Storage Basket",
-        category: "Home",
-        price: 6200,
-        stock: 3,
-        status: "low-stock",
-        description: "Organised storage for kitchens, shelves and compact living spaces.",
-        image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 5,
-        name: "Wireless Speaker Mini",
-        category: "Electronics",
-        price: 22000,
-        stock: 0,
-        status: "out-of-stock",
-        description: "Compact wireless speaker with rich sound and Bluetooth connectivity.",
-        image: "https://images.unsplash.com/photo-1518444065439-e933c06ce9cd?auto=format&fit=crop&w=900&q=80"
-    },
-    {
-        id: 6,
-        name: "Leather Office Tote",
-        category: "Fashion",
-        price: 18500,
-        stock: 15,
-        status: "in-stock",
-        description: "Smart office accessory that combines durability and a polished look.",
-        image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80"
-    }
-];
-
 let currentProduct = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    const productId = getProductIdFromUrl();
-    currentProduct = allProducts.find(p => p.id === productId) || allProducts[0];
-    renderDetail();
+    loadProductDetail();
     bindActions();
 });
+
+async function loadProductDetail() {
+    const productId = getProductIdFromUrl();
+    if (!productId) {
+        showDetailMessage('Product ID was not found.');
+        return;
+    }
+    const response = await apiRequest(`/products/${productId}/`);
+    if (!response.success || !response.data) {
+        showDetailMessage(response.message || 'Unable to load product details.');
+        return;
+    }
+    currentProduct = response.data;
+    renderDetail();
+}
 
 function renderDetail() {
     if (!currentProduct) return;
 
-    document.getElementById('productImage')?.setAttribute('src', currentProduct.image);
+    const image = currentProduct.primary_image?.url || currentProduct.images?.[0]?.url || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+    document.getElementById('productImage')?.setAttribute('src', image);
     document.getElementById('productImage')?.setAttribute('alt', currentProduct.name);
     document.getElementById('productName')?.replaceChildren(document.createTextNode(currentProduct.name));
-    document.getElementById('productCategory')?.replaceChildren(document.createTextNode(currentProduct.category));
-    document.getElementById('productPrice')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(currentProduct.price)}`));
+    document.getElementById('productCategory')?.replaceChildren(document.createTextNode(currentProduct.category?.name || 'Uncategorised'));
+    document.getElementById('productPrice')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(currentProduct.selling_price)}`));
     document.getElementById('productDescription')?.replaceChildren(document.createTextNode(currentProduct.description));
-    document.getElementById('productStockStatus')?.replaceChildren(document.createTextNode(getStockStatus(currentProduct.status)));
-    document.getElementById('productStockStatus')?.className = `detail-stock status-${currentProduct.status}`;
+    document.getElementById('productStockStatus')?.replaceChildren(document.createTextNode(getStockStatus(currentProduct.stock?.status)));
+    const stockStatus = document.getElementById('productStockStatus');
+    if (stockStatus) stockStatus.className = `detail-stock status-${normalizeStatus(currentProduct.stock?.status)}`;
 
     document.getElementById('detailName')?.replaceChildren(document.createTextNode(currentProduct.name));
-    document.getElementById('detailCategory')?.replaceChildren(document.createTextNode(currentProduct.category));
-    document.getElementById('detailPrice')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(currentProduct.price)}`));
-    document.getElementById('detailStock')?.replaceChildren(document.createTextNode(`${currentProduct.stock} available`));
+    document.getElementById('detailCategory')?.replaceChildren(document.createTextNode(currentProduct.category?.name || 'Uncategorised'));
+    document.getElementById('detailPrice')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(currentProduct.selling_price)}`));
+    document.getElementById('detailStock')?.replaceChildren(document.createTextNode(`${currentProduct.stock?.quantity ?? 0} available`));
 
-    if (currentProduct.status === 'out-of-stock') {
+    if (currentProduct.stock?.is_out_of_stock) {
         document.getElementById('addToCartBtn')?.setAttribute('disabled', 'true');
         document.getElementById('quantityInput')?.setAttribute('disabled', 'true');
         document.getElementById('quantityDecrement')?.setAttribute('disabled', 'true');
@@ -109,17 +61,17 @@ function bindActions() {
 
     quantityInput?.addEventListener('change', (e) => {
         const value = parseInt(e.target.value) || 1;
-        e.target.value = Math.max(1, Math.min(value, currentProduct.stock));
+        e.target.value = Math.max(1, Math.min(value, currentProduct?.stock?.quantity ?? 1));
     });
 
     decrement?.addEventListener('click', () => {
         const current = parseInt(quantityInput?.value) || 1;
-        quantityInput!.value = String(Math.max(1, current - 1));
+        if (quantityInput) quantityInput.value = String(Math.max(1, current - 1));
     });
 
     increment?.addEventListener('click', () => {
         const current = parseInt(quantityInput?.value) || 1;
-        quantityInput!.value = String(Math.min(current + 1, currentProduct.stock));
+        if (quantityInput) quantityInput.value = String(Math.min(current + 1, currentProduct.stock?.quantity ?? 0));
     });
 
     addBtn?.addEventListener('click', () => {
@@ -132,20 +84,20 @@ function bindActions() {
                 successAlert.classList.add('hidden');
             }, 3000);
         }
-        quantityInput!.value = '1';
+        if (quantityInput) quantityInput.value = '1';
     });
 
     continueBtn?.addEventListener('click', () => {
-        window.location.href = '/customer/products/';
+        window.location.href = '/preview/customer/products/';
     });
 }
 
 function getProductIdFromUrl() {
-    return parseInt(window.location.pathname.split('/')[3]) || 1;
+    return Number(new URLSearchParams(window.location.search).get('id')) || null;
 }
 
 function getStockStatus(status) {
-    switch (status) {
+    switch (normalizeStatus(status)) {
         case 'in-stock':
             return 'In stock';
         case 'low-stock':
@@ -153,8 +105,12 @@ function getStockStatus(status) {
         case 'out-of-stock':
             return 'Out of stock';
         default:
-            return status;
+            return 'Out of stock';
     }
+}
+
+function normalizeStatus(status) {
+    return String(status || 'OUT_OF_STOCK').toLowerCase().replaceAll('_', '-');
 }
 
 function formatCurrency(value) {

@@ -1,57 +1,25 @@
-/**
- * MADAM HY - Product category interactions.
- * Frontend-only category management demo for retail catalog grouping.
- */
+document.addEventListener("DOMContentLoaded", loadCategories);
 
-const categoryData = [
-    { name: "Fashion", description: "Clothing, accessories, and style pieces", color: "#087a3d" },
-    { name: "Beauty", description: "Skincare and wellness essentials", color: "#4aa96c" },
-    { name: "Home", description: "Household and interior items", color: "#d4a373" },
-    { name: "Electronics", description: "Modern devices and accessories", color: "#5b8def" }
-];
-
-document.addEventListener("DOMContentLoaded", () => {
-    renderCategoryList();
-    const form = document.getElementById("categoryForm");
-
-    form?.addEventListener("submit", event => {
-        event.preventDefault();
-
-        const nameInput = document.getElementById("categoryName");
-
-        if (!nameInput || !nameInput.value.trim()) {
-            alert("Please enter a category name.");
-            return;
-        }
-
-        categoryData.unshift({
-            name: nameInput.value.trim(),
-            description: document.getElementById("categoryDescription")?.value.trim() || "Custom retail category",
-            color: document.getElementById("categoryColor")?.value || "#087a3d"
-        });
-
-        form.reset();
-        renderCategoryList();
-    });
-});
-
-function renderCategoryList() {
+async function loadCategories() {
     const list = document.getElementById("categoryList");
     if (!list) return;
+    document.getElementById("categoryForm")?.addEventListener("submit", event => event.preventDefault());
+    const response = await apiRequest("/products/categories/");
+    if (!response.success) {
+        list.replaceChildren(document.createTextNode(response.message || "Unable to load categories."));
+        return;
+    }
 
-    list.innerHTML = categoryData.map(category => `
+    list.innerHTML = (response.data?.categories || []).map(category => `
         <div class="category-item">
             <div class="category-item-main">
-                <span class="category-color" style="background:${category.color};"></span>
+                <span class="category-color"></span>
                 <div>
                     <div class="category-name">${category.name}</div>
-                    <div class="category-meta">${category.description}</div>
+                    <div class="category-meta">${category.slug} · ${category.description || "No description available."}</div>
                 </div>
             </div>
-            <div class="category-actions">
-                <button type="button" class="icon-button" aria-label="Edit ${category.name}">✎</button>
-                <button type="button" class="icon-button" aria-label="Delete ${category.name}">🗑</button>
-            </div>
+            <span class="category-meta">${category.is_active ? "Active" : "Inactive"}</span>
         </div>
     `).join("");
 }
