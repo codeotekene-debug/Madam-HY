@@ -36,6 +36,18 @@
 <body>
 
     <!-- =========================================
+         APPLICATION CONTEXT
+         ========================================= -->
+
+    <div
+        id="app-context"
+        data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+        data-user-id="{{ user.id|default:'' }}"
+        data-user-role="{{ user.role|default:'' }}"
+    ></div>
+
+
+    <!-- =========================================
          APPLICATION
          ========================================= -->
 
@@ -614,6 +626,7 @@
 
     <!-- Core JavaScript -->
 
+    <script src="{% static 'js/core/api.js' %}"></script>
     <script src="{% static 'js/core/main.js' %}"></script>
     <script src="{% static 'js/core/navigation.js' %}"></script>
 
