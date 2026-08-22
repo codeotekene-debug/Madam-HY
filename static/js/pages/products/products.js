@@ -4,6 +4,7 @@ const productListState = { page: 1, pageSize: 10, requestId: 0 };
 const productPlaceholder = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 document.addEventListener("DOMContentLoaded", () => {
+    if (!canManageProducts()) document.getElementById("addProductLink")?.remove();
     setupProductFilters();
     loadCategories();
     loadProducts();

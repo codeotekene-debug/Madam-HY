@@ -1,6 +1,9 @@
 /** MADAM HY - Read-only product detail. */
 
-document.addEventListener("DOMContentLoaded", loadProductDetail);
+document.addEventListener("DOMContentLoaded", () => {
+    loadProductDetail();
+    setupManagementControls();
+});
 
 async function loadProductDetail() {
     const productId = document.querySelector(".product-detail-page")?.dataset.productId
@@ -18,6 +21,31 @@ async function loadProductDetail() {
     }
 
     renderProductDetail(response.data);
+}
+
+function setupManagementControls() {
+    const page = document.querySelector(".product-detail-page");
+    const productId = page?.dataset.productId
+        || new URLSearchParams(window.location.search).get("id");
+    const editLink = document.getElementById("editProductLink");
+    const deactivateButton = document.getElementById("deactivateProductBtn");
+    if (!canManageProducts()) {
+        editLink?.remove();
+        deactivateButton?.remove();
+        return;
+    }
+    if (editLink && productId) editLink.href = `/preview/products/edit/?id=${productId}`;
+    deactivateButton?.addEventListener("click", () => deactivateProduct(productId));
+}
+
+async function deactivateProduct(productId) {
+    if (!productId || !window.confirm("Deactivate this product? It will remain in the database but no longer appear in the active catalog.")) return;
+    const response = await apiRequest(`/products/${productId}/deactivate/`, { method: "POST" });
+    if (!response.success) {
+        showDetailMessage(formatApiErrors(response) || "Unable to deactivate product.");
+        return;
+    }
+    window.location.href = "/preview/products/";
 }
 
 function renderProductDetail(product) {
@@ -86,4 +114,10 @@ function showDetailMessage(message) {
         className: "empty-state",
         textContent: message
     }));
+}
+
+function formatApiErrors(response) {
+    return response.errors && typeof response.errors === "object"
+        ? Object.values(response.errors).flat().join(" ")
+        : response.message;
 }
