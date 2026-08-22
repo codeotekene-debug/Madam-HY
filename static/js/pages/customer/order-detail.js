@@ -33,7 +33,8 @@ function renderDetail() {
     document.getElementById('detailOrderRef')?.replaceChildren(document.createTextNode(`Order ${orderDetailData.id}`));
     document.getElementById('detailOrderDate')?.replaceChildren(document.createTextNode(`Placed on ${formatDate(orderDetailData.date)}`));
     document.getElementById('detailOrderStatus')?.replaceChildren(document.createTextNode(orderDetailData.status));
-    document.getElementById('detailOrderStatus')?.className = `badge badge-primary`;
+    const orderStatus = document.getElementById('detailOrderStatus');
+    if (orderStatus) orderStatus.className = 'badge badge-primary';
 
     document.getElementById('detailReference')?.replaceChildren(document.createTextNode(orderDetailData.id));
     document.getElementById('detailPlacedDate')?.replaceChildren(document.createTextNode(formatDate(orderDetailData.date)));

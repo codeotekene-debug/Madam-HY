@@ -70,7 +70,7 @@ function bindActions() {
 
         if (!name || !email || !phone || !address) {
             errorAlert?.classList.remove('hidden');
-            errorAlert!.textContent = 'Please fill in all required fields.';
+            if (errorAlert) errorAlert.textContent = 'Please fill in all required fields.';
             return;
         }
 
@@ -80,7 +80,7 @@ function bindActions() {
         profileData.address = address;
 
         successAlert?.classList.remove('hidden');
-        successAlert!.textContent = 'Your profile has been updated successfully.';
+        if (successAlert) successAlert.textContent = 'Your profile has been updated successfully.';
 
         setTimeout(() => {
             viewMode?.classList.remove('hidden');
