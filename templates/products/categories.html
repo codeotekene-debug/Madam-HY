@@ -22,14 +22,14 @@
             <h2>Category management</h2>
             <p>Group inventory into clean retail categories to improve product browsing, filtering, and customer discovery.</p>
         </div>
-        <button type="button" class="btn btn-primary">Create category</button>
+        <button type="button" class="btn btn-primary" id="createCategoryButton">Create category</button>
     </section>
 
     <section class="category-layout">
         <article class="card category-form-card">
             <div class="card-header compact">
                 <div>
-                    <h3>Add category</h3>
+                    <h3 id="categoryFormTitle">Add category</h3>
                 </div>
             </div>
 
@@ -50,9 +50,11 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="reset" class="btn btn-secondary">Clear</button>
-                    <button type="submit" class="btn btn-primary">Save category</button>
+                    <button type="reset" class="btn btn-secondary" id="categoryResetButton">Clear</button>
+                    <button type="submit" class="btn btn-primary" id="categorySubmitButton">Save category</button>
                 </div>
+
+                <div id="categoryFormMessage" class="alert alert-success" hidden role="status" aria-live="polite"></div>
             </form>
         </article>
 
