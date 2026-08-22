@@ -29,6 +29,22 @@
         <div class="detail-image-panel">
             <img id="productMainImage" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Product" />
             <div id="productImageGallery" class="product-image-gallery" aria-label="Product images"></div>
+            <div id="imageManagement" class="image-management" hidden>
+                <h3>Manage images</h3>
+                <form id="imageUploadForm" novalidate>
+                    <label class="form-label" for="productImageUpload">Upload image</label>
+                    <input id="productImageUpload" class="form-control" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                    <div id="imageUploadPreview" class="image-upload-preview" aria-live="polite"></div>
+                    <input id="imageAltText" class="form-control" type="text" maxlength="200" placeholder="Alt text (optional)" />
+                    <input id="imageDisplayOrder" class="form-control" type="number" min="1" placeholder="Display order (optional)" />
+                    <label class="form-check">
+                        <input id="imageIsPrimary" type="checkbox" />
+                        <span>Set as primary image</span>
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-sm">Upload image</button>
+                </form>
+                <div id="imageManagementMessage" class="alert alert-success" hidden role="status" aria-live="polite"></div>
+            </div>
         </div>
 
         <div class="detail-summary">

@@ -28,6 +28,76 @@
     background: #edf3ef;
 }
 
+.product-image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
+.product-image-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.product-image-card.is-primary {
+    border-color: var(--primary);
+}
+
+.product-image-card > img,
+.image-upload-preview img {
+    width: 100%;
+    height: 84px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.image-meta {
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.image-card-actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.image-card-actions .btn {
+    flex: 1;
+    min-width: 52px;
+    padding-inline: 5px;
+}
+
+.image-management {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: var(--surface);
+}
+
+.image-management h3 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.image-management form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.image-upload-preview img {
+    max-width: 120px;
+}
+
 .detail-image-panel img {
     display: block;
     width: 100%;
