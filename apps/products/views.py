@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -637,6 +638,7 @@ def product_create(request):
 
 
 @require_http_methods(['POST'])
+@transaction.atomic
 def product_update(request, product_id):
     """
     POST /products/<id>/update/
@@ -766,6 +768,7 @@ def product_update(request, product_id):
         product.is_active = bool(data['is_active'])
 
     if errors:
+        transaction.set_rollback(True)
         return _json_response(
             message='Validation failed.',
             success=False,
@@ -777,6 +780,7 @@ def product_update(request, product_id):
     try:
         product.save()
     except ValidationError as e:
+        transaction.set_rollback(True)
         return _json_response(
             message='Product update failed.',
             success=False,
@@ -784,6 +788,7 @@ def product_update(request, product_id):
             errors=e.error_dict if hasattr(e, 'error_dict') else {'detail': str(e)},
         )
     except Exception as e:
+        transaction.set_rollback(True)
         return _json_response(
             message='An error occurred while updating the product.',
             success=False,

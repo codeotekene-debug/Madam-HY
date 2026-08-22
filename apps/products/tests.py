@@ -381,6 +381,26 @@ class ProductManagementTests(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.price_history.count(), initial_count)
 
+    def test_product_update_rolls_back_price_and_history_when_later_field_is_invalid(self):
+        """A later validation error must roll back an earlier price change."""
+        self.client.force_login(self.manager)
+        initial_price = self.product.selling_price
+        initial_count = self.product.price_history.count()
+
+        response = self.client.post(
+            reverse('products:update', args=[self.product.id]),
+            data=json.dumps({
+                'selling_price': '175.00',
+                'reorder_level': -1,
+            }),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.selling_price, initial_price)
+        self.assertEqual(self.product.price_history.count(), initial_count)
+
     def test_customer_cannot_update_product(self):
         """Test that customers cannot update products."""
         self.client.force_login(self.customer)
