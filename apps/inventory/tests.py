@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -7,6 +8,7 @@ from django.test import TestCase
 from apps.accounts.models import User
 from apps.products.models import Product, ProductCategory
 from .models import InventoryItem, StockMovement
+from .services import adjust_inventory_stock
 
 
 class InventoryModelsTests(TestCase):
@@ -48,8 +50,9 @@ class InventoryModelsTests(TestCase):
             InventoryItem.objects.create(product=self.product, quantity=5)
 
     def test_stock_in_updates_quantity_and_history(self):
-        self.inventory.adjust_stock(
-            8,
+        adjust_inventory_stock(
+            self.inventory,
+            quantity_delta=8,
             reason='Restock',
             reference='PO-1001',
             created_by=self.owner,
@@ -65,8 +68,9 @@ class InventoryModelsTests(TestCase):
         self.assertEqual(movement.created_by, self.owner)
 
     def test_stock_out_updates_quantity_and_history(self):
-        self.inventory.adjust_stock(
-            -3,
+        adjust_inventory_stock(
+            self.inventory,
+            quantity_delta=-3,
             reason='Sales',
             reference='OUT-203',
             created_by=self.owner,
@@ -81,8 +85,9 @@ class InventoryModelsTests(TestCase):
         self.assertEqual(movement.new_quantity, 7)
 
     def test_stock_adjustment_records_previous_and_resulting_quantity(self):
-        self.inventory.adjust_stock(
-            5,
+        adjust_inventory_stock(
+            self.inventory,
+            quantity_delta=5,
             reason='Cycle count correction',
             reference='ADJ-001',
             movement_type='ADJUSTMENT',
@@ -95,14 +100,14 @@ class InventoryModelsTests(TestCase):
 
     def test_negative_stock_is_rejected(self):
         with self.assertRaises(ValidationError):
-            self.inventory.adjust_stock(-21, movement_type='STOCK_OUT')
+            adjust_inventory_stock(self.inventory, -21, movement_type='STOCK_OUT')
 
         self.inventory.refresh_from_db()
         self.assertEqual(self.inventory.quantity, 10)
 
     def test_zero_quantity_move_is_rejected(self):
         with self.assertRaises(ValidationError):
-            self.inventory.adjust_stock(0, movement_type='ADJUSTMENT')
+            adjust_inventory_stock(self.inventory, 0, movement_type='ADJUSTMENT')
 
     def test_low_stock_detection_works(self):
         self.product.reorder_level = 12
@@ -121,14 +126,15 @@ class InventoryModelsTests(TestCase):
         self.assertEqual(self.inventory.stock_status, 'OUT_OF_STOCK')
 
     def test_movement_history_exists_for_each_change(self):
-        self.inventory.adjust_stock(2, movement_type='STOCK_IN')
-        self.inventory.adjust_stock(-1, movement_type='STOCK_OUT')
+        adjust_inventory_stock(self.inventory, 2, movement_type='STOCK_IN')
+        adjust_inventory_stock(self.inventory, -1, movement_type='STOCK_OUT')
 
         self.assertEqual(self.inventory.movements.count(), 2)
 
     def test_created_by_relationship_is_preserved(self):
-        self.inventory.adjust_stock(
-            4,
+        adjust_inventory_stock(
+            self.inventory,
+            quantity_delta=4,
             created_by=self.owner,
             movement_type='STOCK_IN',
         )
@@ -140,11 +146,57 @@ class InventoryModelsTests(TestCase):
         before_count = StockMovement.objects.count()
 
         with self.assertRaises(ValidationError):
-            self.inventory.adjust_stock(-999, movement_type='STOCK_OUT')
+            adjust_inventory_stock(self.inventory, -999, movement_type='STOCK_OUT')
 
         self.inventory.refresh_from_db()
         self.assertEqual(self.inventory.quantity, 10)
         self.assertEqual(StockMovement.objects.count(), before_count)
+
+    def test_model_adjust_stock_delegates_to_service_for_compatibility(self):
+        returned = self.inventory.adjust_stock(3, movement_type='STOCK_IN')
+
+        self.inventory.refresh_from_db()
+        self.assertIs(returned, self.inventory)
+        self.assertEqual(self.inventory.quantity, 13)
+
+    def test_stock_movement_metadata_is_preserved(self):
+        adjust_inventory_stock(
+            self.inventory,
+            quantity_delta=6,
+            reason='Supplier delivery',
+            reference='PO-2026-0007',
+            created_by=self.owner,
+            movement_type=StockMovement.MovementType.STOCK_IN,
+        )
+
+        movement = self.inventory.movements.latest('created_at')
+        self.assertEqual(movement.reason, 'Supplier delivery')
+        self.assertEqual(movement.reference, 'PO-2026-0007')
+        self.assertEqual(movement.created_by, self.owner)
+        self.assertEqual(movement.movement_type, StockMovement.MovementType.STOCK_IN)
+
+    def test_stock_adjustment_rolls_back_if_movement_creation_fails(self):
+        before_count = StockMovement.objects.count()
+
+        with patch('apps.inventory.services.StockMovement.save', side_effect=RuntimeError('movement failure')):
+            with self.assertRaises(RuntimeError):
+                adjust_inventory_stock(self.inventory, 5, movement_type='STOCK_IN')
+
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+        self.assertEqual(StockMovement.objects.count(), before_count)
+
+    def test_stock_adjustment_uses_locked_database_quantity_not_stale_instance(self):
+        stale_inventory = InventoryItem.objects.get(pk=self.inventory.pk)
+
+        adjust_inventory_stock(self.inventory, 5, movement_type='STOCK_IN')
+        adjust_inventory_stock(stale_inventory, -3, movement_type='STOCK_OUT')
+
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 12)
+        latest_movement = self.inventory.movements.latest('created_at')
+        self.assertEqual(latest_movement.previous_quantity, 15)
+        self.assertEqual(latest_movement.new_quantity, 12)
 
     def test_django_system_checks_pass(self):
         from django.core.management import call_command

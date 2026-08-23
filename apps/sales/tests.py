@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -336,6 +337,33 @@ class SaleCompletionTests(TestCase):
         self.inventory.refresh_from_db()
         self.assertEqual(self.inventory.quantity, 7)
         self.assertEqual(sale.status, Sale.SaleStatus.COMPLETED)
+
+    def test_sale_completion_uses_inventory_service_not_model_adjust_stock(self):
+        """Test sale stock deductions use the inventory service path."""
+        sale = Sale.objects.create(
+            sale_number='MH-SERVICE-001',
+            cashier=self.cashier,
+            payment_method=Sale.PaymentMethod.CASH,
+            status=Sale.SaleStatus.DRAFT,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            quantity=4,
+            unit_price=Decimal('1000.00'),
+            product_name_snapshot=self.product.name,
+            sku_snapshot=self.product.sku,
+        )
+
+        with patch('apps.inventory.models.InventoryItem.adjust_stock', side_effect=AssertionError('wrong path')):
+            sale.complete_sale()
+
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 6)
+        movement = StockMovement.objects.get(reference=sale.sale_number)
+        self.assertEqual(movement.quantity, -4)
+        self.assertEqual(movement.previous_quantity, 10)
+        self.assertEqual(movement.new_quantity, 6)
 
     def test_stock_movement_created_on_completion(self):
         """Test that StockMovement records are created when sale completes."""

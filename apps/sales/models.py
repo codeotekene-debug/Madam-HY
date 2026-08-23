@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils.text import slugify
 
+from apps.inventory.services import adjust_inventory_stock
+
 
 class Sale(models.Model):
     """Point of Sale transaction record."""
@@ -172,7 +174,7 @@ class Sale(models.Model):
         1. Validates the sale is in DRAFT status
         2. Validates the sale has items
         3. Validates sufficient inventory for each item
-        4. Deducts inventory using InventoryItem.adjust_stock()
+        4. Deducts inventory using the Inventory stock service
         5. Creates StockMovement records
         6. Sets status to COMPLETED
         7. Entire operation is atomic; rollback on any failure
@@ -189,7 +191,7 @@ class Sale(models.Model):
         if not items.exists():
             raise ValidationError('Sale must have at least one item before completing.')
 
-        # Validate and collect all inventory requirements upfront
+        # Validate inventory tracking exists before applying any deduction.
         inventory_operations = []
         for item in items:
             if not hasattr(item.product, 'inventory_item'):
@@ -197,16 +199,12 @@ class Sale(models.Model):
                     f'Product {item.product.name} does not have inventory tracking.'
                 )
             inventory = item.product.inventory_item
-            if inventory.quantity < item.quantity:
-                raise ValidationError(
-                    f'Insufficient stock for {item.product.name}. '
-                    f'Required: {item.quantity}, Available: {inventory.quantity}'
-                )
             inventory_operations.append((inventory, item))
 
-        # Execute all inventory deductions atomically
+        # Execute all inventory deductions atomically through the locked service path.
         for inventory, item in inventory_operations:
-            inventory.adjust_stock(
+            adjust_inventory_stock(
+                inventory,
                 quantity_delta=-item.quantity,
                 reason='Sale',
                 reference=self.sale_number,

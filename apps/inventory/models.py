@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models
 
 
 class InventoryItem(models.Model):
@@ -53,35 +53,19 @@ class InventoryItem(models.Model):
             return 'LOW_STOCK'
         return 'IN_STOCK'
 
-    @transaction.atomic
     def adjust_stock(self, quantity_delta, reason='', reference='', created_by=None, movement_type='ADJUSTMENT'):
-        if quantity_delta == 0:
-            raise ValidationError({'quantity': 'Movement quantity cannot be zero.'})
+        from .services import adjust_inventory_stock
 
-        previous_quantity = self.quantity
-        new_quantity = previous_quantity + quantity_delta
-
-        if new_quantity < 0:
-            raise ValidationError({'quantity': 'Stock cannot become negative.'})
-
-        self.quantity = new_quantity
-        self.full_clean()
-        self.save(update_fields=['quantity', 'updated_at'])
-
-        movement = StockMovement(
-            inventory_item=self,
-            product=self.product,
-            movement_type=movement_type,
-            quantity=quantity_delta,
-            previous_quantity=previous_quantity,
-            new_quantity=new_quantity,
+        adjusted_item = adjust_inventory_stock(
+            self,
+            quantity_delta=quantity_delta,
             reason=reason,
             reference=reference,
             created_by=created_by,
+            movement_type=movement_type,
         )
-        movement.full_clean()
-        movement.save()
-
+        self.quantity = adjusted_item.quantity
+        self.updated_at = adjusted_item.updated_at
         return self
 
 
