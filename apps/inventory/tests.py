@@ -3,7 +3,10 @@ from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.products.models import Product, ProductCategory
@@ -202,3 +205,303 @@ class InventoryModelsTests(TestCase):
         from django.core.management import call_command
 
         call_command('check')
+
+
+class InventoryReadOnlyApiTests(TestCase):
+    def setUp(self):
+        self.fashion_category = ProductCategory.objects.create(
+            name='Fashion API',
+            slug='fashion-api',
+            description='Fashion products',
+        )
+        self.beauty_category = ProductCategory.objects.create(
+            name='Beauty API',
+            slug='beauty-api',
+            description='Beauty products',
+        )
+
+        self.ankara = Product.objects.create(
+            name='Green Ankara Fabric Premium',
+            slug='green-ankara-fabric-api',
+            sku='API-FAB-104',
+            category=self.fashion_category,
+            description='Premium fabric for boutique retail.',
+            selling_price=Decimal('12500.00'),
+            cost_price=Decimal('9300.00'),
+            reorder_level=8,
+        )
+        self.serum = Product.objects.create(
+            name='Radiant Glow Serum',
+            slug='radiant-glow-serum-api',
+            sku='API-SER-220',
+            category=self.beauty_category,
+            description='Skin care product.',
+            selling_price=Decimal('9500.00'),
+            cost_price=Decimal('5000.00'),
+            reorder_level=5,
+        )
+        self.bag = Product.objects.create(
+            name='Leather Tote Bag',
+            slug='leather-tote-bag-api',
+            sku='API-BAG-301',
+            category=self.fashion_category,
+            description='Classic tote bag.',
+            selling_price=Decimal('30000.00'),
+            cost_price=Decimal('21000.00'),
+            reorder_level=3,
+        )
+        self.inactive_product = Product.objects.create(
+            name='Inactive Inventory Product',
+            slug='inactive-inventory-product-api',
+            sku='API-INACTIVE-001',
+            category=self.fashion_category,
+            selling_price=Decimal('1000.00'),
+            reorder_level=1,
+            is_active=False,
+        )
+
+        self.ankara_inventory = InventoryItem.objects.create(product=self.ankara, quantity=20)
+        self.serum_inventory = InventoryItem.objects.create(product=self.serum, quantity=3)
+        self.bag_inventory = InventoryItem.objects.create(product=self.bag, quantity=0)
+        self.inactive_product_inventory = InventoryItem.objects.create(
+            product=self.inactive_product,
+            quantity=99,
+        )
+
+        self.owner = User.objects.create_user(
+            email='inventory-api-owner@example.com',
+            username='inventory-api-owner',
+            first_name='Inventory',
+            last_name='Owner',
+            password='StrongPass123',
+            role='OWNER',
+        )
+
+        StockMovement.objects.create(
+            inventory_item=self.ankara_inventory,
+            product=self.ankara,
+            movement_type=StockMovement.MovementType.STOCK_IN,
+            quantity=10,
+            previous_quantity=10,
+            new_quantity=20,
+            reason='Restock',
+            reference='PO-API-001',
+            created_by=self.owner,
+        )
+        StockMovement.objects.create(
+            inventory_item=self.ankara_inventory,
+            product=self.ankara,
+            movement_type=StockMovement.MovementType.STOCK_OUT,
+            quantity=-2,
+            previous_quantity=20,
+            new_quantity=18,
+            reason='Sale',
+            reference='SALE-API-001',
+            created_by=self.owner,
+        )
+
+    def test_inventory_list_success(self):
+        response = self.client.get(reverse('inventory:list'))
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['message'], 'Inventory retrieved successfully.')
+        self.assertIn('inventory', data['data'])
+        self.assertIn('pagination', data['data'])
+        self.assertEqual(len(data['data']['inventory']), 3)
+
+    def test_inventory_list_response_format_and_fields(self):
+        response = self.client.get(reverse('inventory:list'))
+
+        data = response.json()
+        item = data['data']['inventory'][0]
+        for field in [
+            'id',
+            'product',
+            'sku',
+            'quantity',
+            'reorder_level',
+            'stock_status',
+            'is_low_stock',
+            'is_out_of_stock',
+            'is_active',
+        ]:
+            self.assertIn(field, item)
+        self.assertIn('category', item['product'])
+
+    def test_inventory_list_searches_by_product_name(self):
+        response = self.client.get(reverse('inventory:list'), {'search': 'Ankara'})
+
+        items = response.json()['data']['inventory']
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['product']['name'], 'Green Ankara Fabric Premium')
+
+    def test_inventory_list_searches_by_sku(self):
+        response = self.client.get(reverse('inventory:list'), {'search': 'SER-220'})
+
+        items = response.json()['data']['inventory']
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['sku'], 'API-SER-220')
+
+    def test_inventory_list_filters_by_in_stock(self):
+        response = self.client.get(reverse('inventory:list'), {'stock_status': 'IN_STOCK'})
+
+        items = response.json()['data']['inventory']
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['id'], self.ankara_inventory.id)
+        self.assertEqual(items[0]['stock_status'], 'IN_STOCK')
+
+    def test_inventory_list_filters_by_low_stock(self):
+        response = self.client.get(reverse('inventory:list'), {'stock_status': 'LOW_STOCK'})
+
+        items = response.json()['data']['inventory']
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['id'], self.serum_inventory.id)
+        self.assertTrue(items[0]['is_low_stock'])
+
+    def test_inventory_list_filters_by_out_of_stock(self):
+        response = self.client.get(reverse('inventory:list'), {'stock_status': 'OUT_OF_STOCK'})
+
+        items = response.json()['data']['inventory']
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['id'], self.bag_inventory.id)
+        self.assertTrue(items[0]['is_out_of_stock'])
+
+    def test_inventory_list_sorts_by_quantity_desc(self):
+        response = self.client.get(reverse('inventory:list'), {'sort_by': 'quantity_desc'})
+
+        quantities = [item['quantity'] for item in response.json()['data']['inventory']]
+        self.assertEqual(quantities, [20, 3, 0])
+
+    def test_inventory_list_sorts_by_sku(self):
+        response = self.client.get(reverse('inventory:list'), {'sort_by': 'sku'})
+
+        skus = [item['sku'] for item in response.json()['data']['inventory']]
+        self.assertEqual(skus, ['API-BAG-301', 'API-FAB-104', 'API-SER-220'])
+
+    def test_inventory_list_pagination(self):
+        response = self.client.get(reverse('inventory:list'), {'page_size': 2, 'page': 2})
+
+        data = response.json()['data']
+        self.assertEqual(data['pagination']['total_count'], 3)
+        self.assertEqual(data['pagination']['page'], 2)
+        self.assertEqual(data['pagination']['page_size'], 2)
+        self.assertEqual(data['pagination']['total_pages'], 2)
+        self.assertEqual(len(data['inventory']), 1)
+
+    def test_inventory_list_invalid_pagination_defaults(self):
+        response = self.client.get(reverse('inventory:list'), {'page': 'bad', 'page_size': 'bad'})
+
+        pagination = response.json()['data']['pagination']
+        self.assertEqual(pagination['page'], 1)
+        self.assertEqual(pagination['page_size'], 10)
+
+    def test_inventory_detail_success(self):
+        response = self.client.get(reverse('inventory:detail', args=[self.ankara_inventory.id]))
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        item = data['data']
+        self.assertEqual(item['id'], self.ankara_inventory.id)
+        self.assertEqual(item['product']['id'], self.ankara.id)
+        self.assertEqual(item['sku'], self.ankara.sku)
+        self.assertEqual(item['quantity'], 20)
+        self.assertEqual(item['reorder_level'], 8)
+        self.assertEqual(item['stock_status'], 'IN_STOCK')
+        self.assertIn('created_at', item)
+        self.assertIn('updated_at', item)
+
+    def test_inventory_detail_missing_returns_404(self):
+        response = self.client.get(reverse('inventory:detail', args=[999999]))
+
+        self.assertEqual(response.status_code, 404)
+        data = response.json()
+        self.assertFalse(data['success'])
+        self.assertEqual(data['message'], 'Inventory item not found.')
+
+    def test_inventory_detail_excludes_inactive_product_inventory(self):
+        response = self.client.get(reverse('inventory:detail', args=[self.inactive_product_inventory.id]))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()['success'])
+
+    def test_inventory_movements_success(self):
+        response = self.client.get(reverse('inventory:movements', args=[self.ankara_inventory.id]))
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('inventory', data['data'])
+        self.assertIn('movements', data['data'])
+        self.assertIn('pagination', data['data'])
+        self.assertEqual(len(data['data']['movements']), 2)
+
+    def test_inventory_movements_fields_and_metadata(self):
+        response = self.client.get(reverse('inventory:movements', args=[self.ankara_inventory.id]))
+
+        movement = response.json()['data']['movements'][0]
+        for field in [
+            'id',
+            'movement_type',
+            'quantity',
+            'delta',
+            'previous_quantity',
+            'new_quantity',
+            'reason',
+            'reference',
+            'created_by',
+            'created_at',
+        ]:
+            self.assertIn(field, movement)
+        self.assertEqual(movement['quantity'], movement['delta'])
+        self.assertEqual(movement['created_by']['id'], self.owner.id)
+
+    def test_inventory_movements_pagination(self):
+        response = self.client.get(
+            reverse('inventory:movements', args=[self.ankara_inventory.id]),
+            {'page_size': 1},
+        )
+
+        data = response.json()['data']
+        self.assertEqual(data['pagination']['total_count'], 2)
+        self.assertEqual(data['pagination']['page_size'], 1)
+        self.assertEqual(len(data['movements']), 1)
+
+    def test_inventory_movements_missing_inventory_returns_404(self):
+        response = self.client.get(reverse('inventory:movements', args=[999999]))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()['success'])
+
+    def test_inventory_endpoints_reject_write_methods(self):
+        endpoints = [
+            reverse('inventory:list'),
+            reverse('inventory:detail', args=[self.ankara_inventory.id]),
+            reverse('inventory:movements', args=[self.ankara_inventory.id]),
+        ]
+
+        for endpoint in endpoints:
+            for method in [self.client.post, self.client.put, self.client.patch, self.client.delete]:
+                response = method(endpoint, data={'quantity': 999}, content_type='application/json')
+                self.assertEqual(response.status_code, 405)
+                self.assertFalse(response.json()['success'])
+
+        self.ankara_inventory.refresh_from_db()
+        self.assertEqual(self.ankara_inventory.quantity, 20)
+        self.assertEqual(StockMovement.objects.filter(inventory_item=self.ankara_inventory).count(), 2)
+
+    def test_inventory_list_uses_constant_queries(self):
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(reverse('inventory:list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(len(queries), 2)
+
+    def test_inventory_movements_uses_constant_queries(self):
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(reverse('inventory:movements', args=[self.ankara_inventory.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(len(queries), 4)
