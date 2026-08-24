@@ -8,6 +8,31 @@
     gap: 20px;
 }
 
+.inventory-state {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+}
+
+.inventory-state h3 {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 750;
+}
+
+.inventory-state p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.inventory-state-hidden,
+.empty-state-hidden {
+    display: none;
+}
+
 .low-stock-list {
     display: flex;
     flex-direction: column;
@@ -59,6 +84,13 @@
 .level-warning {
     background: #fff7df;
     color: #9a6b00;
+}
+
+@media (max-width: 560px) {
+    .inventory-state {
+        align-items: stretch;
+        flex-direction: column;
+    }
 }
 
 @media (max-width: 620px) {

@@ -113,6 +113,30 @@
     padding: 20px;
 }
 
+.inventory-state {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+}
+
+.inventory-state h3 {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 750;
+}
+
+.inventory-state p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.inventory-state-hidden {
+    display: none;
+}
+
 .section-header {
     display: flex;
     align-items: flex-start;
@@ -166,6 +190,65 @@
     color: var(--danger);
 }
 
+.inventory-detail-panel {
+    padding: 20px;
+}
+
+.inventory-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.detail-metric {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.detail-metric span,
+.detail-metric strong {
+    display: block;
+}
+
+.detail-metric span {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+}
+
+.detail-metric strong {
+    margin-top: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.movement-header {
+    margin-top: 22px;
+}
+
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.pagination-bar .btn {
+    min-width: 84px;
+}
+
+.table-action {
+    white-space: nowrap;
+}
+
 .empty-state-hidden {
     display: none;
 }
@@ -188,6 +271,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .inventory-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .inventory-toolbar,
     .inventory-hero {
         flex-direction: column;
@@ -205,15 +292,26 @@
         grid-template-columns: 1fr;
     }
 
+    .inventory-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
     .inventory-hero {
         padding: 18px 16px;
     }
 
     .inventory-toolbar,
     .inventory-panel,
+    .inventory-detail-panel,
     .low-stock-panel,
     .stock-history-panel {
         padding: 14px;
+    }
+
+    .inventory-state,
+    .pagination-bar {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .table-wrapper {

@@ -24,9 +24,23 @@
         </div>
 
         <div class="page-actions">
-            <button type="button" class="btn btn-secondary">Filter by month</button>
-            <a href="#" class="btn btn-primary">Add stock</a>
+            <button type="button" class="btn btn-secondary" id="stockHistoryRetryButton">Retry</button>
         </div>
+    </section>
+
+    <section class="card stock-history-controls">
+        <label class="visually-hidden" for="stockHistoryInventorySelect">Select inventory item</label>
+        <select id="stockHistoryInventorySelect" class="form-select">
+            <option value="">Loading inventory...</option>
+        </select>
+    </section>
+
+    <section id="stockHistoryErrorState" class="card inventory-state inventory-state-hidden" aria-live="polite">
+        <div>
+            <h3>Stock history could not load</h3>
+            <p id="stockHistoryErrorMessage">Try again when the connection is ready.</p>
+        </div>
+        <button type="button" class="btn btn-secondary" id="stockHistoryErrorRetryButton">Retry</button>
     </section>
 
     <section class="card stock-history-panel">
@@ -43,15 +57,24 @@
                     <tr>
                         <th>Date</th>
                         <th>Product</th>
-                        <th>Category</th>
                         <th>Movement</th>
+                        <th>Previous</th>
+                        <th>New</th>
                         <th>Reason</th>
-                        <th>Staff</th>
+                        <th>Reference</th>
+                        <th>Created by</th>
                     </tr>
                 </thead>
                 <tbody id="stockHistoryTableBody"></tbody>
             </table>
         </div>
+
+        <div id="stockHistoryEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No movement history found</h3>
+            <p>Select another inventory item or retry when movement records are available.</p>
+        </div>
+
+        <div class="pagination-bar" id="stockHistoryPagination" aria-label="Stock history pagination"></div>
     </section>
 </div>
 {% endblock %}

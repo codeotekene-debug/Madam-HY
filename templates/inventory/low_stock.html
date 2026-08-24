@@ -24,9 +24,16 @@
         </div>
 
         <div class="page-actions">
-            <button type="button" class="btn btn-secondary">Refresh checks</button>
-            <a href="#" class="btn btn-primary">Add stock</a>
+            <button type="button" class="btn btn-secondary" id="lowStockRetryButton">Retry</button>
         </div>
+    </section>
+
+    <section id="lowStockErrorState" class="card inventory-state inventory-state-hidden" aria-live="polite">
+        <div>
+            <h3>Low-stock items could not load</h3>
+            <p id="lowStockErrorMessage">Try again when the connection is ready.</p>
+        </div>
+        <button type="button" class="btn btn-secondary" id="lowStockErrorRetryButton">Retry</button>
     </section>
 
     <section class="low-stock-summary" aria-label="Low stock summary">
@@ -55,6 +62,11 @@
         </div>
 
         <div id="lowStockList" class="low-stock-list" aria-live="polite"></div>
+
+        <div id="lowStockEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <h3>No low-stock products</h3>
+            <p>Every tracked inventory item is currently above its reorder threshold.</p>
+        </div>
     </section>
 </div>
 {% endblock %}
