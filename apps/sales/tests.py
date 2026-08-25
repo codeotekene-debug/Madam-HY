@@ -1058,3 +1058,128 @@ class SalesApiTests(TestCase):
             sku_snapshot=self.product.sku,
         )
         return sale
+
+
+class SalesPaymentApiTests(TestCase):
+    def setUp(self):
+        category = ProductCategory.objects.create(name='Sales Payment API', slug='sales-payment-api')
+        self.product = Product.objects.create(
+            name='Payment API Product',
+            slug='payment-api-product',
+            sku='PAYMENT-001',
+            category=category,
+            selling_price=Decimal('7500.00'),
+        )
+        self.inventory = InventoryItem.objects.create(product=self.product, quantity=10)
+        self.owner = User.objects.create_user(email='payment-owner@example.com', username='payment-owner', password='Pass123', role='OWNER')
+        self.cashier = User.objects.create_user(email='payment-cashier@example.com', username='payment-cashier', password='Pass123', role='CASHIER')
+        self.customer = User.objects.create_user(email='payment-customer@example.com', username='payment-customer', password='Pass123', role='CUSTOMER')
+
+    def complete_url(self, sale):
+        return f'/sales/{sale.id}/complete/'
+
+    def post_json(self, url, payload):
+        return self.client.post(url, data=payload, content_type='application/json')
+
+    def create_sale(self, payment_method='CASH', quantity=1, customer=None):
+        sale = Sale.objects.create(
+            sale_number=f'MH-PAY-{uuid4().hex[:8].upper()}',
+            cashier=self.cashier,
+            customer=customer,
+            payment_method=payment_method,
+            subtotal=self.product.selling_price * quantity,
+            total=self.product.selling_price * quantity,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            quantity=quantity,
+            unit_price=self.product.selling_price,
+            product_name_snapshot=self.product.name,
+            sku_snapshot=self.product.sku,
+        )
+        return sale
+
+    def test_cash_exact_and_overpayment_persist_amount_and_change(self):
+        self.client.force_login(self.cashier)
+        exact_sale = self.create_sale()
+        exact_response = self.post_json(self.complete_url(exact_sale), {'amount_received': '7500.00'})
+        self.assertEqual(exact_response.status_code, 200)
+        exact_sale.refresh_from_db()
+        self.assertEqual(exact_sale.amount_received, Decimal('7500.00'))
+        self.assertEqual(exact_sale.change_amount, Decimal('0.00'))
+
+        over_sale = self.create_sale()
+        over_response = self.post_json(self.complete_url(over_sale), {'amount_received': '10000.00'})
+        self.assertEqual(over_response.status_code, 200)
+        over_sale.refresh_from_db()
+        self.assertEqual(over_sale.amount_received, Decimal('10000.00'))
+        self.assertEqual(over_sale.change_amount, Decimal('2500.00'))
+        self.assertEqual(over_response.json()['data']['change_amount'], '2500.00')
+
+    def test_cash_rejects_missing_invalid_negative_and_insufficient_payment(self):
+        self.client.force_login(self.cashier)
+        for amount in (None, 'abc', '-1.00', '7499.99'):
+            sale = self.create_sale()
+            payload = {} if amount is None else {'amount_received': amount}
+            response = self.post_json(self.complete_url(sale), payload)
+            self.assertEqual(response.status_code, 400)
+            sale.refresh_from_db()
+            self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+            self.assertIsNone(sale.amount_received)
+            self.assertEqual(StockMovement.objects.filter(reference=sale.sale_number).count(), 0)
+
+    def test_transfer_and_card_are_exact_and_reject_inconsistent_amounts(self):
+        self.client.force_login(self.cashier)
+        for payment_method in (Sale.PaymentMethod.TRANSFER, Sale.PaymentMethod.CARD):
+            sale = self.create_sale(payment_method=payment_method)
+            response = self.post_json(self.complete_url(sale), {})
+            self.assertEqual(response.status_code, 200)
+            sale.refresh_from_db()
+            self.assertEqual(sale.amount_received, Decimal('7500.00'))
+            self.assertEqual(sale.change_amount, Decimal('0.00'))
+
+            inconsistent_sale = self.create_sale(payment_method=payment_method)
+            response = self.post_json(self.complete_url(inconsistent_sale), {'amount_received': '8000.00'})
+            self.assertEqual(response.status_code, 400)
+            inconsistent_sale.refresh_from_db()
+            self.assertEqual(inconsistent_sale.status, Sale.SaleStatus.DRAFT)
+
+    def test_credit_persists_zero_payment_values(self):
+        self.client.force_login(self.cashier)
+        sale = self.create_sale(payment_method=Sale.PaymentMethod.CREDIT, customer=self.customer)
+        response = self.post_json(self.complete_url(sale), {})
+        self.assertEqual(response.status_code, 200)
+        sale.refresh_from_db()
+        self.assertEqual(sale.amount_received, Decimal('0.00'))
+        self.assertEqual(sale.change_amount, Decimal('0.00'))
+
+    def test_payment_validation_and_inventory_failure_leave_sale_and_stock_unchanged(self):
+        self.client.force_login(self.owner)
+        sale = self.create_sale(quantity=20)
+        response = self.post_json(self.complete_url(sale), {'amount_received': '150000.00'})
+        self.assertEqual(response.status_code, 400)
+        sale.refresh_from_db()
+        self.inventory.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.assertIsNone(sale.amount_received)
+        self.assertIsNone(sale.change_amount)
+        self.assertEqual(self.inventory.quantity, 10)
+        self.assertEqual(StockMovement.objects.filter(reference=sale.sale_number).count(), 0)
+
+        invalid_sale = self.create_sale()
+        response = self.post_json(self.complete_url(invalid_sale), {'amount_received': '1.00'})
+        self.assertEqual(response.status_code, 400)
+        invalid_sale.refresh_from_db()
+        self.assertIsNone(invalid_sale.amount_received)
+
+    def test_completion_authorization_and_completed_conflict(self):
+        sale = self.create_sale()
+        self.assertEqual(self.post_json(self.complete_url(sale), {'amount_received': '7500.00'}).status_code, 401)
+
+        self.client.force_login(self.customer)
+        self.assertEqual(self.post_json(self.complete_url(sale), {'amount_received': '7500.00'}).status_code, 403)
+
+        self.client.force_login(self.owner)
+        self.assertEqual(self.post_json(self.complete_url(sale), {'amount_received': '7500.00'}).status_code, 200)
+        self.assertEqual(self.post_json(self.complete_url(sale), {'amount_received': '7500.00'}).status_code, 409)

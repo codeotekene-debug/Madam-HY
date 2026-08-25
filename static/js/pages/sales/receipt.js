@@ -36,6 +36,8 @@ function renderReceipt(sale) {
     setText('receiptDiscount', `NGN ${formatCurrency(sale.discount)}`);
     setText('receiptTotal', `NGN ${formatCurrency(sale.total)}`);
     setText('receiptPayment', formatPaymentMethod(sale.payment_method));
+    setText('receiptPaymentStatus', formatStatus(sale.payment_status));
+    setText('receiptAmountReceived', sale.amount_received == null ? '-' : `NGN ${formatCurrency(sale.amount_received)}`);
     setText('receiptChange', sale.change_amount == null ? '-' : `NGN ${formatCurrency(sale.change_amount)}`);
     const itemTable = document.getElementById('receiptItems');
     if (itemTable) {
@@ -48,6 +50,7 @@ function renderReceipt(sale) {
 function setText(id, value) { const element = document.getElementById(id); if (element) element.textContent = value; }
 function showReceiptMessage(message) { setText('receiptDate', message); }
 function formatPaymentMethod(value) { return String(value || '-').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase()); }
+function formatStatus(value) { return String(value || '-').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase()); }
 function formatCurrency(value) { return Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function formatDate(value) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('en-NG'); }
 function formatApiError(response) { return response.errors ? Object.values(response.errors).flat().join(' ') : (response.message || 'Receipt could not load.'); }

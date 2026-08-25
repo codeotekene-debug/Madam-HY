@@ -61,10 +61,6 @@ async function completeDraftSale() {
         return;
     }
     const amount = Math.max(Number(document.getElementById('amountReceivedInput')?.value || 0), 0);
-    if (sale.payment_method === 'CASH' && amount < Number(sale.total || 0)) {
-        showMessage('checkoutMessage', 'Amount received is lower than the total due.', 'error');
-        return;
-    }
     if (sale.payment_method === 'CREDIT' && !sale.customer?.id) {
         showMessage('checkoutMessage', 'A customer is required for credit sales.', 'error');
         return;
@@ -72,7 +68,10 @@ async function completeDraftSale() {
 
     const button = document.getElementById('confirmPaymentBtn');
     setButtonLoading(button, 'Completing sale...');
-    const response = await apiRequest(`/sales/${sale.id}/complete/`, { method: 'POST', body: {} });
+    const paymentBody = sale.payment_method === 'CASH'
+        ? { amount_received: amount.toFixed(2) }
+        : {};
+    const response = await apiRequest(`/sales/${sale.id}/complete/`, { method: 'POST', body: paymentBody });
     setButtonLoading(button, 'Confirm payment');
     if (!response.success) {
         showMessage('checkoutMessage', formatApiError(response), 'error');

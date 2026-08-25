@@ -122,6 +122,37 @@ def _validation_error_response(error):
 	return _json_response(message='Validation failed.', success=False, status=400, errors=errors)
 
 
+def _parse_amount_received(payload, sale):
+	method = sale.payment_method
+	if method == Sale.PaymentMethod.CREDIT:
+		return Decimal('0.00'), Decimal('0.00'), None
+
+	if method == Sale.PaymentMethod.CASH and 'amount_received' not in payload:
+		return None, None, {'amount_received': 'Amount received is required for cash payment.'}
+
+	if method in (Sale.PaymentMethod.TRANSFER, Sale.PaymentMethod.CARD) and 'amount_received' not in payload:
+		return sale.total, Decimal('0.00'), None
+
+	try:
+		amount_received = Decimal(str(payload.get('amount_received')))
+	except (InvalidOperation, TypeError, ValueError):
+		return None, None, {'amount_received': 'Payment amount is invalid.'}
+
+	if not amount_received.is_finite() or amount_received < 0:
+		return None, None, {'amount_received': 'Payment amount must be non-negative.'}
+	if amount_received.as_tuple().exponent < -2:
+		return None, None, {'amount_received': 'Payment amount cannot have more than two decimal places.'}
+
+	if method == Sale.PaymentMethod.CASH:
+		if amount_received < sale.total:
+			return None, None, {'amount_received': 'Amount received cannot be less than the sale total.'}
+		return amount_received, amount_received - sale.total, None
+
+	if amount_received != sale.total:
+		return None, None, {'amount_received': 'Payment amount must equal the sale total.'}
+	return sale.total, Decimal('0.00'), None
+
+
 def _parse_date(value, field_name):
 
 	if not value:
@@ -384,9 +415,20 @@ def sale_complete(request, sale_id):
 	if sale.status != Sale.SaleStatus.DRAFT:
 		return _json_response(message='Only DRAFT sales can be completed.', success=False, status=409)
 
+	payload, body_errors = _parse_json_body(request)
+	if body_errors:
+		return _json_response(message='Validation failed.', success=False, status=400, errors=body_errors)
+	amount_received, change_amount, payment_error = _parse_amount_received(payload, sale)
+	if payment_error:
+		return _json_response(message='Validation failed.', success=False, status=400, errors=payment_error)
+
 	try:
+		sale.amount_received = amount_received
+		sale.change_amount = change_amount
+		sale.save(update_fields=['amount_received', 'change_amount', 'updated_at'])
 		sale.complete_sale()
 	except ValidationError as error:
+		transaction.set_rollback(True)
 		return _validation_error_response(error)
 
 	sale.refresh_from_db()
