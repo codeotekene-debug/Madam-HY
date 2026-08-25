@@ -1,11 +1,13 @@
 /**
  * MADAM HY - Stock history API integration.
- * Read-only movement history backed by the Inventory API.
+ * Read-only movement history backed by the Inventory Reporting API.
  */
 
 const stockHistoryState = {
     inventory: [],
     selectedInventoryId: null,
+    dateFrom: "",
+    dateTo: "",
     page: 1,
     pageSize: 10,
 };
@@ -16,90 +18,168 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function setupStockHistoryControls() {
-    document.getElementById("stockHistoryRetryButton")?.addEventListener("click", () => loadInventoryOptions());
-    document.getElementById("stockHistoryErrorRetryButton")?.addEventListener("click", () => loadInventoryOptions());
-    document.getElementById("stockHistoryInventorySelect")?.addEventListener("change", event => {
-        stockHistoryState.selectedInventoryId = Number(event.target.value) || null;
+    document.getElementById("stockHistoryRetryButton")?.addEventListener("click", () => loadStockHistory());
+    document.getElementById("stockHistoryErrorRetryButton")?.addEventListener("click", () => loadStockHistory());
+
+    const select = document.getElementById("stockHistoryInventorySelect");
+    const dateFrom = document.getElementById("stockHistoryDateFrom");
+    const dateTo = document.getElementById("stockHistoryDateTo");
+    const filterBtn = document.getElementById("stockHistoryFilterButton");
+    const resetBtn = document.getElementById("stockHistoryResetButton");
+
+    select?.addEventListener("change", event => {
+        const val = event.target.value;
+        stockHistoryState.selectedInventoryId = val ? Number(val) : null;
         stockHistoryState.page = 1;
-        if (stockHistoryState.selectedInventoryId) {
-            loadStockHistory();
-        }
+        loadStockHistory();
+    });
+
+    filterBtn?.addEventListener("click", () => {
+        stockHistoryState.dateFrom = dateFrom?.value || "";
+        stockHistoryState.dateTo = dateTo?.value || "";
+        stockHistoryState.page = 1;
+        loadStockHistory();
+    });
+
+    resetBtn?.addEventListener("click", () => {
+        if (dateFrom) dateFrom.value = "";
+        if (dateTo) dateTo.value = "";
+        if (select) select.value = "";
+        stockHistoryState.dateFrom = "";
+        stockHistoryState.dateTo = "";
+        stockHistoryState.selectedInventoryId = null;
+        stockHistoryState.page = 1;
+        loadStockHistory();
     });
 }
 
 async function loadInventoryOptions() {
     const select = document.getElementById("stockHistoryInventorySelect");
-    const tableBody = document.getElementById("stockHistoryTableBody");
+    if (!select) return;
 
-    showStockHistoryError("");
-    showStockHistoryEmpty(false);
-    if (select) select.innerHTML = `<option value="">Loading inventory...</option>`;
-    if (tableBody) tableBody.innerHTML = loadingRow("Loading inventory...", 8);
+    select.innerHTML = `<option value="">Loading inventory...</option>`;
 
     const response = await apiRequest("/inventory/?page_size=100&sort_by=product_name");
     if (!response.success) {
-        if (select) select.innerHTML = `<option value="">Inventory unavailable</option>`;
-        if (tableBody) tableBody.innerHTML = "";
-        showStockHistoryError(response.message || "Inventory could not load.");
+        select.innerHTML = `<option value="">All inventory items</option>`;
+        loadStockHistory();
         return;
     }
 
     stockHistoryState.inventory = response.data?.inventory || [];
     renderInventorySelect();
-
-    if (!stockHistoryState.inventory.length) {
-        if (tableBody) tableBody.innerHTML = "";
-        showStockHistoryEmpty(true);
-        return;
-    }
-
-    stockHistoryState.selectedInventoryId = stockHistoryState.inventory[0].id;
-    if (select) select.value = String(stockHistoryState.selectedInventoryId);
     loadStockHistory();
 }
 
 async function loadStockHistory() {
     const tableBody = document.getElementById("stockHistoryTableBody");
-    if (!tableBody || !stockHistoryState.selectedInventoryId) return;
+    if (!tableBody) return;
 
     showStockHistoryError("");
     showStockHistoryEmpty(false);
-    tableBody.innerHTML = loadingRow("Loading stock history...", 8);
+    tableBody.innerHTML = loadingRow("Loading movement history...", 8);
 
-    const query = new URLSearchParams({
+    const queryParams = new URLSearchParams({
         page: String(stockHistoryState.page),
         page_size: String(stockHistoryState.pageSize),
     });
-    const response = await apiRequest(`/inventory/${stockHistoryState.selectedInventoryId}/movements/?${query.toString()}`);
 
-    if (!response.success) {
-        tableBody.innerHTML = "";
-        renderPagination(null);
-        showStockHistoryError(response.message || "Stock history could not load.");
+    if (stockHistoryState.dateFrom) queryParams.set("date_from", stockHistoryState.dateFrom);
+    if (stockHistoryState.dateTo) queryParams.set("date_to", stockHistoryState.dateTo);
+
+    // If an item is selected, pass its product_id
+    if (stockHistoryState.selectedInventoryId) {
+        const selectedItem = stockHistoryState.inventory.find(i => i.id === stockHistoryState.selectedInventoryId);
+        if (selectedItem?.product?.id) {
+            queryParams.set("product_id", String(selectedItem.product.id));
+        }
+    }
+
+    const reportUrl = `/inventory/reports/movements/?${queryParams.toString()}`;
+    const response = await apiRequest(reportUrl);
+
+    if (response.success && response.data) {
+        const summary = response.data.summary || {
+            total_movements: response.data.pagination?.total_count ?? 0,
+            stock_in_quantity: response.data.stock_in_quantity ?? 0,
+            stock_out_quantity: response.data.stock_out_quantity ?? 0,
+            net_movement: response.data.net_movement ?? 0,
+        };
+        const movements = response.data.movements || [];
+        const pagination = response.data.pagination || null;
+
+        renderStockHistorySummary(summary);
+        renderStockHistory(movements);
+        renderPagination(pagination);
         return;
     }
 
-    const movements = response.data?.movements || [];
-    renderStockHistory(response.data?.inventory, movements);
-    renderPagination(response.data?.pagination || null);
+    // Fallback if reports endpoint fails
+    if (stockHistoryState.selectedInventoryId) {
+        const fallbackUrl = `/inventory/${stockHistoryState.selectedInventoryId}/movements/?${queryParams.toString()}`;
+        const fallbackResponse = await apiRequest(fallbackUrl);
+        if (fallbackResponse.success) {
+            const movements = fallbackResponse.data?.movements || [];
+            const pagination = fallbackResponse.data?.pagination || null;
+            const inQty = movements.filter(m => m.quantity > 0).reduce((s, m) => s + m.quantity, 0);
+            const outQty = movements.filter(m => m.quantity < 0).reduce((s, m) => s + Math.abs(m.quantity), 0);
+            renderStockHistorySummary({
+                total_movements: pagination?.total_count ?? movements.length,
+                stock_in_quantity: inQty,
+                stock_out_quantity: outQty,
+                net_movement: inQty - outQty,
+            });
+            renderStockHistory(movements);
+            renderPagination(pagination);
+            return;
+        }
+    }
+
+    tableBody.innerHTML = "";
+    renderStockHistorySummary({
+        total_movements: 0,
+        stock_in_quantity: 0,
+        stock_out_quantity: 0,
+        net_movement: 0,
+    });
+    renderPagination(null);
+    showStockHistoryError(response.message || "Stock history could not load.");
 }
 
 function renderInventorySelect() {
     const select = document.getElementById("stockHistoryInventorySelect");
     if (!select) return;
 
-    if (!stockHistoryState.inventory.length) {
-        select.innerHTML = `<option value="">No inventory found</option>`;
-        return;
-    }
+    const options = [
+        '<option value="">All inventory items</option>',
+        ...stockHistoryState.inventory.map(item => {
+            const product = item.product || {};
+            return `<option value="${item.id}">${escapeHtml(product.name || "Unknown product")} (${escapeHtml(item.sku || product.sku || "-")})</option>`;
+        }),
+    ];
 
-    select.innerHTML = stockHistoryState.inventory.map(item => {
-        const product = item.product || {};
-        return `<option value="${item.id}">${escapeHtml(product.name || "Unknown product")} (${escapeHtml(item.sku || product.sku || "-")})</option>`;
-    }).join("");
+    select.innerHTML = options.join("");
+    if (stockHistoryState.selectedInventoryId) {
+        select.value = String(stockHistoryState.selectedInventoryId);
+    }
 }
 
-function renderStockHistory(inventoryItem, movements) {
+function renderStockHistorySummary(summary) {
+    const totalEl = document.getElementById("stockHistoryTotalMovements");
+    const inEl = document.getElementById("stockHistoryStockIn");
+    const outEl = document.getElementById("stockHistoryStockOut");
+    const netEl = document.getElementById("stockHistoryNetMovement");
+
+    if (totalEl) totalEl.textContent = formatNumber(summary.total_movements ?? 0);
+    if (inEl) inEl.textContent = formatNumber(summary.stock_in_quantity ?? 0);
+    if (outEl) outEl.textContent = formatNumber(summary.stock_out_quantity ?? 0);
+    if (netEl) {
+        const net = Number(summary.net_movement ?? 0);
+        netEl.textContent = net > 0 ? `+${formatNumber(net)}` : formatNumber(net);
+    }
+}
+
+function renderStockHistory(movements) {
     const tableBody = document.getElementById("stockHistoryTableBody");
     if (!tableBody) return;
 
@@ -109,10 +189,10 @@ function renderStockHistory(inventoryItem, movements) {
         return;
     }
 
-    const productName = inventoryItem?.product?.name || "Unknown product";
     showStockHistoryEmpty(false);
     tableBody.innerHTML = movements.map(item => {
         const movementClass = movementPillClass(item.quantity);
+        const productName = item.product?.name || "Unknown product";
         return `
             <tr>
                 <td data-label="Date">${formatDateTime(item.created_at)}</td>

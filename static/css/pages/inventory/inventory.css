@@ -43,10 +43,15 @@
     flex-wrap: wrap;
 }
 
-.inventory-summary,
+.inventory-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+}
+
 .low-stock-summary {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -200,6 +205,81 @@
     gap: 12px;
 }
 
+.inventory-adjustment-panel {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.inventory-adjustment-form fieldset {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 12px;
+    padding: 0;
+    border: 0;
+}
+
+.inventory-adjustment-form label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.inventory-adjustment-form label[for="inventoryAdjustmentQuantity"],
+.inventory-adjustment-form label[for="inventoryAdjustmentReason"],
+.inventory-adjustment-form label[for="inventoryAdjustmentReference"] {
+    grid-row: 2;
+}
+
+.inventory-adjustment-form label[for="inventoryAdjustmentQuantity"],
+#inventoryAdjustmentQuantity {
+    grid-column: 1;
+}
+
+.inventory-adjustment-form label[for="inventoryAdjustmentReason"],
+#inventoryAdjustmentReason {
+    grid-column: 2;
+}
+
+.inventory-adjustment-form label[for="inventoryAdjustmentReference"],
+#inventoryAdjustmentReference {
+    grid-column: 3;
+}
+
+#inventoryAdjustmentQuantity,
+#inventoryAdjustmentReason,
+#inventoryAdjustmentReference {
+    grid-row: 3;
+}
+
+.inventory-adjustment-form .adjustment-type-control,
+.inventory-adjustment-form .adjustment-preview,
+.inventory-adjustment-form .inventory-adjustment-message,
+.inventory-adjustment-form button {
+    grid-column: 1 / -1;
+}
+
+.adjustment-type-control {
+    display: flex;
+    gap: 18px;
+}
+
+.adjustment-type-control label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+}
+
+.adjustment-preview,
+.inventory-adjustment-message {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.inventory-adjustment-message.is-error { color: var(--danger); }
+.inventory-adjustment-message.is-success { color: var(--primary); }
+
 .detail-metric {
     padding: 14px;
     border: 1px solid var(--border);
@@ -273,6 +353,20 @@
 
     .inventory-detail-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .inventory-adjustment-form fieldset {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-adjustment-form label[for="inventoryAdjustmentQuantity"],
+    .inventory-adjustment-form label[for="inventoryAdjustmentReason"],
+    .inventory-adjustment-form label[for="inventoryAdjustmentReference"],
+    #inventoryAdjustmentQuantity,
+    #inventoryAdjustmentReason,
+    #inventoryAdjustmentReference {
+        grid-column: 1;
+        grid-row: auto;
     }
 
     .inventory-toolbar,

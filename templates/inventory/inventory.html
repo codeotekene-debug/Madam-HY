@@ -35,6 +35,11 @@
         </article>
 
         <article class="summary-card">
+            <span>Total units</span>
+            <strong id="totalUnitsCount">0</strong>
+        </article>
+
+        <article class="summary-card">
             <span>Stock value</span>
             <strong id="stockValue">₦ 0</strong>
         </article>
@@ -128,6 +133,33 @@
         </div>
 
         <div id="inventoryDetailContent" class="inventory-detail-grid"></div>
+
+        <section id="inventoryAdjustmentPanel" class="inventory-adjustment-panel inventory-state-hidden" aria-labelledby="inventoryAdjustmentTitle">
+            <div class="section-header compact-header">
+                <div>
+                    <h3 id="inventoryAdjustmentTitle">Adjust stock</h3>
+                    <p>Record received or removed stock with an audit reason.</p>
+                </div>
+            </div>
+            <form id="inventoryAdjustmentForm" class="inventory-adjustment-form" novalidate>
+                <fieldset>
+                    <legend class="visually-hidden">Stock adjustment</legend>
+                    <div class="adjustment-type-control">
+                        <label><input type="radio" name="adjustmentType" value="in" checked /> Stock In</label>
+                        <label><input type="radio" name="adjustmentType" value="out" /> Stock Out</label>
+                    </div>
+                    <label for="inventoryAdjustmentQuantity">Quantity</label>
+                    <input id="inventoryAdjustmentQuantity" class="form-control" type="number" min="1" step="1" required />
+                    <label for="inventoryAdjustmentReason">Reason</label>
+                    <input id="inventoryAdjustmentReason" class="form-control" type="text" maxlength="200" required />
+                    <label for="inventoryAdjustmentReference">Reference <span>(optional)</span></label>
+                    <input id="inventoryAdjustmentReference" class="form-control" type="text" maxlength="100" />
+                    <p id="inventoryAdjustmentPreview" class="adjustment-preview" aria-live="polite">Resulting quantity: -</p>
+                    <div id="inventoryAdjustmentMessage" class="inventory-adjustment-message" aria-live="polite"></div>
+                    <button type="submit" class="btn btn-primary" id="inventoryAdjustmentSubmit">Confirm adjustment</button>
+                </fieldset>
+            </form>
+        </section>
 
         <div class="section-header compact-header movement-header">
             <div>

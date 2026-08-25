@@ -9,6 +9,7 @@ const inventoryState = {
     movementPage: 1,
     movementPageSize: 10,
     selectedInventoryId: null,
+    selectedQuantity: 0,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -42,6 +43,12 @@ function setupInventoryActions() {
     document.getElementById("inventoryRetryButton")?.addEventListener("click", () => loadInventory());
     document.getElementById("inventoryErrorRetryButton")?.addEventListener("click", () => loadInventory());
 
+    document.getElementById("inventoryAdjustmentForm")?.addEventListener("submit", submitInventoryAdjustment);
+    document.getElementById("inventoryAdjustmentQuantity")?.addEventListener("input", updateAdjustmentPreview);
+    document.querySelectorAll("input[name='adjustmentType']").forEach(input => {
+        input.addEventListener("change", updateAdjustmentPreview);
+    });
+
     document.getElementById("inventoryTableBody")?.addEventListener("click", event => {
         const button = event.target.closest("[data-inventory-detail]");
         if (!button) return;
@@ -64,20 +71,32 @@ async function loadInventory() {
     showInventoryEmpty(false);
     tableBody.innerHTML = loadingRow("Loading inventory...", 9);
 
-    const response = await apiRequest(`/inventory/${buildInventoryQuery()}`);
+    const [inventoryResponse, summaryResponse] = await Promise.all([
+        apiRequest(`/inventory/${buildInventoryQuery()}`),
+        apiRequest("/inventory/reports/summary/"),
+    ]);
 
-    if (!response.success) {
+    if (summaryResponse.success && summaryResponse.data) {
+        renderInventorySummaryFromApi(summaryResponse.data);
+    }
+
+    if (!inventoryResponse.success) {
         tableBody.innerHTML = "";
-        renderInventorySummary([], null);
+        if (!summaryResponse.success) {
+            renderInventorySummaryFallback([], null);
+        }
         renderPagination("inventoryPagination", null, () => {});
-        showInventoryError(response.message || "Inventory could not load.");
+        showInventoryError(inventoryResponse.message || "Inventory could not load.");
         return;
     }
 
-    const inventory = response.data?.inventory || [];
-    const pagination = response.data?.pagination || null;
+    const inventory = inventoryResponse.data?.inventory || [];
+    const pagination = inventoryResponse.data?.pagination || null;
 
-    renderInventorySummary(inventory, pagination);
+    if (!summaryResponse.success) {
+        renderInventorySummaryFallback(inventory, pagination);
+    }
+
     renderInventoryTable(inventory);
     renderPagination("inventoryPagination", pagination, page => {
         inventoryState.page = page;
@@ -103,8 +122,88 @@ async function loadInventoryDetail(inventoryId) {
     }
 
     const item = response.data;
+    inventoryState.selectedQuantity = Number(item.quantity || 0);
     if (title) title.textContent = item.product?.name || "Inventory detail";
     content.innerHTML = renderInventoryDetail(item);
+    showAdjustmentPanel();
+    resetAdjustmentForm();
+}
+
+async function submitInventoryAdjustment(event) {
+    event.preventDefault();
+    const quantityInput = document.getElementById("inventoryAdjustmentQuantity");
+    const reasonInput = document.getElementById("inventoryAdjustmentReason");
+    const referenceInput = document.getElementById("inventoryAdjustmentReference");
+    const submitButton = document.getElementById("inventoryAdjustmentSubmit");
+    const quantity = Number(quantityInput?.value);
+    const reason = reasonInput?.value.trim() || "";
+    const reference = referenceInput?.value.trim() || "";
+    const type = document.querySelector("input[name='adjustmentType']:checked")?.value;
+
+    showAdjustmentMessage("");
+    if (!Number.isInteger(quantity) || quantity <= 0 || !reason) {
+        showAdjustmentMessage("Enter a whole quantity and reason.", true);
+        return;
+    }
+    const delta = type === "out" ? -quantity : quantity;
+    if (inventoryState.selectedQuantity + delta < 0) {
+        showAdjustmentMessage("Stock Out cannot reduce stock below zero.", true);
+        return;
+    }
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Saving...";
+    }
+    const response = await apiRequest(`/inventory/${inventoryState.selectedInventoryId}/adjust/`, {
+        method: "POST",
+        body: { delta, reason, reference },
+    });
+    if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Confirm adjustment";
+    }
+
+    if (!response.success) {
+        showAdjustmentMessage(response.message || "Stock adjustment failed.", true);
+        return;
+    }
+
+    await Promise.all([
+        loadInventoryDetail(inventoryState.selectedInventoryId),
+        loadInventoryMovements(inventoryState.selectedInventoryId),
+        loadInventory(),
+    ]);
+    resetAdjustmentForm();
+    showAdjustmentMessage(response.message || "Stock adjusted successfully.");
+}
+
+function showAdjustmentPanel() {
+    const panel = document.getElementById("inventoryAdjustmentPanel");
+    if (!panel) return;
+    const role = getCurrentUserRole();
+    panel.classList.toggle("inventory-state-hidden", role !== "OWNER" && role !== "MANAGER");
+}
+
+function resetAdjustmentForm() {
+    document.getElementById("inventoryAdjustmentForm")?.reset();
+    showAdjustmentMessage("");
+    updateAdjustmentPreview();
+}
+
+function updateAdjustmentPreview() {
+    const quantity = Number(document.getElementById("inventoryAdjustmentQuantity")?.value || 0);
+    const type = document.querySelector("input[name='adjustmentType']:checked")?.value;
+    const delta = type === "out" ? -quantity : quantity;
+    const preview = document.getElementById("inventoryAdjustmentPreview");
+    if (preview) preview.textContent = `Resulting quantity: ${formatNumber(inventoryState.selectedQuantity + delta)}`;
+}
+
+function showAdjustmentMessage(message, isError = false) {
+    const element = document.getElementById("inventoryAdjustmentMessage");
+    if (!element) return;
+    element.textContent = message;
+    element.className = `inventory-adjustment-message${isError ? " is-error" : " is-success"}`;
 }
 
 async function loadInventoryMovements(inventoryId) {
@@ -152,17 +251,34 @@ function buildInventoryQuery() {
     return queryString ? `?${queryString}` : "";
 }
 
-function renderInventorySummary(items, pagination) {
+function renderInventorySummaryFromApi(summary) {
     const total = document.getElementById("totalInventoryItems");
+    const totalUnits = document.getElementById("totalUnitsCount");
+    const stockValue = document.getElementById("stockValue");
+    const lowStock = document.getElementById("lowStockCount");
+    const outOfStock = document.getElementById("outOfStockCount");
+
+    if (total) total.textContent = formatNumber(summary.total_items ?? 0);
+    if (totalUnits) totalUnits.textContent = formatNumber(summary.total_units ?? 0);
+    if (stockValue) stockValue.textContent = `NGN ${formatCurrency(summary.selling_value ?? summary.total_inventory_value ?? 0)}`;
+    if (lowStock) lowStock.textContent = formatNumber(summary.low_stock_items ?? 0);
+    if (outOfStock) outOfStock.textContent = formatNumber(summary.out_of_stock_items ?? 0);
+}
+
+function renderInventorySummaryFallback(items, pagination) {
+    const total = document.getElementById("totalInventoryItems");
+    const totalUnits = document.getElementById("totalUnitsCount");
     const stockValue = document.getElementById("stockValue");
     const lowStock = document.getElementById("lowStockCount");
     const outOfStock = document.getElementById("outOfStockCount");
     const totalCount = pagination?.total_count ?? items.length;
+    const units = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     const visibleStockValue = items.reduce((sum, item) => {
         return sum + (Number(item.quantity || 0) * Number(item.product?.selling_price || 0));
     }, 0);
 
     if (total) total.textContent = String(totalCount);
+    if (totalUnits) totalUnits.textContent = formatNumber(units);
     if (stockValue) stockValue.textContent = `NGN ${formatCurrency(visibleStockValue)}`;
     if (lowStock) lowStock.textContent = String(items.filter(item => item.is_low_stock).length);
     if (outOfStock) outOfStock.textContent = String(items.filter(item => item.is_out_of_stock).length);

@@ -28,11 +28,50 @@
         </div>
     </section>
 
-    <section class="card stock-history-controls">
-        <label class="visually-hidden" for="stockHistoryInventorySelect">Select inventory item</label>
-        <select id="stockHistoryInventorySelect" class="form-select">
-            <option value="">Loading inventory...</option>
-        </select>
+    <section class="stock-history-summary" aria-label="Stock movement summary">
+        <article class="summary-card">
+            <span>Total movements</span>
+            <strong id="stockHistoryTotalMovements">0</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Units received (In)</span>
+            <strong id="stockHistoryStockIn">0</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Units dispatched (Out)</span>
+            <strong id="stockHistoryStockOut">0</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Net movement</span>
+            <strong id="stockHistoryNetMovement">0</strong>
+        </article>
+    </section>
+
+    <section class="card stock-history-controls" aria-label="Movement history filters">
+        <div class="filter-group">
+            <label for="stockHistoryInventorySelect">Item</label>
+            <select id="stockHistoryInventorySelect" class="form-select">
+                <option value="">All inventory items</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="stockHistoryDateFrom">From</label>
+            <input type="date" id="stockHistoryDateFrom" class="form-control" />
+        </div>
+
+        <div class="filter-group">
+            <label for="stockHistoryDateTo">To</label>
+            <input type="date" id="stockHistoryDateTo" class="form-control" />
+        </div>
+
+        <div class="filter-actions">
+            <button type="button" class="btn btn-primary" id="stockHistoryFilterButton">Filter</button>
+            <button type="button" class="btn btn-secondary" id="stockHistoryResetButton">Reset</button>
+        </div>
     </section>
 
     <section id="stockHistoryErrorState" class="card inventory-state inventory-state-hidden" aria-live="polite">
