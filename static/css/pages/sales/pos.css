@@ -336,6 +336,10 @@
     border-top: 1px solid var(--border);
 }
 
+.payment-field-hidden {
+    display: none;
+}
+
 .totals-row {
     display: flex;
     align-items: center;

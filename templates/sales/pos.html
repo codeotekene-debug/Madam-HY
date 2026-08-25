@@ -60,6 +60,7 @@
             <div id="productEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
                 <h3>No products match this search</h3>
                 <p>Try another keyword or choose another category.</p>
+                <button type="button" class="btn btn-secondary" id="productRetryBtn">Retry catalogue</button>
             </div>
         </div>
 
@@ -99,10 +100,16 @@
                 <div class="form-group compact-group">
                     <label class="form-label" for="paymentMethodSelect">Payment method</label>
                     <select id="paymentMethodSelect" class="form-select">
-                        <option value="Cash">Cash</option>
-                        <option value="Transfer">Bank transfer</option>
-                        <option value="Card">Card</option>
+                        <option value="CASH">Cash</option>
+                        <option value="TRANSFER">Bank transfer</option>
+                        <option value="CARD">Card</option>
+                        <option value="CREDIT">Credit</option>
                     </select>
+                </div>
+
+                <div class="form-group compact-group" id="customerIdGroup">
+                    <label class="form-label" for="customerIdInput">Customer ID <span>(required for credit)</span></label>
+                    <input id="customerIdInput" class="form-control" type="number" min="1" step="1" placeholder="Optional for walk-in sales" />
                 </div>
 
                 <div class="form-group compact-group">
