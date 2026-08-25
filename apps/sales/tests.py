@@ -1183,3 +1183,132 @@ class SalesPaymentApiTests(TestCase):
         self.client.force_login(self.owner)
         self.assertEqual(self.post_json(self.complete_url(sale), {'amount_received': '7500.00'}).status_code, 200)
         self.assertEqual(self.post_json(self.complete_url(sale), {'amount_received': '7500.00'}).status_code, 409)
+
+
+class SalesCustomerAccessTests(TestCase):
+    def setUp(self):
+        category = ProductCategory.objects.create(name='Sales Customer API', slug='sales-customer-api')
+        product = Product.objects.create(
+            name='Customer Sales Product',
+            slug='customer-sales-product',
+            sku='CUSTOMER-001',
+            category=category,
+            selling_price=Decimal('100.00'),
+        )
+        self.owner = User.objects.create_user(email='customer-access-owner@example.com', username='customer-access-owner', password='Pass123', role='OWNER')
+        self.customer = User.objects.create_user(email='customer-access-one@example.com', username='customer-access-one', password='Pass123', role='CUSTOMER')
+        self.other_customer = User.objects.create_user(email='customer-access-two@example.com', username='customer-access-two', password='Pass123', role='CUSTOMER')
+        self.own_sale = self.create_sale('CUSTOMER-SALE-001', self.customer, product)
+        self.other_sale = self.create_sale('CUSTOMER-SALE-002', self.other_customer, product)
+
+    def create_sale(self, sale_number, customer, product):
+        sale = Sale.objects.create(
+            sale_number=sale_number,
+            customer=customer,
+            cashier=self.owner,
+            payment_method=Sale.PaymentMethod.CASH,
+            status=Sale.SaleStatus.COMPLETED,
+            payment_status=Sale.PaymentStatus.COMPLETED,
+            subtotal=Decimal('100.00'),
+            total=Decimal('100.00'),
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=product,
+            quantity=1,
+            unit_price=Decimal('100.00'),
+            product_name_snapshot=product.name,
+            sku_snapshot=product.sku,
+        )
+        return sale
+
+    def test_unauthenticated_customer_isolation_and_own_sales(self):
+        self.assertEqual(self.client.get('/sales/').status_code, 401)
+        self.client.force_login(self.customer)
+        response = self.client.get('/sales/')
+        self.assertEqual(response.status_code, 200)
+        sales = response.json()['data']['sales']
+        self.assertEqual([sale['id'] for sale in sales], [self.own_sale.id])
+        self.assertEqual(self.client.get('/sales/', {'customer_id': self.other_customer.id}).json()['data']['sales'][0]['id'], self.own_sale.id)
+        bypass_response = self.client.get('/sales/', {'customer': self.other_customer.id, 'search': self.other_sale.sale_number})
+        self.assertEqual(bypass_response.json()['data']['sales'], [])
+
+    def test_customer_can_view_own_sale_but_not_another_customer_sale(self):
+        self.client.force_login(self.customer)
+        self.assertEqual(self.client.get(f'/sales/{self.own_sale.id}/').status_code, 200)
+        response = self.client.get(f'/sales/{self.other_sale.id}/')
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn(self.other_sale.sale_number, response.content.decode())
+
+    def test_empty_customer_sales_is_paginated_and_management_roles_retain_access(self):
+        empty_customer = User.objects.create_user(email='customer-access-empty@example.com', username='customer-access-empty', password='Pass123', role='CUSTOMER')
+        self.client.force_login(empty_customer)
+        data = self.client.get('/sales/').json()['data']
+        self.assertEqual(data['sales'], [])
+        self.assertEqual(data['pagination']['total_count'], 0)
+
+        for role in ('OWNER', 'MANAGER', 'CASHIER'):
+            user = self.owner if role == 'OWNER' else User.objects.create_user(email=f'{role.lower()}-access@example.com', username=f'{role.lower()}-access', password='Pass123', role=role)
+            self.client.force_login(user)
+            self.assertEqual(self.client.get('/sales/').status_code, 200)
+
+
+class SalesReportingApiTests(TestCase):
+    def setUp(self):
+        category = ProductCategory.objects.create(name='Sales Reporting API', slug='sales-reporting-api')
+        product = Product.objects.create(name='Reporting Product', slug='reporting-product', sku='REPORT-001', category=category, selling_price=Decimal('100.00'))
+        self.owner = User.objects.create_user(email='report-owner@example.com', username='report-owner', password='Pass123', role='OWNER')
+        self.staff = User.objects.create_user(email='report-staff@example.com', username='report-staff', password='Pass123', role='STAFF')
+        self.customer = User.objects.create_user(email='report-customer@example.com', username='report-customer', password='Pass123', role='CUSTOMER')
+        self.completed = self.make_sale('REPORT-COMPLETED', Sale.SaleStatus.COMPLETED, Sale.PaymentMethod.CASH, Decimal('100.00'), product)
+        self.completed_transfer = self.make_sale('REPORT-TRANSFER', Sale.SaleStatus.COMPLETED, Sale.PaymentMethod.TRANSFER, Decimal('200.00'), product)
+        self.draft = self.make_sale('REPORT-DRAFT', Sale.SaleStatus.DRAFT, Sale.PaymentMethod.CARD, Decimal('500.00'), product)
+        now = timezone.now()
+        Sale.objects.filter(pk=self.completed.pk).update(created_at=now - timedelta(days=3))
+        Sale.objects.filter(pk=self.completed_transfer.pk).update(created_at=now - timedelta(days=1))
+
+    def make_sale(self, sale_number, status, payment_method, total, product):
+        sale = Sale.objects.create(
+            sale_number=sale_number,
+            cashier=self.owner,
+            payment_method=payment_method,
+            status=status,
+            payment_status=Sale.PaymentStatus.COMPLETED if status == Sale.SaleStatus.COMPLETED else Sale.PaymentStatus.PENDING,
+            subtotal=total,
+            discount=Decimal('10.00'),
+            total=total,
+        )
+        SaleItem.objects.create(sale=sale, product=product, quantity=1, unit_price=total, product_name_snapshot=product.name, sku_snapshot=product.sku)
+        return sale
+
+    def test_summary_aggregates_completed_sales_only(self):
+        self.client.force_login(self.owner)
+        response = self.client.get('/sales/reports/summary/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(data['transaction_count'], 2)
+        self.assertEqual(data['total_sales'], '300.00')
+        self.assertEqual(data['total_discount'], '20.00')
+        self.assertEqual(data['cash_total'], '100.00')
+        self.assertEqual(data['transfer_total'], '200.00')
+        self.assertEqual(data['card_total'], '0.00')
+        self.assertEqual(data['credit_total'], '0.00')
+
+    def test_summary_roles_dates_errors_and_methods(self):
+        self.assertEqual(self.client.get('/sales/reports/summary/').status_code, 401)
+        self.client.force_login(self.customer)
+        self.assertEqual(self.client.get('/sales/reports/summary/').status_code, 403)
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get('/sales/reports/summary/').status_code, 200)
+        today = timezone.localdate()
+        self.assertEqual(self.client.get('/sales/reports/summary/', {'date_from': (today - timedelta(days=2)).isoformat()}).json()['data']['transaction_count'], 1)
+        self.assertEqual(self.client.get('/sales/reports/summary/', {'date_from': 'bad-date'}).status_code, 400)
+        self.assertEqual(self.client.get('/sales/reports/summary/', {'date_from': '2026-08-25', 'date_to': '2026-08-20'}).status_code, 400)
+        self.assertEqual(self.client.post('/sales/reports/summary/').status_code, 405)
+
+    def test_summary_uses_bounded_query_count(self):
+        self.client.force_login(self.owner)
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get('/sales/reports/summary/')
+        self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(len(queries), 3)

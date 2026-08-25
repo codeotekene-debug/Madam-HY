@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Sales Dashboard | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Sales Dashboard
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/sales/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sales-dashboard-page">
+    <section class="sales-hero">
+        <div>
+            <span class="badge badge-primary">Sales</span>
+            <h2>Sales dashboard</h2>
+            <p>Review completed sales performance across the current operating period.</p>
+        </div>
+    </section>
+
+    <section class="sales-dashboard-filters card" aria-label="Sales dashboard filters">
+        <label for="dashboardDateFrom">From</label>
+        <input id="dashboardDateFrom" class="form-control" type="date">
+        <label for="dashboardDateTo">To</label>
+        <input id="dashboardDateTo" class="form-control" type="date">
+        <button type="button" class="btn btn-primary" id="dashboardApplyBtn">Apply</button>
+        <button type="button" class="btn btn-secondary" id="dashboardClearBtn">Clear</button>
+        <button type="button" class="btn btn-secondary" id="dashboardRetryBtn">Retry</button>
+    </section>
+
+    <section id="dashboardErrorState" class="card sale-message" aria-live="polite"></section>
+    <section id="dashboardEmptyState" class="card dashboard-empty empty-state-hidden" aria-live="polite">
+        <h3>No completed sales found</h3>
+        <p>Try another date range.</p>
+    </section>
+
+    <section class="sales-dashboard-metrics" aria-label="Sales summary">
+        <article class="summary-card"><span>Total sales</span><strong id="dashboardTotalSales">-</strong></article>
+        <article class="summary-card"><span>Transaction count</span><strong id="dashboardTransactionCount">-</strong></article>
+        <article class="summary-card"><span>Total discount</span><strong id="dashboardTotalDiscount">-</strong></article>
+        <article class="summary-card"><span>Cash sales</span><strong id="dashboardCashTotal">-</strong></article>
+        <article class="summary-card"><span>Transfer sales</span><strong id="dashboardTransferTotal">-</strong></article>
+        <article class="summary-card"><span>Card sales</span><strong id="dashboardCardTotal">-</strong></article>
+        <article class="summary-card"><span>Credit sales</span><strong id="dashboardCreditTotal">-</strong></article>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/sales/dashboard.js' %}"></script>
+{% endblock %}

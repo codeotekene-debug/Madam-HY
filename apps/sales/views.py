@@ -5,7 +5,7 @@ from uuid import uuid4
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Case, Count, Q, Sum, When, DecimalField, Value
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import datetime, time
@@ -30,6 +30,22 @@ def _can_process_sales(user):
 		user
 		and getattr(user, 'is_authenticated', False)
 		and getattr(user, 'role', None) in ('OWNER', 'MANAGER', 'CASHIER')
+	)
+
+
+def _can_view_sales(user):
+	return bool(
+		user
+		and getattr(user, 'is_authenticated', False)
+		and getattr(user, 'role', None) in ('OWNER', 'MANAGER', 'CASHIER', 'CUSTOMER')
+	)
+
+
+def _can_view_sales_dashboard(user):
+	return bool(
+		user
+		and getattr(user, 'is_authenticated', False)
+		and getattr(user, 'role', None) in ('OWNER', 'MANAGER', 'CASHIER', 'STAFF')
 	)
 
 
@@ -188,10 +204,12 @@ def sale_list(request):
 		return _json_response(message='Only GET is allowed.', success=False, status=405)
 	if not request.user or not getattr(request.user, 'is_authenticated', False):
 		return _json_response(message='Authentication required.', success=False, status=401)
-	if not _can_process_sales(request.user):
+	if not _can_view_sales(request.user):
 		return _json_response(message='You do not have permission to view sales.', success=False, status=403)
 
 	sales = Sale.objects.select_related('customer', 'cashier')
+	if getattr(request.user, 'role', None) == 'CUSTOMER':
+		sales = sales.filter(customer=request.user)
 	search = (request.GET.get('search') or '').strip()
 	if search:
 		sales = sales.filter(
@@ -267,13 +285,67 @@ def sale_detail(request, sale_id):
 		return _json_response(message='Only GET is allowed.', success=False, status=405)
 	if not request.user or not getattr(request.user, 'is_authenticated', False):
 		return _json_response(message='Authentication required.', success=False, status=401)
-	if not _can_process_sales(request.user):
+	if not _can_view_sales(request.user):
 		return _json_response(message='You do not have permission to view sales.', success=False, status=403)
 	try:
-		sale = Sale.objects.select_related('customer', 'cashier').prefetch_related('items').get(pk=sale_id)
+		queryset = Sale.objects.select_related('customer', 'cashier').prefetch_related('items')
+		if getattr(request.user, 'role', None) == 'CUSTOMER':
+			queryset = queryset.filter(customer=request.user)
+		sale = queryset.get(pk=sale_id)
 	except Sale.DoesNotExist:
+		if getattr(request.user, 'role', None) == 'CUSTOMER':
+			return _json_response(message='You do not have permission to view this sale.', success=False, status=403)
 		return _json_response(message='Sale not found.', success=False, status=404)
 	return _json_response(data=_serialize_sale(sale), message='Sale retrieved successfully.')
+
+
+def sale_report_summary(request):
+	if request.method != 'GET':
+		return _json_response(message='Only GET is allowed.', success=False, status=405)
+	if not request.user or not getattr(request.user, 'is_authenticated', False):
+		return _json_response(message='Authentication required.', success=False, status=401)
+	if not _can_view_sales_dashboard(request.user):
+		return _json_response(message='You do not have permission to view the sales dashboard.', success=False, status=403)
+
+	date_from, date_from_error = _parse_date(request.GET.get('date_from'), 'date_from')
+	date_to, date_to_error = _parse_date(request.GET.get('date_to'), 'date_to')
+	if date_from_error or date_to_error:
+		errors = {}
+		errors.update(date_from_error or {})
+		errors.update(date_to_error or {})
+		return _json_response(message='Validation failed.', success=False, status=400, errors=errors)
+	if date_from and date_to and date_from > date_to:
+		return _json_response(message='Validation failed.', success=False, status=400, errors={'date_from': 'date_from cannot be later than date_to.'})
+
+	sales = Sale.objects.filter(status=Sale.SaleStatus.COMPLETED)
+	local_tz = timezone.get_current_timezone()
+	if date_from:
+		sales = sales.filter(created_at__gte=timezone.make_aware(datetime.combine(date_from, time.min), local_tz))
+	if date_to:
+		sales = sales.filter(created_at__lte=timezone.make_aware(datetime.combine(date_to, time.max), local_tz))
+
+	zero = Value(Decimal('0.00'), output_field=DecimalField(max_digits=14, decimal_places=2))
+	aggregates = sales.aggregate(
+		total_sales=Sum('total', default=Decimal('0.00')),
+		transaction_count=Count('id'),
+		total_discount=Sum('discount', default=Decimal('0.00')),
+		cash_total=Sum(Case(When(payment_method=Sale.PaymentMethod.CASH, then='total'), default=zero, output_field=DecimalField(max_digits=14, decimal_places=2))),
+		transfer_total=Sum(Case(When(payment_method=Sale.PaymentMethod.TRANSFER, then='total'), default=zero, output_field=DecimalField(max_digits=14, decimal_places=2))),
+		card_total=Sum(Case(When(payment_method=Sale.PaymentMethod.CARD, then='total'), default=zero, output_field=DecimalField(max_digits=14, decimal_places=2))),
+		credit_total=Sum(Case(When(payment_method=Sale.PaymentMethod.CREDIT, then='total'), default=zero, output_field=DecimalField(max_digits=14, decimal_places=2))),
+	)
+	return _json_response(
+		data={
+			'total_sales': str(aggregates['total_sales'] or Decimal('0.00')),
+			'transaction_count': aggregates['transaction_count'] or 0,
+			'total_discount': str(aggregates['total_discount'] or Decimal('0.00')),
+			'cash_total': str(aggregates['cash_total'] or Decimal('0.00')),
+			'transfer_total': str(aggregates['transfer_total'] or Decimal('0.00')),
+			'card_total': str(aggregates['card_total'] or Decimal('0.00')),
+			'credit_total': str(aggregates['credit_total'] or Decimal('0.00')),
+		},
+		message='Sales summary retrieved successfully.',
+	)
 
 
 def sale_create(request):
