@@ -5,7 +5,10 @@ from uuid import uuid4
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
+from django.utils import timezone
+from datetime import datetime, time
 
 from apps.products.models import Product
 from .models import Sale, SaleItem
@@ -80,6 +83,8 @@ def _serialize_sale_item(item):
 	return {
 		'id': item.id,
 		'product_id': item.product_id,
+		'product_name_snapshot': item.product_name_snapshot,
+		'sku_snapshot': item.sku_snapshot,
 		'product_name': item.product_name_snapshot,
 		'sku': item.sku_snapshot,
 		'quantity': item.quantity,
@@ -108,7 +113,7 @@ def _serialize_sale(sale, include_items=True):
 		'updated_at': sale.updated_at.isoformat(),
 	}
 	if include_items:
-		data['items'] = [_serialize_sale_item(item) for item in sale.items.select_related('product').all()]
+		data['items'] = [_serialize_sale_item(item) for item in sale.items.all()]
 	return data
 
 
@@ -117,7 +122,132 @@ def _validation_error_response(error):
 	return _json_response(message='Validation failed.', success=False, status=400, errors=errors)
 
 
+def _parse_date(value, field_name):
+
+	if not value:
+		return None, None
+	try:
+		return datetime.strptime(value.strip(), '%Y-%m-%d').date(), None
+	except (AttributeError, TypeError, ValueError):
+		return None, {field_name: f"Invalid date format for '{field_name}'. Expected YYYY-MM-DD."}
+
+
+def _serialize_sale_list_item(sale):
+	return {
+		'id': sale.id,
+		'sale_id': sale.id,
+		'sale_number': sale.sale_number,
+		'customer': _serialize_customer(sale.customer),
+		'cashier': _serialize_customer(sale.cashier),
+		'status': sale.status,
+		'payment_method': sale.payment_method,
+		'payment_status': sale.payment_status,
+		'subtotal': str(sale.subtotal),
+		'discount': str(sale.discount),
+		'total': str(sale.total),
+		'amount_received': str(sale.amount_received) if sale.amount_received is not None else None,
+		'change_amount': str(sale.change_amount) if sale.change_amount is not None else None,
+		'created_at': sale.created_at.isoformat(),
+		'updated_at': sale.updated_at.isoformat(),
+	}
+
+
+def sale_list(request):
+	if request.method != 'GET':
+		return _json_response(message='Only GET is allowed.', success=False, status=405)
+	if not request.user or not getattr(request.user, 'is_authenticated', False):
+		return _json_response(message='Authentication required.', success=False, status=401)
+	if not _can_process_sales(request.user):
+		return _json_response(message='You do not have permission to view sales.', success=False, status=403)
+
+	sales = Sale.objects.select_related('customer', 'cashier')
+	search = (request.GET.get('search') or '').strip()
+	if search:
+		sales = sales.filter(
+			Q(sale_number__icontains=search)
+			| Q(customer__first_name__icontains=search)
+			| Q(customer__last_name__icontains=search)
+			| Q(customer__username__icontains=search)
+			| Q(customer__email__icontains=search)
+			| Q(cashier__first_name__icontains=search)
+			| Q(cashier__last_name__icontains=search)
+			| Q(cashier__username__icontains=search)
+		)
+
+	for field in ('status', 'payment_method', 'payment_status'):
+		value = (request.GET.get(field) or '').strip().upper()
+		if value:
+			sales = sales.filter(**{field: value})
+
+	cashier_id = (request.GET.get('cashier_id') or '').strip()
+	if cashier_id:
+		try:
+			sales = sales.filter(cashier_id=int(cashier_id))
+		except ValueError:
+			return _json_response(message='Validation failed.', success=False, status=400, errors={'cashier_id': 'Cashier ID must be numeric.'})
+
+	date_from, date_from_error = _parse_date(request.GET.get('date_from'), 'date_from')
+	date_to, date_to_error = _parse_date(request.GET.get('date_to'), 'date_to')
+	if date_from_error or date_to_error:
+		errors = {}
+		errors.update(date_from_error or {})
+		errors.update(date_to_error or {})
+		return _json_response(message='Validation failed.', success=False, status=400, errors=errors)
+	if date_from and date_to and date_from > date_to:
+		return _json_response(message='Validation failed.', success=False, status=400, errors={'date_from': 'date_from cannot be later than date_to.'})
+	local_tz = timezone.get_current_timezone()
+	if date_from:
+		sales = sales.filter(created_at__gte=timezone.make_aware(datetime.combine(date_from, time.min), local_tz))
+	if date_to:
+		sales = sales.filter(created_at__lte=timezone.make_aware(datetime.combine(date_to, time.max), local_tz))
+
+	ordering = (request.GET.get('ordering') or '-created_at').strip()
+	allowed_ordering = {
+		'sale_number': 'sale_number', '-sale_number': '-sale_number',
+		'created_at': 'created_at', '-created_at': '-created_at',
+		'total': 'total', '-total': '-total',
+		'status': 'status', '-status': '-status',
+	}
+	sales = sales.order_by(allowed_ordering.get(ordering, '-created_at'), '-id')
+	try:
+		page = max(1, int(request.GET.get('page', 1)))
+		page_size = min(100, max(1, int(request.GET.get('page_size', 10))))
+	except (TypeError, ValueError):
+		page, page_size = 1, 10
+	total_count = sales.count()
+	start = (page - 1) * page_size
+	items = list(sales[start:start + page_size])
+	return _json_response(
+		data={
+			'sales': [_serialize_sale_list_item(sale) for sale in items],
+			'pagination': {
+				'total_count': total_count,
+				'page': page,
+				'page_size': page_size,
+				'total_pages': (total_count + page_size - 1) // page_size,
+			},
+		},
+		message='Sales retrieved successfully.',
+	)
+
+
+def sale_detail(request, sale_id):
+	if request.method != 'GET':
+		return _json_response(message='Only GET is allowed.', success=False, status=405)
+	if not request.user or not getattr(request.user, 'is_authenticated', False):
+		return _json_response(message='Authentication required.', success=False, status=401)
+	if not _can_process_sales(request.user):
+		return _json_response(message='You do not have permission to view sales.', success=False, status=403)
+	try:
+		sale = Sale.objects.select_related('customer', 'cashier').prefetch_related('items').get(pk=sale_id)
+	except Sale.DoesNotExist:
+		return _json_response(message='Sale not found.', success=False, status=404)
+	return _json_response(data=_serialize_sale(sale), message='Sale retrieved successfully.')
+
+
 def sale_create(request):
+	if request.method == 'GET':
+		return sale_list(request)
 	if request.method != 'POST':
 		return _json_response(message='Only POST is allowed.', success=False, status=405)
 	if not request.user or not getattr(request.user, 'is_authenticated', False):

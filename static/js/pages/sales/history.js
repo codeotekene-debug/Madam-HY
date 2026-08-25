@@ -1,133 +1,113 @@
-const salesHistoryData = [
-    {
-        saleNumber: 'MH-10241',
-        customer: 'Aisha Bello',
-        cashier: 'Amina Yusuf',
-        date: '2026-08-14',
-        payment: 'Cash',
-        status: 'Completed',
-        total: 42500,
-        items: [
-            { name: 'Radiant Glow Serum', qty: 2, price: 9500 },
-            { name: 'Green Ankara Fabric Premium', qty: 1, price: 12500 },
-            { name: 'Leather Office Tote', qty: 1, price: 18500 }
-        ]
-    },
-    {
-        saleNumber: 'MH-10242',
-        customer: 'Musa Adamu',
-        cashier: 'Amina Yusuf',
-        date: '2026-08-14',
-        payment: 'Card',
-        status: 'Pending',
-        total: 31800,
-        items: [
-            { name: 'Wireless Speaker Mini', qty: 1, price: 22000 },
-            { name: 'Kitchen Storage Basket', qty: 1, price: 6200 },
-            { name: 'Leather Office Tote', qty: 1, price: 18500 }
-        ]
-    },
-    {
-        saleNumber: 'MH-10243',
-        customer: 'Grace Nnaji',
-        cashier: 'David Okafor',
-        date: '2026-08-13',
-        payment: 'Transfer',
-        status: 'Completed',
-        total: 28000,
-        items: [
-            { name: 'Velvet Evening Gown', qty: 1, price: 28000 }
-        ]
-    },
-    {
-        saleNumber: 'MH-10244',
-        customer: 'Emeka Ibe',
-        cashier: 'Amina Yusuf',
-        date: '2026-08-13',
-        payment: 'Cash',
-        status: 'Refunded',
-        total: 19000,
-        items: [
-            { name: 'Kitchen Storage Basket', qty: 1, price: 6200 },
-            { name: 'Radiant Glow Serum', qty: 1, price: 9500 },
-            { name: 'Green Ankara Fabric Premium', qty: 1, price: 12500 }
-        ]
-    }
-];
+const salesHistoryState = { page: 1, pageSize: 10 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    renderSalesSummary();
-    renderSalesTable();
     bindHistoryFilters();
+    loadSalesHistory();
 });
 
 function bindHistoryFilters() {
-    const searchInput = document.getElementById('historySearch');
-    const paymentFilter = document.getElementById('historyPaymentFilter');
-    const statusFilter = document.getElementById('historyStatusFilter');
-
-    searchInput?.addEventListener('input', renderSalesTable);
-    paymentFilter?.addEventListener('change', renderSalesTable);
-    statusFilter?.addEventListener('change', renderSalesTable);
-}
-
-function renderSalesSummary() {
-    const totalSalesCount = document.getElementById('totalSalesCount');
-    const cashSalesCount = document.getElementById('cashSalesCount');
-    const cardSalesCount = document.getElementById('cardSalesCount');
-    const revenueTotal = document.getElementById('revenueTotal');
-
-    if (totalSalesCount) totalSalesCount.textContent = String(salesHistoryData.length);
-    if (cashSalesCount) cashSalesCount.textContent = String(salesHistoryData.filter(item => item.payment === 'Cash').length);
-    if (cardSalesCount) cardSalesCount.textContent = String(salesHistoryData.filter(item => item.payment === 'Card').length);
-    if (revenueTotal) revenueTotal.textContent = `₦ ${formatCurrency(salesHistoryData.reduce((sum, item) => sum + item.total, 0))}`;
-}
-
-function renderSalesTable() {
-    const tableBody = document.getElementById('historyTableBody');
-    const emptyState = document.getElementById('historyEmptyState');
-    const searchInput = document.getElementById('historySearch');
-    const paymentFilter = document.getElementById('historyPaymentFilter');
-    const statusFilter = document.getElementById('historyStatusFilter');
-
-    if (!tableBody) return;
-
-    const query = searchInput?.value.trim().toLowerCase() || '';
-    const paymentValue = paymentFilter?.value || 'all';
-    const statusValue = statusFilter?.value || 'all';
-
-    const filtered = salesHistoryData.filter(item => {
-        const matchesPayment = paymentValue === 'all' || item.payment === paymentValue;
-        const matchesStatus = statusValue === 'all' || item.status === statusValue;
-        const matchQuery = !query || [item.saleNumber, item.customer, item.cashier].some(value => value.toLowerCase().includes(query));
-        return matchesPayment && matchesStatus && matchQuery;
+    document.getElementById('historySearch')?.addEventListener('input', debounce(() => {
+        salesHistoryState.page = 1;
+        loadSalesHistory();
+    }, 250));
+    ['historyPaymentFilter', 'historyStatusFilter', 'historyPaymentStatusFilter', 'historyDateFrom', 'historyDateTo'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => {
+            salesHistoryState.page = 1;
+            loadSalesHistory();
+        });
     });
+    document.getElementById('historyRetryBtn')?.addEventListener('click', loadSalesHistory);
+}
 
-    if (!filtered.length) {
+async function loadSalesHistory() {
+    const tableBody = document.getElementById('historyTableBody');
+    if (!tableBody) return;
+    showHistoryError('');
+    showHistoryEmpty(false);
+    tableBody.innerHTML = loadingRow('Loading sales history...');
+
+    const query = new URLSearchParams({ page: String(salesHistoryState.page), page_size: String(salesHistoryState.pageSize) });
+    const search = document.getElementById('historySearch')?.value.trim();
+    const payment = document.getElementById('historyPaymentFilter')?.value;
+    const status = document.getElementById('historyStatusFilter')?.value;
+    const paymentStatus = document.getElementById('historyPaymentStatusFilter')?.value;
+    const dateFrom = document.getElementById('historyDateFrom')?.value;
+    const dateTo = document.getElementById('historyDateTo')?.value;
+    if (search) query.set('search', search);
+    if (payment && payment !== 'all') query.set('payment_method', payment);
+    if (status && status !== 'all') query.set('status', status);
+    if (paymentStatus && paymentStatus !== 'all') query.set('payment_status', paymentStatus);
+    if (dateFrom) query.set('date_from', dateFrom);
+    if (dateTo) query.set('date_to', dateTo);
+
+    const response = await apiRequest(`/sales/?${query.toString()}`);
+    if (!response.success) {
         tableBody.innerHTML = '';
-        emptyState?.classList.remove('empty-state-hidden');
+        renderPagination(null);
+        showHistoryError(formatApiError(response));
         return;
     }
+    const sales = response.data?.sales || [];
+    renderSalesSummary(sales, response.data?.pagination);
+    renderSalesTable(sales);
+    renderPagination(response.data?.pagination);
+}
 
-    emptyState?.classList.add('empty-state-hidden');
-    tableBody.innerHTML = filtered.map(item => `
+function renderSalesSummary(sales, pagination) {
+    setText('totalSalesCount', pagination?.total_count ?? sales.length);
+    setText('cashSalesCount', sales.filter(sale => sale.payment_method === 'CASH').length);
+    setText('cardSalesCount', sales.filter(sale => sale.payment_method === 'CARD').length);
+    setText('revenueTotal', `NGN ${formatCurrency(sales.reduce((sum, sale) => sum + Number(sale.total || 0), 0))}`);
+}
+
+function renderSalesTable(sales) {
+    const tableBody = document.getElementById('historyTableBody');
+    if (!tableBody) return;
+    if (!sales.length) {
+        tableBody.innerHTML = '';
+        showHistoryEmpty(true);
+        return;
+    }
+    showHistoryEmpty(false);
+    tableBody.innerHTML = sales.map(sale => `
         <tr>
-            <td>${item.saleNumber}</td>
-            <td>${item.customer}</td>
-            <td>${item.cashier}</td>
-            <td>${formatDate(item.date)}</td>
-            <td>${item.payment}</td>
-            <td><span class="status-pill ${item.status.toLowerCase()}">${item.status}</span></td>
-            <td>₦ ${formatCurrency(item.total)}</td>
-            <td><a href="#" class="action-link">View</a></td>
+            <td data-label="Sale #">${escapeHtml(sale.sale_number)}</td>
+            <td data-label="Customer">${escapeHtml(sale.customer?.full_name || 'Walk-in customer')}</td>
+            <td data-label="Cashier">${escapeHtml(sale.cashier?.full_name || sale.cashier?.username || '-')}</td>
+            <td data-label="Date">${formatDate(sale.created_at)}</td>
+            <td data-label="Payment">${escapeHtml(formatPaymentMethod(sale.payment_method))}</td>
+            <td data-label="Status"><span class="status-pill ${String(sale.status).toLowerCase()}">${escapeHtml(formatStatus(sale.status))}</span></td>
+            <td data-label="Total">NGN ${formatCurrency(sale.total)}</td>
+            <td data-label="Action"><a href="/preview/sales/detail/?sale_id=${sale.id}" class="action-link">View</a></td>
         </tr>
     `).join('');
 }
 
-function formatDate(value) {
-    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+function renderPagination(pagination) {
+    const container = document.getElementById('historyPagination');
+    if (!container || !pagination || pagination.total_pages <= 1) {
+        if (container) container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = `
+        <button type="button" class="btn btn-secondary" data-page="${Math.max(1, pagination.page - 1)}" ${pagination.page <= 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${pagination.page} of ${pagination.total_pages}</span>
+        <button type="button" class="btn btn-secondary" data-page="${Math.min(pagination.total_pages, pagination.page + 1)}" ${pagination.page >= pagination.total_pages ? 'disabled' : ''}>Next</button>
+    `;
+    container.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => {
+        salesHistoryState.page = Number(button.dataset.page);
+        loadSalesHistory();
+    }));
 }
 
-function formatCurrency(value) {
-    return Number(value).toLocaleString('en-NG');
-}
+function showHistoryEmpty(show) { document.getElementById('historyEmptyState')?.classList.toggle('empty-state-hidden', !show); }
+function showHistoryError(message) { const element = document.getElementById('historyErrorState'); if (element) { element.textContent = message; element.className = `sale-message${message ? ' error' : ''}`; } }
+function loadingRow(message) { return `<tr><td colspan="8">${escapeHtml(message)}</td></tr>`; }
+function setText(id, value) { const element = document.getElementById(id); if (element) element.textContent = value; }
+function formatPaymentMethod(value) { return String(value || '-').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase()); }
+function formatStatus(value) { return String(value || '-').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase()); }
+function formatDate(value) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' }); }
+function formatCurrency(value) { return Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function formatApiError(response) { return response.errors ? Object.values(response.errors).flat().join(' ') : (response.message || 'Sales history could not load.'); }
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char])); }
+function debounce(callback, delay) { let timer; return (...args) => { window.clearTimeout(timer); timer = window.setTimeout(() => callback(...args), delay); }; }

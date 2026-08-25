@@ -61,18 +61,35 @@
                 <label class="visually-hidden" for="historyPaymentFilter">Filter by payment</label>
                 <select id="historyPaymentFilter" class="form-select">
                     <option value="all">All payment types</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Transfer">Transfer</option>
-                    <option value="Card">Card</option>
+                    <option value="CASH">Cash</option>
+                    <option value="TRANSFER">Transfer</option>
+                    <option value="CARD">Card</option>
+                    <option value="CREDIT">Credit</option>
                 </select>
 
                 <label class="visually-hidden" for="historyStatusFilter">Filter by status</label>
                 <select id="historyStatusFilter" class="form-select">
                     <option value="all">All statuses</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Refunded">Refunded</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="CANCELLED">Cancelled</option>
                 </select>
+
+                <label class="visually-hidden" for="historyPaymentStatusFilter">Filter by payment status</label>
+                <select id="historyPaymentStatusFilter" class="form-select">
+                    <option value="all">All payment statuses</option>
+                    <option value="PENDING">Payment pending</option>
+                    <option value="COMPLETED">Payment completed</option>
+                    <option value="FAILED">Payment failed</option>
+                </select>
+            </div>
+
+            <div class="history-date-filters">
+                <label for="historyDateFrom">From</label>
+                <input id="historyDateFrom" class="form-control" type="date" />
+                <label for="historyDateTo">To</label>
+                <input id="historyDateTo" class="form-control" type="date" />
+                <button type="button" class="btn btn-secondary" id="historyRetryBtn">Retry</button>
             </div>
         </div>
 
@@ -98,6 +115,8 @@
             <h3>No sales match your filters</h3>
             <p>Adjust the search or payment filters to review more sales records.</p>
         </div>
+        <div id="historyErrorState" class="sale-message" aria-live="polite"></div>
+        <div class="pagination-bar" id="historyPagination" aria-label="Sales pagination"></div>
     </section>
 </div>
 {% endblock %}

@@ -22,6 +22,9 @@
             <h2>Sale detail</h2>
             <p>Review the exact items, payment information, and transaction status for a completed sale.</p>
         </div>
+        <div class="page-actions">
+            <button type="button" class="btn btn-secondary" id="detailRetryBtn">Retry</button>
+        </div>
     </section>
 
     <section class="detail-layout">
@@ -59,7 +62,20 @@
                     <span class="detail-label">Total</span>
                     <strong id="detailTotal">₦ 0</strong>
                 </div>
+                <div>
+                    <span class="detail-label">Payment status</span>
+                    <strong id="detailPaymentStatus">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Amount received</span>
+                    <strong id="detailAmountReceived">-</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Change</span>
+                    <strong id="detailChange">-</strong>
+                </div>
             </div>
+            <p id="detailMessage" class="sale-message" aria-live="polite"></p>
         </article>
 
         <article class="card detail-items-card">

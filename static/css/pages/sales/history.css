@@ -42,6 +42,40 @@
     margin-bottom: 18px;
 }
 
+.history-date-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.history-date-filters .form-control {
+    width: auto;
+}
+
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+@media (max-width: 560px) {
+    .history-date-filters {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .history-date-filters .form-control {
+        width: 100%;
+    }
+}
+
 .toolbar-search {
     flex: 1 1 300px;
 }

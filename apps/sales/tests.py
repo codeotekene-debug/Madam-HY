@@ -4,7 +4,11 @@ from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
+from datetime import timedelta
 
 from apps.accounts.models import User
 from apps.inventory.models import InventoryItem, StockMovement
@@ -767,6 +771,119 @@ class DjangoSystemChecksTests(TestCase):
         from django.core.management import call_command
 
         call_command('check')  # Should not raise
+
+
+class SalesReadApiTests(TestCase):
+    def setUp(self):
+        self.category = ProductCategory.objects.create(name='Sales Read API', slug='sales-read-api')
+        self.product = Product.objects.create(
+            name='Read API Product',
+            slug='read-api-product',
+            sku='READ-001',
+            category=self.category,
+            selling_price=Decimal('100.00'),
+        )
+        self.inventory = InventoryItem.objects.create(product=self.product, quantity=10)
+        self.other_product = Product.objects.create(
+            name='Second Read Product',
+            slug='second-read-product',
+            sku='READ-002',
+            category=self.category,
+            selling_price=Decimal('250.00'),
+        )
+        InventoryItem.objects.create(product=self.other_product, quantity=8)
+        self.owner = User.objects.create_user(email='read-owner@example.com', username='read-owner', password='Pass123', role='OWNER')
+        self.manager = User.objects.create_user(email='read-manager@example.com', username='read-manager', password='Pass123', role='MANAGER')
+        self.cashier = User.objects.create_user(email='read-cashier@example.com', username='read-cashier', password='Pass123', role='CASHIER')
+        self.staff = User.objects.create_user(email='read-staff@example.com', username='read-staff', password='Pass123', role='STAFF')
+        self.customer = User.objects.create_user(email='read-customer@example.com', username='read-customer', password='Pass123', role='CUSTOMER')
+        self.sale = self.make_sale('READ-SALE-001', self.cashier, 'CASH', Sale.SaleStatus.COMPLETED, self.product, 2)
+        self.other_sale = self.make_sale('READ-SALE-002', self.manager, 'CARD', Sale.SaleStatus.DRAFT, self.other_product, 1)
+        now = timezone.now()
+        Sale.objects.filter(pk=self.sale.pk).update(created_at=now - timedelta(days=3), updated_at=now - timedelta(days=3))
+        Sale.objects.filter(pk=self.other_sale.pk).update(created_at=now - timedelta(days=1), updated_at=now - timedelta(days=1))
+
+    def make_sale(self, sale_number, cashier, payment_method, status, product, quantity):
+        sale = Sale.objects.create(
+            sale_number=sale_number,
+            cashier=cashier,
+            payment_method=payment_method,
+            status=status,
+            payment_status='COMPLETED' if status == Sale.SaleStatus.COMPLETED else 'PENDING',
+            subtotal=product.selling_price * quantity,
+            total=product.selling_price * quantity,
+            amount_received=product.selling_price * quantity if status == Sale.SaleStatus.COMPLETED else None,
+            change_amount=Decimal('0.00') if status == Sale.SaleStatus.COMPLETED else None,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=product,
+            quantity=quantity,
+            unit_price=product.selling_price,
+            discount=Decimal('0.00'),
+            product_name_snapshot=product.name,
+            sku_snapshot=product.sku,
+        )
+        return sale
+
+    def test_sales_list_requires_authentication_and_denies_customer_and_staff(self):
+        self.assertEqual(self.client.get('/sales/').status_code, 401)
+        for user in (self.customer, self.staff):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get('/sales/').status_code, 403)
+
+    def test_sales_list_returns_paginated_sales_and_supports_filters(self):
+        self.client.force_login(self.owner)
+        response = self.client.get('/sales/', {'page_size': 1, 'page': 1})
+        data = response.json()['data']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['pagination']['total_count'], 2)
+        self.assertEqual(len(data['sales']), 1)
+
+        self.assertEqual(self.client.get('/sales/', {'search': 'READ-SALE-001'}).json()['data']['sales'][0]['id'], self.sale.id)
+        self.assertEqual(self.client.get('/sales/', {'status': 'COMPLETED'}).json()['data']['sales'][0]['id'], self.sale.id)
+        self.assertEqual(self.client.get('/sales/', {'payment_method': 'CARD'}).json()['data']['sales'][0]['id'], self.other_sale.id)
+        self.assertEqual(self.client.get('/sales/', {'payment_status': 'PENDING'}).json()['data']['sales'][0]['id'], self.other_sale.id)
+        self.assertEqual(self.client.get('/sales/', {'cashier_id': self.cashier.id}).json()['data']['sales'][0]['id'], self.sale.id)
+
+    def test_sales_list_supports_date_filters_and_rejects_invalid_ranges(self):
+        self.client.force_login(self.owner)
+        now = timezone.localdate()
+        response = self.client.get('/sales/', {'date_from': (now - timedelta(days=2)).isoformat()})
+        self.assertEqual(response.json()['data']['pagination']['total_count'], 1)
+        response = self.client.get('/sales/', {'date_to': (now - timedelta(days=2)).isoformat()})
+        self.assertEqual(response.json()['data']['pagination']['total_count'], 1)
+        self.assertEqual(self.client.get('/sales/', {'date_from': 'bad-date'}).status_code, 400)
+        self.assertEqual(self.client.get('/sales/', {'date_from': '2026-08-25', 'date_to': '2026-08-20'}).status_code, 400)
+
+    def test_sales_detail_returns_snapshot_data_and_requires_authorization(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(f'/sales/{self.sale.id}/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(data['id'], self.sale.id)
+        self.assertEqual(data['items'][0]['product_name'], self.product.name)
+        self.assertEqual(data['items'][0]['sku'], self.product.sku)
+        self.assertEqual(data['items'][0]['unit_price'], '100.00')
+        self.product.name = 'Changed Current Product'
+        self.product.selling_price = Decimal('999.00')
+        self.product.save()
+        response = self.client.get(f'/sales/{self.sale.id}/')
+        self.assertEqual(response.json()['data']['items'][0]['product_name'], 'Read API Product')
+        self.assertEqual(response.json()['data']['items'][0]['unit_price'], '100.00')
+
+        self.client.force_login(self.customer)
+        self.assertEqual(self.client.get(f'/sales/{self.sale.id}/').status_code, 403)
+
+    def test_sales_read_api_handles_empty_404_405_and_bounded_queries(self):
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.get('/sales/', {'search': 'missing'}).json()['data']['pagination']['total_count'], 0)
+        self.assertEqual(self.client.get('/sales/999999/').status_code, 404)
+        self.assertEqual(self.client.post(f'/sales/{self.sale.id}/').status_code, 405)
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(f'/sales/{self.sale.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(len(queries), 4)
 
 
 class SalesApiTests(TestCase):

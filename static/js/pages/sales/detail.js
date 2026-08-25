@@ -1,61 +1,47 @@
-const salesDetailData = {
-    saleNumber: 'MH-10241',
-    date: '2026-08-14',
-    cashiers: 'Amina Yusuf',
-    customer: 'Aisha Bello',
-    payment: 'Cash',
-    status: 'Completed',
-    subtotal: 42500,
-    discount: 2500,
-    total: 40000,
-    items: [
-        { name: 'Radiant Glow Serum', qty: 2, price: 9500 },
-        { name: 'Green Ankara Fabric Premium', qty: 1, price: 12500 },
-        { name: 'Leather Office Tote', qty: 1, price: 18500 }
-    ]
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-    const detailSaleNumber = document.getElementById('detailSaleNumber');
-    const detailDate = document.getElementById('detailDate');
-    const detailStatus = document.getElementById('detailStatus');
-    const detailCustomer = document.getElementById('detailCustomer');
-    const detailCashier = document.getElementById('detailCashier');
-    const detailPayment = document.getElementById('detailPayment');
-    const detailSubtotal = document.getElementById('detailSubtotal');
-    const detailDiscount = document.getElementById('detailDiscount');
-    const detailTotal = document.getElementById('detailTotal');
-    const detailItemsBody = document.getElementById('detailItemsBody');
-
-    if (detailSaleNumber) detailSaleNumber.textContent = `Sale #${salesDetailData.saleNumber}`;
-    if (detailDate) detailDate.textContent = formatDate(salesDetailData.date);
-    if (detailStatus) {
-        detailStatus.textContent = salesDetailData.status;
-        detailStatus.className = `status-pill ${salesDetailData.status.toLowerCase()}`;
-    }
-    if (detailCustomer) detailCustomer.textContent = salesDetailData.customer;
-    if (detailCashier) detailCashier.textContent = salesDetailData.cashiers;
-    if (detailPayment) detailPayment.textContent = salesDetailData.payment;
-    if (detailSubtotal) detailSubtotal.textContent = `₦ ${formatCurrency(salesDetailData.subtotal)}`;
-    if (detailDiscount) detailDiscount.textContent = `₦ ${formatCurrency(salesDetailData.discount)}`;
-    if (detailTotal) detailTotal.textContent = `₦ ${formatCurrency(salesDetailData.total)}`;
-
-    if (detailItemsBody) {
-        detailItemsBody.innerHTML = salesDetailData.items.map(item => `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.qty}</td>
-                <td>₦ ${formatCurrency(item.price)}</td>
-                <td>₦ ${formatCurrency(item.qty * item.price)}</td>
-            </tr>
-        `).join('');
-    }
+    document.getElementById('detailRetryBtn')?.addEventListener('click', loadSaleDetail);
+    loadSaleDetail();
 });
 
-function formatDate(value) {
-    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+async function loadSaleDetail() {
+    const saleId = new URLSearchParams(window.location.search).get('sale_id');
+    if (!saleId) {
+        showMessage('Sale ID is missing.', 'error');
+        return;
+    }
+    showMessage('Loading sale detail...', '');
+    const response = await apiRequest(`/sales/${encodeURIComponent(saleId)}/`);
+    if (!response.success) {
+        showMessage(formatApiError(response), 'error');
+        return;
+    }
+    const sale = response.data;
+    setText('detailSaleNumber', `Sale #${sale.sale_number}`);
+    setText('detailDate', formatDate(sale.created_at));
+    setText('detailStatus', formatStatus(sale.status));
+    const statusElement = document.getElementById('detailStatus');
+    if (statusElement) statusElement.className = `status-pill ${String(sale.status).toLowerCase()}`;
+    setText('detailCustomer', sale.customer?.full_name || 'Walk-in customer');
+    setText('detailCashier', sale.cashier?.full_name || sale.cashier?.username || '-');
+    setText('detailPayment', formatPaymentMethod(sale.payment_method));
+    setText('detailPaymentStatus', formatStatus(sale.payment_status));
+    setText('detailSubtotal', `NGN ${formatCurrency(sale.subtotal)}`);
+    setText('detailDiscount', `NGN ${formatCurrency(sale.discount)}`);
+    setText('detailTotal', `NGN ${formatCurrency(sale.total)}`);
+    setText('detailAmountReceived', sale.amount_received == null ? '-' : `NGN ${formatCurrency(sale.amount_received)}`);
+    setText('detailChange', sale.change_amount == null ? '-' : `NGN ${formatCurrency(sale.change_amount)}`);
+    const body = document.getElementById('detailItemsBody');
+    if (body) body.innerHTML = (sale.items || []).map(item => `
+        <tr><td>${escapeHtml(item.product_name_snapshot)}</td><td>${item.quantity}</td><td>NGN ${formatCurrency(item.unit_price)}</td><td>NGN ${formatCurrency(item.line_total)}</td></tr>
+    `).join('');
+    showMessage('', '');
 }
 
-function formatCurrency(value) {
-    return Number(value).toLocaleString('en-NG');
-}
+function setText(id, value) { const element = document.getElementById(id); if (element) element.textContent = value; }
+function showMessage(message, type) { const element = document.getElementById('detailMessage'); if (element) { element.textContent = message; element.className = `sale-message${type ? ` ${type}` : ''}`; } }
+function formatPaymentMethod(value) { return String(value || '-').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase()); }
+function formatStatus(value) { return String(value || '-').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase()); }
+function formatCurrency(value) { return Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function formatDate(value) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('en-NG'); }
+function formatApiError(response) { return response.errors ? Object.values(response.errors).flat().join(' ') : (response.message || 'Sale detail could not load.'); }
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char])); }
