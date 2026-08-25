@@ -1,5 +1,6 @@
 from decimal import Decimal
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -766,3 +767,177 @@ class DjangoSystemChecksTests(TestCase):
         from django.core.management import call_command
 
         call_command('check')  # Should not raise
+
+
+class SalesApiTests(TestCase):
+    def setUp(self):
+        self.category = ProductCategory.objects.create(name='Sales API', slug='sales-api')
+        self.product = Product.objects.create(
+            name='API Product',
+            slug='api-product',
+            sku='SALES-API-001',
+            category=self.category,
+            selling_price=Decimal('125.50'),
+        )
+        self.inventory = InventoryItem.objects.create(product=self.product, quantity=10)
+        self.inactive_product = Product.objects.create(
+            name='Inactive API Product',
+            slug='inactive-api-product',
+            sku='SALES-API-002',
+            category=self.category,
+            selling_price=Decimal('50.00'),
+            is_active=False,
+        )
+        self.owner = User.objects.create_user(
+            email='sales-owner@example.com', username='sales-owner', password='Pass123', role='OWNER'
+        )
+        self.manager = User.objects.create_user(
+            email='sales-manager@example.com', username='sales-manager', password='Pass123', role='MANAGER'
+        )
+        self.cashier = User.objects.create_user(
+            email='sales-cashier@example.com', username='sales-cashier', password='Pass123', role='CASHIER'
+        )
+        self.customer = User.objects.create_user(
+            email='sales-customer@example.com', username='sales-customer', password='Pass123', role='CUSTOMER'
+        )
+
+    def create_url(self):
+        return '/sales/'
+
+    def complete_url(self, sale):
+        return f'/sales/{sale.id}/complete/'
+
+    def post_json(self, url, payload):
+        return self.client.post(url, data=payload, content_type='application/json')
+
+    def valid_payload(self, **overrides):
+        payload = {
+            'customer_id': None,
+            'payment_method': 'CASH',
+            'discount': '0.00',
+            'notes': '',
+            'items': [{'product_id': self.product.id, 'quantity': 2, 'discount': '0.00'}],
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_creation_requires_authentication_and_rejects_customer(self):
+        response = self.post_json(self.create_url(), self.valid_payload())
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.customer)
+        response = self.post_json(self.create_url(), self.valid_payload())
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_manager_and_cashier_can_create_drafts(self):
+        for user in (self.owner, self.manager, self.cashier):
+            self.client.force_login(user)
+            response = self.post_json(self.create_url(), self.valid_payload())
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['data']['sale']['status'], Sale.SaleStatus.DRAFT)
+
+    def test_creation_validates_items_products_payment_credit_and_discounts(self):
+        self.client.force_login(self.owner)
+        invalid_payloads = [
+            self.valid_payload(items=[]),
+            self.valid_payload(payment_method='INVALID'),
+            self.valid_payload(items=[{'product_id': 99999, 'quantity': 1}]),
+            self.valid_payload(items=[{'product_id': self.inactive_product.id, 'quantity': 1}]),
+            self.valid_payload(items=[{'product_id': self.product.id, 'quantity': 0}]),
+            self.valid_payload(items=[{'product_id': self.product.id, 'quantity': -1}]),
+            self.valid_payload(payment_method='CREDIT'),
+            self.valid_payload(discount='-1.00'),
+            self.valid_payload(items=[{'product_id': self.product.id, 'quantity': 1, 'discount': '126.00'}]),
+        ]
+        for payload in invalid_payloads:
+            self.assertEqual(self.post_json(self.create_url(), payload).status_code, 400)
+
+    def test_creation_uses_server_price_and_calculates_totals(self):
+        self.client.force_login(self.owner)
+        response = self.post_json(
+            self.create_url(),
+            self.valid_payload(
+                discount='10.00',
+                items=[{'product_id': self.product.id, 'quantity': 2, 'discount': '1.00'}],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(data['sale']['subtotal'], '250.00')
+        self.assertEqual(data['sale']['total'], '240.00')
+        self.assertEqual(data['items'][0]['unit_price'], '125.50')
+        self.assertEqual(data['items'][0]['line_total'], '250.00')
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+
+    def test_completion_requires_authentication_authorization_and_valid_method(self):
+        sale = self.create_sale()
+        response = self.post_json(self.complete_url(sale), {})
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.customer)
+        self.assertEqual(self.post_json(self.complete_url(sale), {}).status_code, 403)
+
+        self.client.force_login(self.cashier)
+        self.assertEqual(self.client.get(self.complete_url(sale)).status_code, 405)
+
+    def test_completion_deducts_inventory_and_returns_sale_data(self):
+        sale = self.create_sale()
+        self.client.force_login(self.cashier)
+        response = self.post_json(self.complete_url(sale), {})
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(data['sale_number'], sale.sale_number)
+        self.assertEqual(data['status'], Sale.SaleStatus.COMPLETED)
+        self.assertEqual(data['payment_status'], Sale.PaymentStatus.COMPLETED)
+        self.assertEqual(data['subtotal'], '251.00')
+        self.assertIn('completed_at', data)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 8)
+        movement = StockMovement.objects.get(reference=sale.sale_number)
+        self.assertEqual(movement.quantity, -2)
+
+    def test_completion_rolls_back_on_insufficient_stock_and_rejects_non_draft(self):
+        sale = self.create_sale(quantity=20)
+        self.client.force_login(self.owner)
+        response = self.post_json(self.complete_url(sale), {})
+        self.assertEqual(response.status_code, 400)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.assertEqual(StockMovement.objects.count(), 0)
+
+        sale.status = Sale.SaleStatus.COMPLETED
+        sale.save(update_fields=['status'])
+        self.assertEqual(self.post_json(self.complete_url(sale), {}).status_code, 409)
+
+    def test_completion_rejects_empty_draft_and_missing_sale(self):
+        sale = Sale.objects.create(
+            sale_number='MH-EMPTY-API',
+            cashier=self.owner,
+            payment_method=Sale.PaymentMethod.CASH,
+        )
+        self.client.force_login(self.owner)
+        self.assertEqual(self.post_json(self.complete_url(sale), {}).status_code, 400)
+        self.assertEqual(self.post_json('/sales/999999/complete/', {}).status_code, 404)
+
+    def create_sale(self, quantity=2):
+        sale = Sale.objects.create(
+            sale_number=f'MH-API-{uuid4().hex[:8].upper()}',
+            cashier=self.owner,
+            payment_method=Sale.PaymentMethod.CASH,
+            subtotal=Decimal('251.00'),
+            total=Decimal('251.00'),
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            quantity=quantity,
+            unit_price=Decimal('125.50'),
+            product_name_snapshot=self.product.name,
+            sku_snapshot=self.product.sku,
+        )
+        return sale
