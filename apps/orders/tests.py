@@ -1258,3 +1258,144 @@ class OrdersNotificationTrackingTests(TestCase):
             title='Order completed',
             object_id=str(order.id),
         ).exists())
+
+
+class OrdersManagementApiTests(TestCase):
+    """Focused management workflow tests for Orders APIs."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = ProductCategory.objects.create(name='Management Category', slug='management-category')
+        cls.product = Product.objects.create(
+            name='Management Product',
+            sku='MGMT-001',
+            category=cls.category,
+            selling_price=Decimal('100.00'),
+            cost_price=Decimal('50.00'),
+        )
+        cls.customer = User.objects.create_user(
+            email='management-customer@example.com',
+            username='management-customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.other_customer = User.objects.create_user(
+            email='management-other@example.com',
+            username='management-other',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.manager = User.objects.create_user(
+            email='management-manager@example.com',
+            username='management-manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.customer_order = Order.objects.create(
+            order_number='MGMT-CUSTOMER',
+            customer=self.customer,
+            status=Order.OrderStatus.PENDING,
+            payment_method=Order.PaymentMethod.CASH,
+            subtotal=Decimal('100.00'),
+            total=Decimal('100.00'),
+        )
+        self.other_order = Order.objects.create(
+            order_number='MGMT-OTHER',
+            customer=self.other_customer,
+            status=Order.OrderStatus.CONFIRMED,
+            payment_method=Order.PaymentMethod.CARD,
+            subtotal=Decimal('200.00'),
+            total=Decimal('200.00'),
+        )
+        OrderItem.objects.create(
+            order=self.customer_order,
+            product=self.product,
+            quantity=1,
+            unit_price=Decimal('100.00'),
+            product_name_snapshot='Management Product',
+            sku_snapshot='MGMT-001',
+        )
+        InventoryItem.objects.create(product=self.product, quantity=5)
+
+    def test_only_management_roles_can_use_management_operations(self):
+        self.client.force_login(self.customer)
+        self.assertEqual(self.client.get('/orders/').status_code, 200)
+        self.assertEqual(self.client.post(f'/orders/{self.customer_order.id}/status/', data=json.dumps({'status': 'CONFIRMED'}), content_type='application/json').status_code, 403)
+        self.assertEqual(self.client.post(f'/orders/{self.customer_order.id}/convert-to-sale/').status_code, 403)
+
+    def test_management_list_filters_and_pagination(self):
+        self.client.force_login(self.manager)
+        response = self.client.get('/orders/?customer={}&payment_method=CASH&status=PENDING&page=1&page_size=1&search=MGMT'.format(self.customer.id))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(data['pagination']['total_count'], 1)
+        self.assertEqual(data['orders'][0]['order_number'], 'MGMT-CUSTOMER')
+        self.assertEqual(self.client.get('/orders/?customer=not-a-number').status_code, 400)
+
+    def test_customer_cannot_bypass_isolation_with_management_filters(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(f'/orders/?customer={self.other_customer.id}&search=MGMT-OTHER')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['pagination']['total_count'], 0)
+
+    def test_management_can_progress_and_cancel_orders(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            f'/orders/{self.customer_order.id}/status/',
+            data=json.dumps({'status': Order.OrderStatus.CONFIRMED}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(
+            f'/orders/{self.customer_order.id}/status/',
+            data=json.dumps({'status': Order.OrderStatus.CANCELLED}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.customer_order.refresh_from_db()
+        self.assertEqual(self.customer_order.status, Order.OrderStatus.CANCELLED)
+
+    def test_invalid_transition_preserves_status_and_notifications(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            f'/orders/{self.customer_order.id}/status/',
+            data=json.dumps({'status': Order.OrderStatus.READY}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.customer_order.refresh_from_db()
+        self.assertEqual(self.customer_order.status, Order.OrderStatus.PENDING)
+        self.assertFalse(Notification.objects.filter(
+            content_type=ContentType.objects.get_for_model(Order),
+            object_id=str(self.customer_order.id),
+        ).exists())
+
+    def test_confirmed_order_conversion_and_duplicate_protection(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(f'/orders/{self.other_order.id}/convert-to-sale/')
+        self.assertEqual(response.status_code, 400)
+        OrderItem.objects.create(
+            order=self.other_order,
+            product=self.product,
+            quantity=1,
+            unit_price=Decimal('100.00'),
+            product_name_snapshot='Management Product',
+            sku_snapshot='MGMT-001',
+        )
+        response = self.client.post(f'/orders/{self.other_order.id}/convert-to-sale/')
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(f'/orders/{self.other_order.id}/convert-to-sale/')
+        self.assertEqual(response.status_code, 409)
+
+    def test_management_detail_and_unsupported_methods(self):
+        self.client.force_login(self.manager)
+        response = self.client.get(f'/orders/{self.customer_order.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['order']['customer']['id'], self.customer.id)
+        for method in ('post', 'put', 'patch', 'delete'):
+            with self.subTest(method=method):
+                self.assertEqual(getattr(self.client, method)(f'/orders/{self.customer_order.id}/').status_code, 405)
+        self.assertEqual(self.client.get('/orders/999999/').status_code, 404)

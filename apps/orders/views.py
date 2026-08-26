@@ -106,6 +106,7 @@ def _serialize_order(order, include_items=True):
 		'id': order.id,
 		'order_number': order.order_number,
 		'customer': _serialize_customer(order.customer),
+		'created_by': _serialize_customer(order.created_by),
 		'status': order.status,
 		'payment_method': order.payment_method,
 		'payment_status': order.payment_status,
@@ -113,6 +114,8 @@ def _serialize_order(order, include_items=True):
 		'discount': str(order.discount),
 		'total': str(order.total),
 		'notes': order.notes,
+		'delivery_address': order.delivery_address,
+		'customer_phone': order.customer_phone,
 		'created_at': order.created_at.isoformat(),
 		'updated_at': order.updated_at.isoformat(),
 	}
@@ -166,7 +169,7 @@ def order_list(request):
 	if not _can_view_orders(request.user):
 		return _json_response(message='You do not have permission to view orders.', success=False, status=403)
 
-	orders = Order.objects.select_related('customer').annotate(item_count=Count('items'))
+	orders = Order.objects.select_related('customer', 'created_by').annotate(item_count=Count('items'))
 	if request.user.role == 'CUSTOMER':
 		orders = orders.filter(customer=request.user)
 
@@ -174,9 +177,26 @@ def order_list(request):
 	if status_filter:
 		orders = orders.filter(status=status_filter)
 
+	payment_method = (request.GET.get('payment_method') or '').strip().upper()
+	if payment_method:
+		orders = orders.filter(payment_method=payment_method)
+
+	customer_filter = (request.GET.get('customer') or '').strip()
+	if customer_filter and request.user.role != 'CUSTOMER':
+		try:
+			orders = orders.filter(customer_id=int(customer_filter))
+		except ValueError:
+			return _validation_response({'customer': 'Customer ID must be numeric.'})
+
 	search = (request.GET.get('search') or '').strip()
 	if search:
-		orders = orders.filter(order_number__icontains=search)
+		orders = orders.filter(
+			Q(order_number__icontains=search)
+			| Q(customer__first_name__icontains=search)
+			| Q(customer__last_name__icontains=search)
+			| Q(customer__username__icontains=search)
+			| Q(customer__email__icontains=search)
+		)
 
 	date_from, date_from_error = _parse_date(request.GET.get('date_from'), 'date_from')
 	date_to, date_to_error = _parse_date(request.GET.get('date_to'), 'date_to')
@@ -324,7 +344,7 @@ def order_detail(request, order_id):
 	if not _can_view_orders(request.user):
 		return _json_response(message='You do not have permission to view orders.', success=False, status=403)
 
-	orders = Order.objects.select_related('customer').prefetch_related('items')
+	orders = Order.objects.select_related('customer', 'created_by').prefetch_related('items')
 	if request.user.role == 'CUSTOMER':
 		orders = orders.filter(customer=request.user)
 	try:

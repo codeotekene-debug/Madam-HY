@@ -54,28 +54,43 @@
         <div class="orders-toolbar">
             <div class="toolbar-search">
                 <label class="visually-hidden" for="ordersSearch">Search orders</label>
-                <input id="ordersSearch" class="form-control" type="search" placeholder="Search by order number, customer or cashier" />
+                <input id="ordersSearch" class="form-control" type="search" placeholder="Search by order number or customer" />
             </div>
 
             <div class="toolbar-filters">
+                <label class="visually-hidden" for="ordersCustomerFilter">Customer ID</label>
+                <input id="ordersCustomerFilter" class="form-control" type="number" min="1" placeholder="Customer ID" />
+                <label class="visually-hidden" for="ordersDateFrom">From date</label>
+                <input id="ordersDateFrom" class="form-control" type="date" />
+                <label class="visually-hidden" for="ordersDateTo">To date</label>
+                <input id="ordersDateTo" class="form-control" type="date" />
                 <label class="visually-hidden" for="ordersStatusFilter">Filter by status</label>
                 <select id="ordersStatusFilter" class="form-select">
                     <option value="all">All statuses</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Processing">Processing</option>
-                    <option value="Ready">Ready</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="PROCESSING">Processing</option>
+                    <option value="READY">Ready</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
                 </select>
 
                 <label class="visually-hidden" for="ordersPaymentFilter">Filter by payment</label>
                 <select id="ordersPaymentFilter" class="form-select">
                     <option value="all">All payment types</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Transfer">Transfer</option>
-                    <option value="Card">Card</option>
-                    <option value="Credit">Credit</option>
+                    <option value="CASH">Cash</option>
+                    <option value="TRANSFER">Transfer</option>
+                    <option value="CARD">Card</option>
+                    <option value="CREDIT">Credit</option>
+                </select>
+                <label class="visually-hidden" for="ordersOrdering">Order results</label>
+                <select id="ordersOrdering" class="form-select">
+                    <option value="-created_at">Newest first</option>
+                    <option value="created_at">Oldest first</option>
+                    <option value="order_number">Order number A-Z</option>
+                    <option value="-order_number">Order number Z-A</option>
+                    <option value="total">Total low-high</option>
+                    <option value="-total">Total high-low</option>
                 </select>
             </div>
         </div>
@@ -102,6 +117,12 @@
             <h3>No orders match your filters</h3>
             <p>Adjust the search terms or status filters to view more orders.</p>
         </div>
+
+        <nav class="orders-pagination" aria-label="Order pagination">
+            <button type="button" class="btn btn-secondary btn-sm" id="ordersPrevious">Previous</button>
+            <span id="ordersPage">Page 1 of 1</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="ordersNext">Next</button>
+        </nav>
     </section>
 </div>
 {% endblock %}

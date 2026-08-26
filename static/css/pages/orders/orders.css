@@ -112,6 +112,22 @@
     flex-wrap: wrap;
 }
 
+.order-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.order-status-action {
+    min-width: 130px;
+}
+
+.muted-text {
+    color: var(--muted);
+    font-size: 11px;
+}
+
 .orders-table {
     width: 100%;
 }
