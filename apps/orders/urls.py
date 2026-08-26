@@ -6,5 +6,6 @@ urlpatterns = []
 
 urlpatterns = [
 	path('', views.order_list, name='list'),
+	path('<int:order_id>/status/', views.order_status_update, name='status_update'),
 	path('<int:order_id>/', views.order_detail, name='detail'),
 ]

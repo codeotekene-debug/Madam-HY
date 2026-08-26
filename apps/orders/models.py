@@ -144,6 +144,38 @@ class Order(models.Model):
         self.total = max(self.subtotal - self.discount, Decimal('0.00'))
         return self
 
+    def transition_to(self, new_status):
+        """Move the order through the supported lifecycle without side effects."""
+        transitions = {
+            self.OrderStatus.PENDING: {
+                self.OrderStatus.CONFIRMED,
+                self.OrderStatus.CANCELLED,
+            },
+            self.OrderStatus.CONFIRMED: {
+                self.OrderStatus.PROCESSING,
+                self.OrderStatus.CANCELLED,
+            },
+            self.OrderStatus.PROCESSING: {
+                self.OrderStatus.READY,
+                self.OrderStatus.CANCELLED,
+            },
+            self.OrderStatus.READY: {
+                self.OrderStatus.COMPLETED,
+                self.OrderStatus.CANCELLED,
+            },
+            self.OrderStatus.COMPLETED: set(),
+            self.OrderStatus.CANCELLED: set(),
+        }
+        valid_statuses = {choice.value for choice in self.OrderStatus}
+        if new_status not in valid_statuses:
+            raise ValidationError({'status': 'Invalid order status.'})
+        if new_status not in transitions.get(self.status, set()):
+            raise ValidationError(
+                {'status': f'Cannot transition order from {self.status} to {new_status}.'}
+            )
+        self.status = new_status
+        return self
+
 
 class OrderItem(models.Model):
     """Line item in an Order, with price snapshots for historical accuracy."""

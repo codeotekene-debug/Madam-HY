@@ -819,3 +819,134 @@ class OrdersApiTests(TestCase):
             with self.subTest(method=method):
                 self.assertEqual(getattr(self.client, method)(f'/orders/{order.id}/').status_code, 405)
 
+
+class OrdersLifecycleApiTests(TestCase):
+    """Focused tests for supported management lifecycle transitions."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.customer = User.objects.create_user(
+            email='lifecycle-customer@example.com',
+            username='lifecycle-customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.other_customer = User.objects.create_user(
+            email='lifecycle-other@example.com',
+            username='lifecycle-other',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.manager = User.objects.create_user(
+            email='lifecycle-manager@example.com',
+            username='lifecycle-manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.order = Order.objects.create(
+            order_number='LIFECYCLE-001',
+            customer=self.customer,
+            payment_method=Order.PaymentMethod.CASH,
+        )
+
+    def _post_status(self, status):
+        return self.client.post(
+            f'/orders/{self.order.id}/status/',
+            data=json.dumps({'status': status}),
+            content_type='application/json',
+        )
+
+    def test_management_can_follow_valid_lifecycle(self):
+        self.client.force_login(self.manager)
+        for status in (
+            Order.OrderStatus.CONFIRMED,
+            Order.OrderStatus.PROCESSING,
+            Order.OrderStatus.READY,
+            Order.OrderStatus.COMPLETED,
+        ):
+            with self.subTest(status=status):
+                response = self._post_status(status)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['data']['order']['status'], status)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.COMPLETED)
+
+    def test_management_can_cancel_before_terminal_state(self):
+        self.client.force_login(self.manager)
+        response = self._post_status(Order.OrderStatus.CANCELLED)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['order']['status'], Order.OrderStatus.CANCELLED)
+
+    def test_invalid_transition_rolls_back_status(self):
+        self.client.force_login(self.manager)
+        response = self._post_status(Order.OrderStatus.READY)
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.PENDING)
+
+        self._post_status(Order.OrderStatus.CONFIRMED)
+        response = self._post_status(Order.OrderStatus.PENDING)
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.CONFIRMED)
+
+    def test_terminal_orders_cannot_transition(self):
+        self.client.force_login(self.manager)
+        self.order.status = Order.OrderStatus.COMPLETED
+        self.order.save()
+        response = self._post_status(Order.OrderStatus.CANCELLED)
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.COMPLETED)
+
+    def test_customer_cannot_update_any_order_status(self):
+        self.client.force_login(self.customer)
+        response = self._post_status(Order.OrderStatus.CONFIRMED)
+        self.assertEqual(response.status_code, 403)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.PENDING)
+
+        other_order = Order.objects.create(
+            order_number='LIFECYCLE-002',
+            customer=self.other_customer,
+            payment_method=Order.PaymentMethod.CASH,
+        )
+        response = self.client.post(
+            f'/orders/{other_order.id}/status/',
+            data=json.dumps({'status': Order.OrderStatus.CONFIRMED}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_status_endpoint_requires_authentication_and_management_role(self):
+        self.assertEqual(self._post_status(Order.OrderStatus.CONFIRMED).status_code, 401)
+        staff = User.objects.create_user(
+            email='lifecycle-staff@example.com',
+            username='lifecycle-staff',
+            password='testpass123',
+            role='STAFF',
+        )
+        self.client.force_login(staff)
+        self.assertEqual(self._post_status(Order.OrderStatus.CONFIRMED).status_code, 200)
+
+    def test_status_endpoint_404_and_405(self):
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.post('/orders/999999/status/', data='{}', content_type='application/json').status_code, 404)
+        for method in ('get', 'put', 'patch', 'delete'):
+            with self.subTest(method=method):
+                self.assertEqual(getattr(self.client, method)(f'/orders/{self.order.id}/status/').status_code, 405)
+
+    def test_invalid_status_body_does_not_change_order(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            f'/orders/{self.order.id}/status/',
+            data=json.dumps({'status': 'UNKNOWN'}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.PENDING)
+

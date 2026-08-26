@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from django.db import transaction
 from django.db.models import Count, Q
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -304,4 +305,34 @@ def order_detail(request, order_id):
 	return _json_response(
 		data={'order': _serialize_order(order)},
 		message='Order retrieved successfully.',
+	)
+
+
+@transaction.atomic
+def order_status_update(request, order_id):
+	if request.method != 'POST':
+		return _json_response(message='Only POST is allowed.', success=False, status=405)
+	if not _is_authenticated(request.user):
+		return _json_response(message='Authentication required.', success=False, status=401)
+	if getattr(request.user, 'role', None) not in MANAGEMENT_ROLES:
+		return _json_response(message='You do not have permission to update order status.', success=False, status=403)
+
+	try:
+		order = Order.objects.select_related('customer').select_for_update().get(pk=order_id)
+	except Order.DoesNotExist:
+		return _json_response(message='Order not found.', success=False, status=404)
+
+	payload, body_errors = _parse_json_body(request)
+	if body_errors:
+		return _validation_response(body_errors)
+	new_status = payload.get('status')
+	try:
+		order.transition_to(new_status)
+	except ValidationError as error:
+		return _validation_response(error.message_dict)
+	order.save(update_fields=['status', 'updated_at'])
+	order = Order.objects.select_related('customer').prefetch_related('items').get(pk=order.pk)
+	return _json_response(
+		data={'order': _serialize_order(order)},
+		message='Order status updated successfully.',
 	)
