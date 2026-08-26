@@ -1,85 +1,78 @@
-/**
- * MADAM HY - Customer Cart
- * Frontend-only shopping cart management
- */
+/** MADAM HY - Customer Checkout */
 
-let cartItems = [
-    { id: 1, name: "Green Ankara Fabric Premium", price: 12500, quantity: 2, image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80" },
-    { id: 3, name: "Radiant Glow Serum", price: 9500, quantity: 1, image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80" }
-];
-
-const TAX_RATE = 0.075;
+window.madamHyCart = window.madamHyCart || [];
+const checkoutCart = window.madamHyCart;
 
 document.addEventListener('DOMContentLoaded', () => {
-    renderCart();
-    bindCartActions();
+    renderCheckoutSummary();
+    document.getElementById('checkoutForm')?.addEventListener('submit', submitOrder);
 });
 
-function renderCart() {
-    const itemsList = document.getElementById('cartItemsList');
-    const emptyState = document.getElementById('cartEmptyState');
-
-    if (!itemsList) return;
-
-    if (cartItems.length === 0) {
-        itemsList.innerHTML = '';
-        emptyState?.classList.remove('empty-state-hidden');
-        updateSummary();
+async function submitOrder(event) {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    if (!checkoutCart.length) {
+        showCheckoutError('Your cart is empty. Add products before placing an order.');
         return;
     }
-
-    emptyState?.classList.add('empty-state-hidden');
-    itemsList.innerHTML = cartItems.map(item => `
-        <div class="cart-item">
-            <div class="cart-item-image">
-                <img src="${item.image}" alt="${item.name}" />
-            </div>
-            <div class="cart-item-details">
-                <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-price">₦${formatCurrency(item.price)}</div>
-            </div>
-            <div class="cart-item-actions">
-                <button type="button" class="cart-remove-btn" onclick="removeFromCart(${item.id})">Remove</button>
-            </div>
-        </div>
-    `).join('');
-
-    updateSummary();
-    updateCartCount();
-}
-
-function removeFromCart(id) {
-    cartItems = cartItems.filter(item => item.id !== id);
-    renderCart();
-}
-
-function updateCartCount() {
-    const count = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const itemsText = count === 1 ? 'item' : 'items';
-    document.getElementById('cartItemsCount')?.replaceChildren(document.createTextNode(`${count} ${itemsText} in your cart`));
-}
-
-function updateSummary() {
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = Math.round(subtotal * TAX_RATE);
-    const total = subtotal + tax;
-
-    document.getElementById('cartSubtotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(subtotal)}`));
-    document.getElementById('cartTax')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(tax)}`));
-    document.getElementById('cartTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(total)}`));
-}
-
-function bindCartActions() {
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    checkoutBtn?.addEventListener('click', () => {
-        if (cartItems.length === 0) {
-            alert('Your cart is empty!');
-            return;
-        }
-        window.location.href = '/customer/checkout/';
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Placing order...';
+    }
+    hideCheckoutError();
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'CASH';
+    const notes = [
+        document.getElementById('checkoutAddress')?.value.trim(),
+        document.getElementById('checkoutDeliveryType')?.value,
+        document.getElementById('checkoutPhone')?.value.trim(),
+    ].filter(Boolean).join(' | ');
+    const response = await apiRequest('/orders/', {
+        method: 'POST',
+        body: {
+            items: checkoutCart.map(item => ({ product_id: item.id, quantity: item.quantity })),
+            payment_method: paymentMethod,
+            notes,
+        },
     });
+    if (!response.success) {
+        showCheckoutError(response.message || 'Unable to place your order.');
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Place order';
+        }
+        return;
+    }
+    checkoutCart.splice(0, checkoutCart.length);
+    const order = response.data?.order;
+    window.location.href = order ? `/preview/customer/order-detail/?id=${encodeURIComponent(order.id)}` : '/preview/customer/orders/';
 }
 
-function formatCurrency(value) {
-    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+function renderCheckoutSummary() {
+    const list = document.getElementById('checkoutItemsList');
+    if (!list) return;
+    if (!checkoutCart.length) {
+        list.replaceChildren(document.createTextNode('Your cart is empty.'));
+    } else {
+        list.innerHTML = checkoutCart.map(item => `<div class="checkout-item"><span>${escapeHtml(item.name)} × ${item.quantity}</span><strong>₦${formatCurrency(item.price * item.quantity)}</strong></div>`).join('');
+    }
+    const subtotal = checkoutCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    document.getElementById('checkoutSubtotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(subtotal)}`));
+    document.getElementById('checkoutTax')?.replaceChildren(document.createTextNode('Calculated by the shop'));
+    document.getElementById('checkoutDelivery')?.replaceChildren(document.createTextNode('Confirmed by the shop'));
+    document.getElementById('checkoutTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(subtotal)}`));
+}
+
+function showCheckoutError(message) {
+    const target = document.getElementById('checkoutFormError');
+    if (target) {
+        target.textContent = message;
+        target.classList.remove('hidden');
+    }
+}
+function hideCheckoutError() { document.getElementById('checkoutFormError')?.classList.add('hidden'); }
+function formatCurrency(value) { return Number(value || 0).toLocaleString('en-NG'); }
+function escapeHtml(value) {
+    const element = document.createElement('span');
+    element.textContent = value == null ? '' : String(value);
+    return element.innerHTML;
 }

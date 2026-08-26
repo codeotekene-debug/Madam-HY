@@ -3,7 +3,8 @@
  * Frontend-only product catalog for customers
  */
 
-let customerCart = [];
+window.madamHyCart = window.madamHyCart || [];
+const customerCart = window.madamHyCart;
 const customerProductState = { page: 1, pageSize: 10, requestId: 0 };
 const customerProductPlaceholder = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
@@ -112,7 +113,7 @@ async function loadProducts() {
     grid.querySelectorAll('[data-product-id]').forEach(button => {
         button.addEventListener('click', () => {
             const product = products.find(item => String(item.id) === button.dataset.productId);
-            if (product) addProductToCart(product.id, product.name, product.selling_price);
+            if (product) addProductToCart(product);
         });
     });
 
@@ -182,15 +183,21 @@ function updateSummary(count) {
     document.getElementById('availableProductsCount')?.replaceChildren(document.createTextNode(String(count)));
 }
 
-function addProductToCart(id, name, price) {
-    const existing = customerCart.find(item => item.id === id);
+function addProductToCart(product, quantity = 1) {
+    const existing = customerCart.find(item => item.id === product.id);
     if (existing) {
-        existing.quantity += 1;
+        existing.quantity += quantity;
     } else {
-        customerCart.push({ id, name, price: Number(price), quantity: 1 });
+        customerCart.push({
+            id: product.id,
+            name: product.name,
+            price: Number(product.selling_price),
+            quantity,
+            image: product.image?.url || customerProductPlaceholder,
+        });
     }
     updateCartCount();
-    alert(`${name} added to cart!`);
+    alert(`${quantity} × ${product.name} added to cart!`);
 }
 
 function updateCartCount() {

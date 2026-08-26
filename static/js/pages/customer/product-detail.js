@@ -4,6 +4,7 @@
  */
 
 let currentProduct = null;
+window.madamHyCart = window.madamHyCart || [];
 
 document.addEventListener('DOMContentLoaded', () => {
     loadProductDetail();
@@ -76,6 +77,19 @@ function bindActions() {
 
     addBtn?.addEventListener('click', () => {
         const quantity = parseInt(quantityInput?.value || '1');
+        const cart = window.madamHyCart;
+        const existing = cart.find(item => item.id === currentProduct.id);
+        if (existing) {
+            existing.quantity += quantity;
+        } else {
+            cart.push({
+                id: currentProduct.id,
+                name: currentProduct.name,
+                price: Number(currentProduct.selling_price),
+                quantity,
+                image: currentProduct.primary_image?.url || currentProduct.images?.[0]?.url || '',
+            });
+        }
         const successAlert = document.getElementById('productSuccessAlert');
         if (successAlert) {
             successAlert.textContent = `${quantity} × ${currentProduct.name} added to cart!`;

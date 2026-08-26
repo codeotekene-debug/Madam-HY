@@ -90,6 +90,12 @@
             <p>Start shopping to see your orders here.</p>
             <a href="/customer/products/" class="btn btn-primary">Browse products</a>
         </div>
+
+        <nav class="products-pagination" aria-label="Order pagination">
+            <button type="button" class="btn btn-secondary btn-sm" id="customerOrdersPrevious">Previous</button>
+            <span id="customerOrdersPage">Page 1 of 1</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="customerOrdersNext">Next</button>
+        </nav>
     </section>
 </div>
 {% endblock %}

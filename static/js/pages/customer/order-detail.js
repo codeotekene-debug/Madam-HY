@@ -3,27 +3,76 @@
  * Frontend-only order detail view
  */
 
-const orderDetailData = {
-    id: 'ORD-2026-0847',
-    date: '2026-08-12T10:30:00',
-    items: [
-        { name: "Green Ankara Fabric Premium", quantity: 2, price: 12500 },
-        { name: "Radiant Glow Serum", quantity: 1, price: 9500 }
-    ],
-    subtotal: 34500,
-    tax: 2588,
-    total: 37088,
-    status: 'Completed',
-    payment: 'Card',
-    deliveryAddress: '123 Main Street, Lagos',
-    deliveryMethod: 'Delivery',
-    timeline: [
-        { title: 'Order placed', text: 'Your order was successfully placed', date: '2026-08-12T10:30:00' },
-        { title: 'Order confirmed', text: 'Order has been confirmed and is being processed', date: '2026-08-12T11:15:00' },
-        { title: 'Order shipped', text: 'Your order has been shipped', date: '2026-08-13T08:00:00' },
-        { title: 'Order delivered', text: 'Your order has been delivered', date: '2026-08-14T14:30:00' }
-    ]
-};
+/** MADAM HY - Customer Order Detail */
+
+document.addEventListener('DOMContentLoaded', loadCustomerOrderDetail);
+
+async function loadCustomerOrderDetail() {
+    const orderId = Number(new URLSearchParams(window.location.search).get('id'));
+    if (!orderId) {
+        showDetailMessage('Order ID was not found.');
+        return;
+    }
+    showDetailMessage('Loading order details...');
+    const response = await apiRequest(`/orders/${orderId}/`);
+    if (!response.success || !response.data?.order) {
+        showDetailMessage(response.message || 'Unable to load order details.', true, loadCustomerOrderDetail);
+        return;
+    }
+    renderDetail(response.data.order);
+}
+
+function renderDetail(order) {
+    document.getElementById('detailOrderRef')?.replaceChildren(document.createTextNode(`Order ${order.order_number}`));
+    document.getElementById('detailOrderDate')?.replaceChildren(document.createTextNode(`Placed on ${formatDate(order.created_at)}`));
+    document.getElementById('detailOrderStatus')?.replaceChildren(document.createTextNode(order.status));
+    document.getElementById('detailReference')?.replaceChildren(document.createTextNode(order.order_number));
+    document.getElementById('detailPlacedDate')?.replaceChildren(document.createTextNode(formatDate(order.created_at)));
+    document.getElementById('detailOrderTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(order.total)}`));
+    document.getElementById('detailPaymentStatus')?.replaceChildren(document.createTextNode(order.payment_status));
+    document.getElementById('detailDeliveryAddress')?.replaceChildren(document.createTextNode(order.notes || 'Not provided'));
+    document.getElementById('detailDeliveryMethod')?.replaceChildren(document.createTextNode(order.payment_method));
+
+    const items = document.getElementById('detailOrderItems');
+    if (items) {
+        items.innerHTML = (order.items || []).map(item => `
+            <div class="order-item-row">
+                <div class="order-item-name">${escapeHtml(item.product_name_snapshot)}</div>
+                <div class="order-item-qty">x${item.quantity}</div>
+                <div class="order-item-price">₦${formatCurrency(item.line_total)}</div>
+            </div>
+        `).join('');
+    }
+    const timeline = document.getElementById('detailTimeline');
+    if (timeline) {
+        timeline.innerHTML = `<div class="timeline-item"><strong>Order placed</strong><span>Your order was received.</span><span>${formatDate(order.created_at)}</span></div>`;
+    }
+}
+
+function showDetailMessage(message, isError = false, retry) {
+    const target = document.getElementById('detailOrderItems');
+    if (!target) return;
+    target.replaceChildren();
+    const text = document.createElement('p');
+    text.textContent = message;
+    target.append(text);
+    if (isError && retry) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-secondary btn-sm';
+        button.textContent = 'Retry';
+        button.addEventListener('click', retry);
+        target.append(button);
+    }
+}
+
+function formatCurrency(value) { return Number(value || 0).toLocaleString('en-NG'); }
+function formatDate(value) { return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
+function escapeHtml(value) {
+    const element = document.createElement('span');
+    element.textContent = value == null ? '' : String(value);
+    return element.innerHTML;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     renderDetail();
