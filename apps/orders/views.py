@@ -7,9 +7,12 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.utils import timezone
 
+from apps.notifications.models import Notification
+from apps.notifications.services import create_notification
 from apps.products.models import Product
 from apps.sales.models import Sale, SaleItem
 
@@ -17,6 +20,7 @@ from .models import Order, OrderItem
 
 
 MANAGEMENT_ROLES = ('OWNER', 'MANAGER', 'CASHIER', 'STAFF')
+User = get_user_model()
 
 
 def _json_response(data=None, message='Success', success=True, status=200, errors=None):
@@ -130,6 +134,26 @@ def _validation_response(errors):
 		status=400,
 		errors=errors,
 	)
+
+
+def _order_action_url(order):
+	return f'/orders/{order.pk}/'
+
+
+def _notify_order_recipients(order, title, message, priority=Notification.Priority.NORMAL, recipients=None):
+	for recipient in recipients if recipients is not None else User.objects.filter(
+		role__in=MANAGEMENT_ROLES,
+		is_active=True,
+	):
+		create_notification(
+			recipient=recipient,
+			notification_type=Notification.NotificationType.ORDER,
+			title=title,
+		message=message,
+		priority=priority,
+		related_object=order,
+		action_url=_order_action_url(order),
+		)
 
 
 def order_list(request):
@@ -277,6 +301,12 @@ def order_create(request):
 	)
 	for product, quantity in prepared_items:
 		OrderItem.create_from_product(product=product, order=order, quantity=quantity).save()
+	_notify_order_recipients(
+		order,
+		title='New customer order',
+		message=f'{order.order_number} was placed and is pending review.',
+		priority=Notification.Priority.HIGH,
+	)
 
 	order = Order.objects.select_related('customer').prefetch_related('items').get(pk=order.pk)
 	return _json_response(
@@ -333,6 +363,12 @@ def order_status_update(request, order_id):
 	except ValidationError as error:
 		return _validation_response(error.message_dict)
 	order.save(update_fields=['status', 'updated_at'])
+	_notify_order_recipients(
+		order,
+		title='Order status updated',
+		message=f'{order.order_number} is now {order.get_status_display()}.',
+		recipients=[order.customer] if order.customer_id else [],
+	)
 	order = Order.objects.select_related('customer').prefetch_related('items').get(pk=order.pk)
 	return _json_response(
 		data={'order': _serialize_order(order)},
@@ -411,6 +447,12 @@ def order_convert_to_sale(request, order_id):
 		sale.complete_sale()
 		order.status = Order.OrderStatus.COMPLETED
 		order.save(update_fields=['status', 'updated_at'])
+		_notify_order_recipients(
+			order,
+			title='Order completed',
+			message=f'{order.order_number} was completed and processed as a sale.',
+			recipients=[order.customer] if order.customer_id else [],
+		)
 	except IntegrityError:
 		return _json_response(message='This order has already been converted to a sale.', success=False, status=409)
 	except ValidationError as error:

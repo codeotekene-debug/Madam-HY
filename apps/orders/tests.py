@@ -4,12 +4,14 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.test import Client
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.inventory.models import InventoryItem, StockMovement
+from apps.notifications.models import Notification
 from apps.products.models import Product, ProductCategory
 from apps.sales.models import Sale, SaleItem
 from .models import Order, OrderItem
@@ -1130,3 +1132,129 @@ class OrdersSalesIntegrationTests(TestCase):
         self.assertEqual(Sale.objects.count(), 0)
         self.assertEqual(StockMovement.objects.count(), 0)
 
+
+class OrdersNotificationTrackingTests(TestCase):
+    """Focused tests for Order events recorded by Notifications."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = ProductCategory.objects.create(
+            name='Notification Category',
+            slug='notification-category',
+        )
+        cls.product = Product.objects.create(
+            name='Notification Product',
+            sku='NOTIFY-001',
+            category=cls.category,
+            selling_price=Decimal('100.00'),
+            cost_price=Decimal('50.00'),
+        )
+        cls.customer = User.objects.create_user(
+            email='notification-customer@example.com',
+            username='notification-customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.manager = User.objects.create_user(
+            email='notification-manager@example.com',
+            username='notification-manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client.force_login(self.customer)
+
+    def _create_order(self):
+        return self.client.post(
+            '/orders/',
+            data=json.dumps({
+                'items': [{'product_id': self.product.id, 'quantity': 2}],
+            }),
+            content_type='application/json',
+        )
+
+    def test_order_creation_notifies_active_management_with_related_order(self):
+        response = self._create_order()
+        self.assertEqual(response.status_code, 201)
+        order = Order.objects.get()
+        order_content_type = ContentType.objects.get_for_model(Order)
+        notification = Notification.objects.get(
+            recipient=self.manager,
+            content_type=order_content_type,
+            object_id=str(order.id),
+        )
+        self.assertEqual(notification.notification_type, Notification.NotificationType.ORDER)
+        self.assertEqual(notification.priority, Notification.Priority.HIGH)
+        self.assertEqual(notification.title, 'New customer order')
+        self.assertEqual(notification.action_url, f'/orders/{order.id}/')
+
+    def test_invalid_order_does_not_create_notification(self):
+        response = self.client.post(
+            '/orders/',
+            data=json.dumps({'items': [{'product_id': 999999, 'quantity': 1}]}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_status_update_notifies_customer_after_successful_change(self):
+        self.client.force_login(self.customer)
+        response = self._create_order()
+        order = Order.objects.get()
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            f'/orders/{order.id}/status/',
+            data=json.dumps({'status': Order.OrderStatus.CONFIRMED}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        order_content_type = ContentType.objects.get_for_model(Order)
+        notification = Notification.objects.get(
+            recipient=self.customer,
+            content_type=order_content_type,
+            object_id=str(order.id),
+            title='Order status updated',
+        )
+        self.assertIn('Confirmed', notification.message)
+
+    def test_invalid_status_does_not_notify_customer(self):
+        self.client.force_login(self.customer)
+        self._create_order()
+        order = Order.objects.get()
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            f'/orders/{order.id}/status/',
+            data=json.dumps({'status': Order.OrderStatus.READY}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Notification.objects.filter(recipient=self.customer).exists())
+
+    def test_successful_order_to_sale_notifies_customer(self):
+        InventoryItem.objects.create(product=self.product, quantity=2)
+        order = Order.objects.create(
+            order_number='NOTIFY-CONVERT-001',
+            customer=self.customer,
+            status=Order.OrderStatus.CONFIRMED,
+            payment_method=Order.PaymentMethod.CASH,
+            subtotal=Decimal('100.00'),
+            total=Decimal('100.00'),
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            quantity=1,
+            unit_price=Decimal('100.00'),
+            product_name_snapshot='Notification Product',
+            sku_snapshot='NOTIFY-001',
+        )
+        self.client.force_login(self.manager)
+        response = self.client.post(f'/orders/{order.id}/convert-to-sale/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Notification.objects.filter(
+            recipient=self.customer,
+            title='Order completed',
+            object_id=str(order.id),
+        ).exists())
