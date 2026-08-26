@@ -152,6 +152,44 @@
     box-shadow: 0 0 0 4px rgba(8, 122, 61, 0.12);
 }
 
+.timeline-item.completed {
+    border-left-color: rgba(8, 122, 61, 0.45);
+}
+
+.timeline-item.completed::before {
+    background: var(--success);
+    box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.14);
+}
+
+.timeline-item.current {
+    border-left-color: rgba(8, 122, 61, 0.55);
+}
+
+.timeline-item.current::before {
+    background: var(--primary);
+    box-shadow: 0 0 0 5px rgba(8, 122, 61, 0.18);
+}
+
+.timeline-item.upcoming {
+    border-left-color: rgba(146, 150, 163, 0.25);
+}
+
+.timeline-item.upcoming::before {
+    background: var(--surface);
+    border: 2px solid var(--muted);
+    box-shadow: none;
+}
+
+.timeline-item.upcoming strong,
+.timeline-item.upcoming span {
+    color: var(--muted);
+}
+
+.timeline-item.cancelled::before {
+    background: var(--danger);
+    box-shadow: 0 0 0 4px rgba(206, 60, 60, 0.14);
+}
+
 .timeline-item strong {
     display: block;
     margin-bottom: 4px;
