@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -8,7 +9,9 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.inventory.models import InventoryItem, StockMovement
 from apps.products.models import Product, ProductCategory
+from apps.sales.models import Sale, SaleItem
 from .models import Order, OrderItem
 
 
@@ -949,4 +952,181 @@ class OrdersLifecycleApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, Order.OrderStatus.PENDING)
+
+
+class OrdersSalesIntegrationTests(TestCase):
+    """Focused tests for confirmed Order conversion into completed Sales."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = ProductCategory.objects.create(name='Integration Category', slug='integration-category')
+        cls.product = Product.objects.create(
+            name='Integration Product',
+            sku='INT-001',
+            category=cls.category,
+            selling_price=Decimal('1250.50'),
+            cost_price=Decimal('800.00'),
+        )
+        cls.second_product = Product.objects.create(
+            name='Second Integration Product',
+            sku='INT-002',
+            category=cls.category,
+            selling_price=Decimal('300.00'),
+            cost_price=Decimal('200.00'),
+        )
+        cls.customer = User.objects.create_user(
+            email='integration-customer@example.com',
+            username='integration-customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.other_customer = User.objects.create_user(
+            email='integration-other@example.com',
+            username='integration-other',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.cashier = User.objects.create_user(
+            email='integration-cashier@example.com',
+            username='integration-cashier',
+            password='testpass123',
+            role='CASHIER',
+        )
+        cls.manager = User.objects.create_user(
+            email='integration-manager@example.com',
+            username='integration-manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.inventory = InventoryItem.objects.create(product=self.product, quantity=5)
+        self.second_inventory = InventoryItem.objects.create(product=self.second_product, quantity=4)
+        self.order = Order.objects.create(
+            order_number='INTEGRATION-001',
+            customer=self.customer,
+            status=Order.OrderStatus.CONFIRMED,
+            payment_method=Order.PaymentMethod.CASH,
+            subtotal=Decimal('2801.00'),
+            total=Decimal('2801.00'),
+        )
+        OrderItem.objects.create(
+            order=self.order,
+            product=self.product,
+            quantity=2,
+            unit_price=Decimal('1250.50'),
+            product_name_snapshot='Integration Product at order time',
+            sku_snapshot='INT-OLD-001',
+        )
+        OrderItem.objects.create(
+            order=self.order,
+            product=self.second_product,
+            quantity=1,
+            unit_price=Decimal('300.00'),
+            product_name_snapshot='Second Integration Product',
+            sku_snapshot='INT-002',
+        )
+
+    def _convert(self, order_id=None):
+        return self.client.post(f'/orders/{order_id or self.order.id}/convert-to-sale/')
+
+    def test_confirmed_order_converts_to_sale_with_snapshots_and_inventory_movement(self):
+        self.client.force_login(self.manager)
+        response = self._convert()
+        self.assertEqual(response.status_code, 200)
+
+        self.order.refresh_from_db()
+        sale = Sale.objects.get(source_order=self.order)
+        self.assertEqual(self.order.status, Order.OrderStatus.COMPLETED)
+        self.assertEqual(sale.status, Sale.SaleStatus.COMPLETED)
+        self.assertEqual(sale.payment_status, Sale.PaymentStatus.COMPLETED)
+        self.assertEqual(sale.customer, self.customer)
+        self.assertEqual(sale.cashier, self.manager)
+        self.assertEqual(sale.subtotal, self.order.subtotal)
+        self.assertEqual(sale.total, self.order.total)
+        sale_items = list(sale.items.order_by('id'))
+        self.assertEqual(len(sale_items), 2)
+        self.assertEqual(sale_items[0].unit_price, Decimal('1250.50'))
+        self.assertEqual(sale_items[0].product_name_snapshot, 'Integration Product at order time')
+        self.assertEqual(sale_items[0].sku_snapshot, 'INT-OLD-001')
+        self.assertEqual(self.inventory.refresh_from_db(), None)
+        self.assertEqual(self.inventory.quantity, 3)
+        self.assertEqual(self.second_inventory.refresh_from_db(), None)
+        self.assertEqual(self.second_inventory.quantity, 3)
+        movements = StockMovement.objects.filter(reference=sale.sale_number).order_by('id')
+        self.assertEqual(movements.count(), 2)
+        self.assertTrue(all(movement.movement_type == StockMovement.MovementType.STOCK_OUT for movement in movements))
+
+    def test_conversion_uses_order_price_after_product_price_changes(self):
+        self.product.selling_price = Decimal('9999.99')
+        self.product.save()
+        self.client.force_login(self.cashier)
+        self.assertEqual(self._convert().status_code, 200)
+        sale_item = Sale.objects.get(source_order=self.order).items.get(product=self.product)
+        self.assertEqual(sale_item.unit_price, Decimal('1250.50'))
+
+    def test_duplicate_conversion_returns_409_without_extra_sale_or_movement(self):
+        self.client.force_login(self.manager)
+        self.assertEqual(self._convert().status_code, 200)
+        sale_count = Sale.objects.count()
+        movement_count = StockMovement.objects.count()
+        response = self._convert()
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Sale.objects.count(), sale_count)
+        self.assertEqual(StockMovement.objects.count(), movement_count)
+
+    def test_only_confirmed_orders_can_convert(self):
+        self.client.force_login(self.manager)
+        for status in (Order.OrderStatus.PENDING, Order.OrderStatus.PROCESSING, Order.OrderStatus.READY, Order.OrderStatus.COMPLETED, Order.OrderStatus.CANCELLED):
+            with self.subTest(status=status):
+                self.order.status = status
+                self.order.save()
+                response = self._convert()
+                self.assertEqual(response.status_code, 409)
+                self.assertFalse(Sale.objects.filter(source_order=self.order).exists())
+
+    def test_customer_and_unauthorized_roles_cannot_convert(self):
+        self.client.force_login(self.customer)
+        self.assertEqual(self._convert().status_code, 403)
+        self.client.force_login(self.other_customer)
+        self.assertEqual(self._convert().status_code, 403)
+        staff = User.objects.create_user(email='integration-staff@example.com', username='integration-staff', password='testpass123', role='STAFF')
+        self.client.force_login(staff)
+        self.assertEqual(self._convert().status_code, 403)
+
+    def test_missing_order_and_unsupported_methods(self):
+        self.client.force_login(self.manager)
+        self.assertEqual(self._convert(order_id=999999).status_code, 404)
+        for method in ('get', 'put', 'patch', 'delete'):
+            with self.subTest(method=method):
+                self.assertEqual(getattr(self.client, method)(f'/orders/{self.order.id}/convert-to-sale/').status_code, 405)
+
+    def test_insufficient_stock_rolls_back_sale_order_and_inventory(self):
+        self.inventory.quantity = 1
+        self.inventory.save()
+        self.client.force_login(self.manager)
+        response = self._convert()
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.CONFIRMED)
+        self.assertEqual(self.inventory.quantity, 1)
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(StockMovement.objects.count(), 0)
+
+    def test_sale_creation_error_rolls_back_all_changes(self):
+        self.client.force_login(self.manager)
+        with patch(
+            'apps.orders.views.SaleItem.objects.create',
+            side_effect=ValidationError({'items': 'Sale item could not be created.'}),
+        ):
+            response = self._convert()
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.order.status, Order.OrderStatus.CONFIRMED)
+        self.assertEqual(self.inventory.quantity, 5)
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(StockMovement.objects.count(), 0)
 

@@ -41,6 +41,14 @@ class Sale(models.Model):
         limit_choices_to={'role': 'CUSTOMER'},
         help_text='Customer for the sale. Required for credit sales. Optional for walk-in cash sales.',
     )
+    source_order = models.OneToOneField(
+        'orders.Order',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='sale',
+        help_text='Customer order converted into this sale, when applicable.',
+    )
     cashier = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

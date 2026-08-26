@@ -6,10 +6,12 @@ from uuid import uuid4
 from django.db import transaction
 from django.db.models import Count, Q
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.utils import timezone
 
 from apps.products.models import Product
+from apps.sales.models import Sale, SaleItem
 
 from .models import Order, OrderItem
 
@@ -335,4 +337,87 @@ def order_status_update(request, order_id):
 	return _json_response(
 		data={'order': _serialize_order(order)},
 		message='Order status updated successfully.',
+	)
+
+
+def _serialize_converted_sale(sale):
+	return {
+		'id': sale.id,
+		'sale_number': sale.sale_number,
+		'status': sale.status,
+		'payment_status': sale.payment_status,
+		'customer_id': sale.customer_id,
+		'source_order_id': sale.source_order_id,
+		'subtotal': str(sale.subtotal),
+		'discount': str(sale.discount),
+		'total': str(sale.total),
+	}
+
+
+@transaction.atomic
+def order_convert_to_sale(request, order_id):
+	if request.method != 'POST':
+		return _json_response(message='Only POST is allowed.', success=False, status=405)
+	if not _is_authenticated(request.user):
+		return _json_response(message='Authentication required.', success=False, status=401)
+	if getattr(request.user, 'role', None) not in ('OWNER', 'MANAGER', 'CASHIER'):
+		return _json_response(message='You do not have permission to convert orders to sales.', success=False, status=403)
+
+	try:
+		order = (
+			Order.objects.select_for_update()
+			.select_related('customer')
+			.prefetch_related('items')
+			.get(pk=order_id)
+		)
+	except Order.DoesNotExist:
+		return _json_response(message='Order not found.', success=False, status=404)
+
+	if hasattr(order, 'sale'):
+		return _json_response(message='This order has already been converted to a sale.', success=False, status=409)
+	if order.status != Order.OrderStatus.CONFIRMED:
+		return _json_response(message='Only CONFIRMED orders can be converted to sales.', success=False, status=409)
+	if not order.customer:
+		return _json_response(message='Order must have a customer before conversion.', success=False, status=400)
+
+	order_items = list(order.items.all())
+	if not order_items:
+		return _json_response(message='Order must have at least one item before conversion.', success=False, status=400)
+
+	try:
+		sale = Sale.objects.create(
+			sale_number=f'MH-{uuid4().hex[:12].upper()}',
+			source_order=order,
+			customer=order.customer,
+			cashier=request.user,
+			status=Sale.SaleStatus.DRAFT,
+			payment_method=order.payment_method,
+			payment_status=Sale.PaymentStatus.PENDING,
+			subtotal=order.subtotal,
+			discount=order.discount,
+			total=order.total,
+			notes=order.notes,
+		)
+		for order_item in order_items:
+			SaleItem.objects.create(
+				sale=sale,
+				product=order_item.product,
+				quantity=order_item.quantity,
+				unit_price=order_item.unit_price,
+				discount=Decimal('0.00'),
+				product_name_snapshot=order_item.product_name_snapshot,
+				sku_snapshot=order_item.sku_snapshot,
+			)
+		sale.complete_sale()
+		order.status = Order.OrderStatus.COMPLETED
+		order.save(update_fields=['status', 'updated_at'])
+	except IntegrityError:
+		return _json_response(message='This order has already been converted to a sale.', success=False, status=409)
+	except ValidationError as error:
+		transaction.set_rollback(True)
+		return _validation_response(error.message_dict if hasattr(error, 'message_dict') else {'detail': error.messages})
+
+	return _json_response(
+		data={'order': _serialize_order(order), 'sale': _serialize_converted_sale(sale)},
+		message='Order converted to sale successfully.',
 	)
