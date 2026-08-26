@@ -1,7 +1,11 @@
+import json
 from decimal import Decimal
+from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.test import Client
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.products.models import Product, ProductCategory
@@ -630,4 +634,188 @@ class DjangoSystemChecksTests(TestCase):
         # If no issues, output will mention "System check identified no issues"
         # or be empty in recent Django versions
         self.assertNotIn('error', output.lower())
+
+
+class OrdersApiTests(TestCase):
+    """Focused tests for Order creation and read-only retrieval APIs."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = ProductCategory.objects.create(name='API Category', slug='api-category')
+        cls.product = Product.objects.create(
+            name='API Product',
+            sku='API-001',
+            category=cls.category,
+            selling_price=Decimal('1250.50'),
+            cost_price=Decimal('800.00'),
+        )
+        cls.second_product = Product.objects.create(
+            name='Second API Product',
+            sku='API-002',
+            category=cls.category,
+            selling_price=Decimal('300.00'),
+            cost_price=Decimal('200.00'),
+        )
+        cls.inactive_product = Product.objects.create(
+            name='Inactive API Product',
+            sku='API-003',
+            category=cls.category,
+            selling_price=Decimal('100.00'),
+            cost_price=Decimal('50.00'),
+            is_active=False,
+        )
+        cls.customer = User.objects.create_user(
+            email='api-customer@example.com',
+            username='api-customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.other_customer = User.objects.create_user(
+            email='other-customer@example.com',
+            username='other-customer',
+            password='testpass123',
+            role='CUSTOMER',
+        )
+        cls.manager = User.objects.create_user(
+            email='api-manager@example.com',
+            username='api-manager',
+            password='testpass123',
+            role='MANAGER',
+        )
+
+    def setUp(self):
+        self.client = Client()
+
+    def _login(self, user):
+        self.client.force_login(user)
+
+    def _post_order(self, payload):
+        return self.client.post(
+            '/orders/',
+            data=json.dumps(payload),
+            content_type='application/json',
+        )
+
+    def test_unauthenticated_create_returns_401(self):
+        response = self._post_order({'items': [{'product_id': self.product.id, 'quantity': 1}]})
+        self.assertEqual(response.status_code, 401)
+
+    def test_customer_can_create_with_server_side_totals_and_snapshots(self):
+        self._login(self.customer)
+        response = self._post_order({
+            'items': [
+                {'product_id': self.product.id, 'quantity': 2},
+                {'product_id': self.second_product.id, 'quantity': 1},
+            ],
+            'customer_id': self.other_customer.id,
+            'discount': '999999.99',
+            'notes': 'Leave at the counter',
+        })
+
+        self.assertEqual(response.status_code, 201)
+        order = Order.objects.get()
+        self.assertEqual(order.customer, self.customer)
+        self.assertEqual(order.status, Order.OrderStatus.PENDING)
+        self.assertEqual(order.subtotal, Decimal('2801.00'))
+        self.assertEqual(order.discount, Decimal('0.00'))
+        self.assertEqual(order.total, Decimal('2801.00'))
+        item = order.items.get(product=self.product)
+        self.assertEqual(item.unit_price, Decimal('1250.50'))
+        self.assertEqual(item.product_name_snapshot, 'API Product')
+        self.assertEqual(item.sku_snapshot, 'API-001')
+
+        self.product.selling_price = Decimal('9999.99')
+        self.product.save()
+        detail = self.client.get(f'/orders/{order.id}/')
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()['data']['order']['items'][0]['unit_price'], '1250.50')
+
+    def test_management_can_list_but_cannot_create(self):
+        self._login(self.manager)
+        self.assertEqual(self.client.get('/orders/').status_code, 200)
+        response = self._post_order({'items': [{'product_id': self.product.id, 'quantity': 1}]})
+        self.assertEqual(response.status_code, 403)
+
+    def test_invalid_items_are_atomic_and_do_not_create_order(self):
+        self._login(self.customer)
+        response = self._post_order({
+            'items': [
+                {'product_id': self.product.id, 'quantity': 1},
+                {'product_id': self.inactive_product.id, 'quantity': 1},
+            ],
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(OrderItem.objects.count(), 0)
+
+    def test_item_validation_rejects_empty_zero_negative_non_integer_and_duplicates(self):
+        self._login(self.customer)
+        payloads = [
+            {'items': []},
+            {'items': [{'product_id': self.product.id, 'quantity': 0}]},
+            {'items': [{'product_id': self.product.id, 'quantity': -1}]},
+            {'items': [{'product_id': self.product.id, 'quantity': 1.5}]},
+            {'items': [
+                {'product_id': self.product.id, 'quantity': 1},
+                {'product_id': self.product.id, 'quantity': 2},
+            ]},
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                self.assertEqual(self._post_order(payload).status_code, 400)
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_customer_list_and_detail_are_limited_to_own_orders(self):
+        own_order = Order.objects.create(
+            order_number='API-OWN',
+            customer=self.customer,
+            payment_method=Order.PaymentMethod.CASH,
+        )
+        other_order = Order.objects.create(
+            order_number='API-OTHER',
+            customer=self.other_customer,
+            payment_method=Order.PaymentMethod.CASH,
+        )
+        self._login(self.customer)
+
+        response = self.client.get('/orders/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['id'] for item in response.json()['data']['orders']], [own_order.id])
+        self.assertEqual(self.client.get(f'/orders/{own_order.id}/').status_code, 200)
+        self.assertEqual(self.client.get(f'/orders/{other_order.id}/').status_code, 403)
+
+    def test_list_filters_dates_search_ordering_and_pagination(self):
+        first = Order.objects.create(
+            order_number='API-OLD', customer=self.customer,
+            payment_method=Order.PaymentMethod.CASH,
+            status=Order.OrderStatus.COMPLETED, total=Decimal('10.00'),
+        )
+        second = Order.objects.create(
+            order_number='API-NEW', customer=self.customer,
+            payment_method=Order.PaymentMethod.CASH,
+            status=Order.OrderStatus.PENDING, total=Decimal('20.00'),
+        )
+        Order.objects.filter(pk=first.pk).update(created_at=timezone.now() - timedelta(days=2))
+        Order.objects.filter(pk=second.pk).update(created_at=timezone.now())
+        self._login(self.customer)
+
+        response = self.client.get('/orders/?status=PENDING&search=NEW&page=1&page_size=1&ordering=total')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['pagination']['total_count'], 1)
+        self.assertEqual(response.json()['data']['orders'][0]['order_number'], 'API-NEW')
+        self.assertEqual(self.client.get('/orders/?date_from=2026-99-01').status_code, 400)
+        self.assertEqual(self.client.get('/orders/?date_from=2026-08-20&date_to=2026-08-19').status_code, 400)
+
+    def test_read_only_methods_return_405(self):
+        self._login(self.customer)
+        self.assertEqual(self.client.put('/orders/').status_code, 405)
+        self.assertEqual(self.client.patch('/orders/').status_code, 405)
+        self.assertEqual(self.client.delete('/orders/').status_code, 405)
+        order = Order.objects.create(
+            order_number='API-METHOD', customer=self.customer,
+            payment_method=Order.PaymentMethod.CASH,
+        )
+        for method in ('post', 'put', 'patch', 'delete'):
+            with self.subTest(method=method):
+                self.assertEqual(getattr(self.client, method)(f'/orders/{order.id}/').status_code, 405)
 
