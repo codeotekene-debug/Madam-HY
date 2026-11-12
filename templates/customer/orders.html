@@ -1,25 +1,29 @@
-{% extends "base.html" %}
-
+{% extends "customer/base.html" %}
 {% load static %}
 
 {% block title %}
-    Orders | MADAM HY Customer
+    Orders | MADAM HY Customer Storefront
 {% endblock %}
 
 {% block page_title %}
     My Orders
 {% endblock %}
 
-{% block page_css %}
+{% block customer_css %}
 <link rel="stylesheet" href="{% static 'css/pages/customer/orders.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block customer_content %}
 <div class="customer-orders-page">
-    <section class="orders-hero">
-        <div>
-            <h2>My orders</h2>
-            <p>Track your shopping history and order status</p>
+    <section class="orders-hero card" style="background: #ffffff; padding: 24px 28px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h2 style="margin: 0 0 4px 0; font-size: 24px; font-weight: 850; color: #0f172a;">Order History</h2>
+                <p style="margin: 0; color: #64748b; font-size: 14px;">Track your shopping history, verified receipts, and live fulfillment statuses.</p>
+            </div>
+            <a href="/customer/products/" class="btn btn-primary">
+                <i class="bi bi-cart-plus"></i> Shop More
+            </a>
         </div>
     </section>
 
@@ -30,11 +34,11 @@
         </article>
         <article class="summary-card">
             <span>Pending</span>
-            <strong id="customerPendingOrders">0</strong>
+            <strong id="customerPendingOrders" style="color: #ea580c;">0</strong>
         </article>
         <article class="summary-card">
             <span>Completed</span>
-            <strong id="customerCompletedOrders">0</strong>
+            <strong id="customerCompletedOrders" style="color: #15803d;">0</strong>
         </article>
         <article class="summary-card">
             <span>Total spent</span>
@@ -42,18 +46,18 @@
         </article>
     </section>
 
-    <section class="card orders-panel">
+    <section class="card orders-panel" style="background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid #e2e8f0; margin-top: 20px;">
         <div class="panel-header compact-header">
             <div>
-                <h3>Order history</h3>
-                <p>Your shopping activity</p>
+                <h3>Past Purchases</h3>
+                <p>Complete itemized records</p>
             </div>
         </div>
 
-        <div class="orders-toolbar">
-            <div class="toolbar-search">
+        <div class="orders-toolbar" style="display: flex; gap: 14px; margin: 16px 0; flex-wrap: wrap;">
+            <div class="toolbar-search" style="flex: 1; min-width: 200px;">
                 <label class="visually-hidden" for="customerOrdersSearch">Search orders</label>
-                <input id="customerOrdersSearch" class="form-control" type="search" placeholder="Search by order number" />
+                <input id="customerOrdersSearch" class="form-control" type="search" placeholder="Search by order number..." />
             </div>
 
             <div class="toolbar-filters">
@@ -86,9 +90,10 @@
         </div>
 
         <div id="customerOrdersEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+            <div class="empty-state-icon"><i class="bi bi-bag-x"></i></div>
             <h3>No orders yet</h3>
-            <p>Start shopping to see your orders here.</p>
-            <a href="/customer/products/" class="btn btn-primary">Browse products</a>
+            <p>You haven't placed any orders yet. Start exploring our fresh catalog today!</p>
+            <a href="/customer/products/" class="btn btn-primary" style="margin-top: 14px;">Browse Catalog</a>
         </div>
 
         <nav class="products-pagination" aria-label="Order pagination">
@@ -100,6 +105,6 @@
 </div>
 {% endblock %}
 
-{% block page_js %}
+{% block customer_js %}
 <script src="{% static 'js/pages/customer/orders.js' %}"></script>
 {% endblock %}

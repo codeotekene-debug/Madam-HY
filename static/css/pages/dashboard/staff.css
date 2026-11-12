@@ -2,6 +2,8 @@
    MADAM HY - STAFF DASHBOARD
    ========================================================= */
 
+@import url("../dashboard.css");
+
 .staff-dashboard {
     display: flex;
     flex-direction: column;

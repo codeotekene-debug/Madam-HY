@@ -82,7 +82,7 @@ async function loadCustomerOrders() {
             <td data-label="Items">${order.item_count ?? 0}</td>
             <td data-label="Total">₦ ${formatCurrency(order.total)}</td>
             <td data-label="Status"><span class="order-status ${normalizeStatus(order.status)}">${escapeHtml(order.status)}</span></td>
-            <td data-label="Action"><a href="/preview/customer/order-detail/?id=${encodeURIComponent(order.id)}" class="order-action-link">View</a></td>
+            <td data-label="Action"><a href="/customer/orders/${order.id}/" class="order-action-link btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 12px; font-weight: 650;">View Details</a></td>
         </tr>
     `).join('');
 }

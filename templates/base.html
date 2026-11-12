@@ -1,21 +1,19 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>
         {% block title %}MADAM HY{% endblock %}
     </title>
 
-    <!-- Core CSS -->
+    <!-- Bootstrap Icons (CDN) - Standardized UI Icon System (Phase 1) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Core Design System CSS -->
     <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
     <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
     <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
@@ -32,13 +30,75 @@
     {% endblock %}
 </head>
 
-
 <body>
+
+    <!-- Skip Link for Keyboard Accessibility (WCAG 2.4.1) -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- =========================================
+         CUSTOM RETAIL SVG SYMBOL SPRITE (Phase 1)
+         Crisp domain-specific retail actions:
+         1. In-Store Dynamic QR (#icon-retail-qr)
+         2. Moniepoint POS Terminal (#icon-retail-pos)
+         3. Customer Credit Ledger (#icon-retail-credit)
+         4. Discrepancy Resolution (#icon-retail-reconcile)
+         ========================================= -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;" aria-hidden="true">
+        <defs>
+            <!-- In-Store Dynamic QR -->
+            <symbol id="icon-retail-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                <rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"></rect>
+                <path d="M14 14h3v3h-3z" fill="currentColor" stroke="none"></path>
+                <path d="M20 14v3h-1"></path>
+                <path d="M14 20h7"></path>
+                <path d="M10 7h1"></path>
+                <path d="M7 10v1"></path>
+                <path d="M14 10h3"></path>
+            </symbol>
+
+            <!-- Moniepoint POS Terminal -->
+            <symbol id="icon-retail-pos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="3"></rect>
+                <rect x="8" y="5" width="8" height="5" rx="1"></rect>
+                <circle cx="9" cy="13" r="0.9" fill="currentColor"></circle>
+                <circle cx="12" cy="13" r="0.9" fill="currentColor"></circle>
+                <circle cx="15" cy="13" r="0.9" fill="currentColor"></circle>
+                <circle cx="9" cy="16" r="0.9" fill="currentColor"></circle>
+                <circle cx="12" cy="16" r="0.9" fill="currentColor"></circle>
+                <circle cx="15" cy="16" r="0.9" fill="currentColor"></circle>
+                <line x1="8" y1="2" x2="16" y2="2"></line>
+                <path d="M9 19h6"></path>
+            </symbol>
+
+            <!-- Customer Credit Ledger -->
+            <symbol id="icon-retail-credit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+                <path d="M6 2v20"></path>
+                <rect x="9" y="5.5" width="8" height="5" rx="1"></rect>
+                <line x1="9" y1="7.5" x2="17" y2="7.5"></line>
+                <line x1="9" y1="13.5" x2="17" y2="13.5"></line>
+                <line x1="9" y1="16.5" x2="15" y2="16.5"></line>
+            </symbol>
+
+            <!-- Discrepancy Resolution / Reconciliation -->
+            <symbol id="icon-retail-reconcile" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                <path d="M16 16h5v5"></path>
+                <path d="m9 12 2 2 4-4"></path>
+            </symbol>
+        </defs>
+    </svg>
 
     <!-- =========================================
          APPLICATION CONTEXT
          ========================================= -->
-
     <div
         id="app-context"
         data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
@@ -46,593 +106,496 @@
         data-user-role="{{ user.role|default:'' }}"
     ></div>
 
-
     <!-- =========================================
-         APPLICATION
+         APPLICATION SHELL
          ========================================= -->
-
     <div class="app">
 
-
         <!-- =====================================
-             SIDEBAR
+             SIDEBAR (Phase 2 Master Shell)
              ===================================== -->
+        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation" hx-boost="true" data-turbo="true">
 
-        <aside class="sidebar" id="sidebar">
-
-            <!-- Brand -->
-
+            <!-- Brand Header -->
             <div class="sidebar-header">
-
-                <a href="#" class="brand">
-
-                    <div class="brand-logo">
-                        HY
+                {% if user.is_authenticated %}
+                    {% if user.role == "CUSTOMER" %}
+                    <a href="/customer/" class="brand" aria-label="MADAM HY Customer Dashboard">
+                    {% else %}
+                    <a href="/dashboard/" class="brand" aria-label="MADAM HY Management Dashboard">
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="brand" aria-label="MADAM HY Login">
+                {% endif %}
+                    <div class="brand-logo" aria-hidden="true">
+                        <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg sidebar-brand-emblem" width="34" height="34" />
                     </div>
-
                     <div class="brand-text">
-
                         <strong>MADAM HY</strong>
-
                         <span>Smart Shop</span>
-
                     </div>
-
                 </a>
-
 
                 <button
                     type="button"
                     class="sidebar-close"
                     id="sidebarClose"
+                    aria-label="Close navigation sidebar"
                 >
-                    ×
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                 </button>
-
             </div>
 
+            <!-- Navigation Sections -->
+            <nav class="sidebar-navigation" aria-label="Sidebar Sections">
 
-            <!-- User -->
-
-            {% if user.is_authenticated %}
-
-            <div class="sidebar-user">
-
-                <div class="user-avatar">
-
-                    {{ user.first_name|first|default:user.username|first|upper }}
-
-                </div>
-
-
-                <div class="user-info">
-
-                    <strong>
-                        {{ user.get_full_name|default:user.username }}
-                    </strong>
-
-                    <span>
-                        {{ user.role|default:"User" }}
-                    </span>
-
-                </div>
-
-            </div>
-
-            {% endif %}
-
-
-            <!-- Navigation -->
-
-            <nav class="sidebar-navigation">
-
-
-                <!-- ==============================
-                     GENERAL
-                     ============================== -->
-
+                <!-- GENERAL SECTION -->
                 <div class="nav-section">
-
-                    <span class="nav-section-title">
-                        General
-                    </span>
-
-
+                    <span class="nav-section-title">General</span>
                     {% if user.is_authenticated %}
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            ▦
+                    <a href="{% if user.role == 'CUSTOMER' %}/customer/{% else %}/dashboard/{% endif %}" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-grid-1x2-fill"></i>
                         </span>
-
-                        <span>
-                            Dashboard
-                        </span>
-
+                        <span>Dashboard</span>
                     </a>
-
                     {% endif %}
-
                 </div>
 
-
-
-                <!-- ==============================
-                     BUSINESS
-                     OWNER / MANAGER
-                     ============================== -->
-
+                <!-- BUSINESS (OWNER / MANAGER) -->
                 {% if user.is_authenticated %}
-
                     {% if user.role == "OWNER" or user.role == "MANAGER" %}
-
                     <div class="nav-section">
+                        <span class="nav-section-title">Business</span>
 
-                        <span class="nav-section-title">
-                            Business
-                        </span>
-
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ◈
+                        <a href="/products/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-box-seam"></i>
                             </span>
-
-                            <span>
-                                Products
-                            </span>
-
+                            <span>Products</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ▣
+                        <a href="/inventory/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-boxes"></i>
                             </span>
-
-                            <span>
-                                Inventory
-                            </span>
-
+                            <span>Inventory</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ₦
+                        <a href="/sales/history/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-receipt"></i>
                             </span>
-
-                            <span>
-                                Sales
-                            </span>
-
+                            <span>Sales History</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ◉
+                        <a href="/credits/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg class="retail-svg icon-sm"><use href="#icon-retail-credit"></use></svg>
                             </span>
-
-                            <span>
-                                Customers
-                            </span>
-
+                            <span>Credits</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ◷
+                        <a href="/expenses/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-wallet2"></i>
                             </span>
-
-                            <span>
-                                Credits
-                            </span>
-
+                            <span>Expenses</span>
                         </a>
-
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                −
-                            </span>
-
-                            <span>
-                                Expenses
-                            </span>
-
-                        </a>
-
                     </div>
-
                     {% endif %}
-
                 {% endif %}
 
-
-
-                <!-- ==============================
-                     OPERATIONS
-                     ============================== -->
-
+                <!-- OPERATIONS (STAFF / CASHIER / MANAGER / OWNER) -->
                 {% if user.is_authenticated %}
-
                     {% if user.role == "OWNER" or user.role == "MANAGER" or user.role == "CASHIER" or user.role == "STAFF" %}
-
                     <div class="nav-section">
+                        <span class="nav-section-title">Operations</span>
 
-                        <span class="nav-section-title">
-                            Operations
-                        </span>
-
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                🛒
+                        <a href="/sales/pos/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg class="retail-svg icon-sm"><use href="#icon-retail-pos"></use></svg>
                             </span>
-
-                            <span>
-                                Point of Sale
-                            </span>
-
+                            <span>Point of Sale</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ↔
+                        <a href="/orders/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-bag-check"></i>
                             </span>
-
-                            <span>
-                                Orders
-                            </span>
-
+                            <span>Orders</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ₦
+                        <a href="/payments/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-cash-stack"></i>
                             </span>
-
-                            <span>
-                                Payments
-                            </span>
-
+                            <span>Payments</span>
                         </a>
 
+                        {% if user.role == "OWNER" or user.role == "MANAGER" or user.role == "STAFF" %}
+                        <a href="{% url 'delivery:management_dashboard' %}" class="nav-item {% if request.path|slice:':11' == '/deliveries/' %}active{% endif %}" {% if request.path|slice:':11' == '/deliveries/' %}aria-current="page"{% endif %}>
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-truck"></i>
+                            </span>
+                            <span>Delivery</span>
+                        </a>
+                        {% endif %}
                     </div>
-
                     {% endif %}
-
                 {% endif %}
 
-
-
-                <!-- ==============================
-                     REPORTS
-                     OWNER / MANAGER
-                     ============================== -->
-
+                <!-- ANALYTICS / REPORTS (OWNER / MANAGER) -->
                 {% if user.is_authenticated %}
-
                     {% if user.role == "OWNER" or user.role == "MANAGER" %}
-
                     <div class="nav-section">
+                        <span class="nav-section-title">Analytics</span>
 
-                        <span class="nav-section-title">
-                            Analytics
-                        </span>
-
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ▥
+                        <a href="/reports/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-bar-chart-line"></i>
                             </span>
-
-                            <span>
-                                Reports
-                            </span>
-
+                            <span>Reports</span>
                         </a>
 
-
-                        <a href="#" class="nav-item">
-
-                            <span class="nav-icon">
-                                ↗
+                        <a href="/reports/growth/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-graph-up-arrow"></i>
                             </span>
-
-                            <span>
-                                Business Growth
-                            </span>
-
+                            <span>Business Growth</span>
                         </a>
 
+                        <a href="/activity-logs/" class="nav-item">
+                            <span class="nav-icon" aria-hidden="true">
+                                <i class="bi bi-journal-text"></i>
+                            </span>
+                            <span>Audit Logs</span>
+                        </a>
                     </div>
-
                     {% endif %}
-
                 {% endif %}
 
-
-
-                <!-- ==============================
-                     CUSTOMER
-                     ============================== -->
-
+                <!-- CUSTOMER SHOP (CUSTOMER ONLY) -->
                 {% if user.is_authenticated and user.role == "CUSTOMER" %}
-
                 <div class="nav-section">
+                    <span class="nav-section-title">Shop</span>
 
-                    <span class="nav-section-title">
-                        Shop
-                    </span>
-
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            ◈
+                    <a href="/customer/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-speedometer2"></i>
                         </span>
-
-                        <span>
-                            Products
-                        </span>
-
+                        <span>Dashboard</span>
                     </a>
 
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            🛒
+                    <a href="/customer/products/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-shop-window"></i>
                         </span>
-
-                        <span>
-                            Cart
-                        </span>
-
+                        <span>Products</span>
                     </a>
 
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            ▣
+                    <a href="/customer/cart/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-cart3"></i>
                         </span>
-
-                        <span>
-                            My Orders
-                        </span>
-
+                        <span>Cart</span>
                     </a>
 
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            ₦
+                    <a href="/customer/orders/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-bag-check"></i>
                         </span>
-
-                        <span>
-                            My Credit
-                        </span>
-
+                        <span>My Orders</span>
                     </a>
 
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            +
+                    <a href="/customer/credit/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg class="retail-svg icon-sm"><use href="#icon-retail-credit"></use></svg>
                         </span>
-
-                        <span>
-                            Request Product
-                        </span>
-
+                        <span>My Credit</span>
                     </a>
 
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            ◷
+                    <a href="/customer/requests/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-patch-plus"></i>
                         </span>
-
-                        <span>
-                            My Activity
-                        </span>
-
+                        <span>Request Product</span>
                     </a>
 
+                    <a href="/customer/activity/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-clock-history"></i>
+                        </span>
+                        <span>My Activity</span>
+                    </a>
+
+                    <a href="/customer/settings/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-gear"></i>
+                        </span>
+                        <span>Settings</span>
+                    </a>
                 </div>
-
                 {% endif %}
 
-
-
-                <!-- ==============================
-                     OWNER ONLY
-                     ============================== -->
-
+                <!-- ADMINISTRATION (OWNER ONLY) -->
                 {% if user.is_authenticated and user.role == "OWNER" %}
-
                 <div class="nav-section">
+                    <span class="nav-section-title">Administration</span>
 
-                    <span class="nav-section-title">
-                        Administration
-                    </span>
-
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            👥
+                    <a href="/admin/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-shield-lock"></i>
                         </span>
-
-                        <span>
-                            Staff
-                        </span>
-
+                        <span>Staff Management</span>
                     </a>
 
-
-                    <a href="#" class="nav-item">
-
-                        <span class="nav-icon">
-                            ⚙
+                    <a href="/accounts/profile/" class="nav-item">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-person-gear"></i>
                         </span>
-
-                        <span>
-                            Settings
-                        </span>
-
+                        <span>Account Profile</span>
                     </a>
-
                 </div>
-
                 {% endif %}
 
             </nav>
 
-
-            <!-- Sidebar footer -->
-
+            <!-- Sidebar Footer (Logout) -->
             <div class="sidebar-footer">
-
                 {% if user.is_authenticated %}
-
-                <a href="#" class="logout-button">
-
-                    <span>
-                        ⇥
-                    </span>
-
-                    <span>
-                        Logout
-                    </span>
-
-                </a>
-
+                <form method="post" action="{% url 'accounts:logout' %}" class="logout-form" hx-boost="false" data-turbo="false">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button" aria-label="Sign out of your account">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </span>
+                        <span>Logout</span>
+                    </button>
+                </form>
                 {% endif %}
-
             </div>
 
         </aside>
 
-
-
         <!-- =====================================
-             MAIN CONTENT
+             MAIN CONTENT & TOPBAR (Phase 2 Master Shell)
              ===================================== -->
+        <main class="main-content" id="main-content" tabindex="-1" hx-boost="true" data-turbo="true">
 
-        <main class="main-content">
+            <!-- Sticky Modern Topbar -->
+            <header class="topbar" id="main-navbar">
+                <div id="topbarProgress" class="topbar-progress" aria-hidden="true"></div>
 
-
-            <!-- Topbar -->
-
-            <header class="topbar">
-
+                <!-- Mobile & Responsive Sidebar Toggle -->
                 <button
                     type="button"
                     class="mobile-menu-button"
                     id="mobileMenuButton"
+                    data-testid="sidebarToggle"
+                    aria-label="Open navigation menu"
+                    aria-expanded="false"
+                    aria-controls="sidebar"
                 >
-                    ☰
+                    <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
 
-
                 <div class="topbar-title">
-
-                    <h1>
-                        {% block page_title %}
-                        MADAM HY
-                        {% endblock %}
-                    </h1>
-
+                    <div class="topbar-brand-wrap">
+                        <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg navbar-brand-emblem" width="32" height="32" />
+                        <h1>
+                            {% block page_title %}
+                            MADAM HY
+                            {% endblock %}
+                        </h1>
+                    </div>
                 </div>
 
+                <!-- Global Contextual Module Sub-Navigation -->
+                <div class="topbar-nav" id="topbarNav" hx-boost="true" data-turbo="true">
+                    {% block module_subnav %}
+                        {% if active_module %}
+                            {% include 'includes/module_subnav.html' with module=active_module current_tab=active_tab active_tab=active_tab %}
+                        {% elif module %}
+                            {% include 'includes/module_subnav.html' with module=module current_tab=active_tab active_tab=active_tab %}
+                        {% endif %}
+                    {% endblock %}
+                </div>
 
                 <div class="topbar-actions">
-
-                    {% if user.is_authenticated %}
-
-                    <button
-                        type="button"
-                        class="notification-button"
+                    {% block page_actions %}{% endblock %}
+                    {% if user.is_authenticated and user.role != "CUSTOMER" %}
+                    <button type="button" class="topbar-button global-search-toggle" id="globalSearchToggle" aria-label="Open staff search" aria-haspopup="dialog" aria-controls="globalSearchDialog" title="Search products, orders, and customers">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                    </button>
+                    {% endif %}
+                    {% if not user.is_authenticated or user.role == "CUSTOMER" %}
+                    <!-- Storefront Shopping Cart with Live Badge -->
+                    <a
+                        href="/customer/cart/"
+                        class="topbar-button cart-button"
+                        id="topbarCartBtn"
+                        aria-label="Shopping Cart"
+                        title="Shopping Cart"
                     >
-                        🔔
-
-                        <span class="notification-badge">
+                        <i class="bi bi-cart3" aria-hidden="true"></i>
+                        <span class="cart-badge" id="topbarCartBadge" aria-label="Shopping Cart items count">
                             0
                         </span>
+                    </a>
+                    {% endif %}
 
-                    </button>
+                    {% if user.is_authenticated %}
+                    <!-- Notification Bell with unread counter -->
+                    <a
+                        href="/notifications/"
+                        class="topbar-button notification-button"
+                        id="notificationBell"
+                        aria-label="Notifications"
+                        title="Notifications"
+                    >
+                        <i class="bi bi-bell" aria-hidden="true"></i>
+                        <span class="notification-badge" id="notificationBadge" aria-label="Unread notification count">
+                            0
+                        </span>
+                    </a>
 
+                    <!-- User Profile Dropdown -->
+                    <div class="dropdown user-dropdown-container" id="userMenuDropdown">
+                        <button
+                            type="button"
+                            class="user-menu-trigger"
+                            id="userMenuButton"
+                            aria-expanded="false"
+                            aria-controls="userDropdownMenu"
+                            aria-label="User profile and settings menu"
+                        >
+                            <div class="user-avatar small" aria-hidden="true">
+                                {{ user.first_name|first|default:user.username|first|upper }}
+                            </div>
+                            <div class="topbar-user-info user-info">
+                                <strong>{{ user.get_full_name|default:user.username }}</strong>
+                                <span>{{ user.role|default:"User" }}</span>
+                            </div>
+                            <i class="bi bi-chevron-down user-dropdown-caret" aria-hidden="true"></i>
+                        </button>
 
-                    <div class="user-avatar small">
+                        <div class="dropdown-menu user-dropdown-menu" id="userDropdownMenu">
+                            <a
+                                href="{% if user.role == 'CUSTOMER' %}/customer/settings/{% else %}/accounts/profile/{% endif %}"
+                                class="dropdown-item"
+                            >
+                                <i class="bi bi-person-circle" aria-hidden="true"></i>
+                                <span>Profile & Settings</span>
+                            </a>
 
-                        {{ user.first_name|first|default:user.username|first|upper }}
+                            {% if user.role == "CUSTOMER" %}
+                            <a href="/customer/orders/" class="dropdown-item">
+                                <i class="bi bi-bag-check" aria-hidden="true"></i>
+                                <span>My Orders</span>
+                            </a>
+                            <a href="/customer/credit/" class="dropdown-item">
+                                <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
+                                <span>Credit Account</span>
+                            </a>
+                            {% else %}
+                            <a href="/activity-logs/" class="dropdown-item">
+                                <i class="bi bi-journal-text" aria-hidden="true"></i>
+                                <span>Audit Logs</span>
+                            </a>
+                            {% endif %}
 
+                            <div class="dropdown-divider"></div>
+
+                            <form method="post" action="{% url 'accounts:logout' %}" class="dropdown-logout-form" hx-boost="false" data-turbo="false">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item dropdown-logout-btn">
+                                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     {% endif %}
-
                 </div>
 
             </header>
 
-
-
-            <!-- Page -->
-
+            <!-- Page Body Content -->
             <section class="page-content">
-
                 {% block content %}
                 {% endblock %}
-
             </section>
-
 
         </main>
 
     </div>
 
-
-
-    <!-- Mobile overlay -->
-
+    <!-- Mobile Sidebar Backdrop Overlay -->
     <div
         class="sidebar-overlay"
         id="sidebarOverlay"
-    >
-    </div>
+        aria-hidden="true"
+    ></div>
 
-
+    {% if user.is_authenticated and user.role != "CUSTOMER" %}
+    <div class="global-search-backdrop" id="globalSearchBackdrop" hidden></div>
+    <section class="global-search-dialog" id="globalSearchDialog" role="dialog" aria-modal="true" aria-labelledby="globalSearchTitle" hidden>
+        <div class="global-search-dialog-header">
+            <h2 id="globalSearchTitle">Search products, orders, and customers</h2>
+            <button type="button" class="topbar-button" id="globalSearchClose" aria-label="Close staff search">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <form id="globalSearchForm" class="global-search-form" action="/products/" method="get" role="search">
+            <label for="globalSearchScope">Search in</label>
+            <select id="globalSearchScope" class="form-select">
+                <option value="/products/">Products</option>
+                <option value="/orders/">Orders and customers</option>
+            </select>
+            <label for="globalSearchInput">Search terms</label>
+            <input id="globalSearchInput" name="search" class="form-control" type="search" placeholder="Name, SKU, category, order number, or customer..." autocomplete="off" required>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search" aria-hidden="true"></i> Search
+            </button>
+        </form>
+        <p class="global-search-hint">Product search covers names, SKUs, categories, and descriptions. Order search also matches customer names and email.</p>
+    </section>
+    {% endif %}
 
     <!-- Core JavaScript -->
-
     <script src="{% static 'js/core/api.js' %}"></script>
     <script src="{% static 'js/core/main.js' %}"></script>
+    <script src="{% static 'js/core/modal.js' %}"></script>
     <script src="{% static 'js/core/navigation.js' %}"></script>
+    <script src="{% static 'js/core/notifications.js' %}"></script>
+    <script src="{% static 'js/core/router.js' %}"></script>
 
+    <!-- Sidebar Fallback Navigation for Complex Data Views -->
+    <script>
+        (function() {
+            // Ensure sidebar navigation supports fallback standard navigation for complex data views
+            // if router.js encounters any script execution errors (window.location.href = targetUrl;)
+            function handleRouterFallback(event) {
+                var targetUrl = (event && event.detail && event.detail.url) ? event.detail.url : null;
+                if (targetUrl) {
+                    window.location.href = targetUrl;
+                }
+            }
+
+            window.addEventListener('router:error', handleRouterFallback);
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.addEventListener('router:error', handleRouterFallback);
+                }
+            });
+        })();
+    </script>
 
     <!-- Page-specific JavaScript -->
-
     {% block page_js %}
     {% endblock %}
 

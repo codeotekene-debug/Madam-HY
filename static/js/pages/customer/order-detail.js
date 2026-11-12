@@ -1,20 +1,33 @@
-/** MADAM HY - Customer Order Detail */
+/**
+ * MADAM HY - Customer Order Detail Controller
+ */
 
 const customerOrderStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY', 'COMPLETED'];
 
 document.addEventListener('DOMContentLoaded', loadCustomerOrderDetail);
 
+function getOrderIdFromUrl() {
+    const searchId = new URLSearchParams(window.location.search).get('id');
+    if (searchId && !isNaN(Number(searchId))) return Number(searchId);
+
+    const match = window.location.pathname.match(/\/orders\/(\d+)\/?/);
+    if (match && match[1]) return Number(match[1]);
+
+    const altMatch = window.location.pathname.match(/\/order-success\/(\d+)\/?/);
+    if (altMatch && altMatch[1]) return Number(altMatch[1]);
+
+    return null;
+}
+
 async function loadCustomerOrderDetail() {
-    const orderId = Number(new URLSearchParams(window.location.search).get('id'));
+    const orderId = getOrderIdFromUrl();
     if (!orderId) {
-        showDetailMessage('Order ID was not found.', true);
+        // May already be server-rendered
         return;
     }
 
-    showDetailMessage('Loading order details...');
     const response = await apiRequest(`/orders/${orderId}/`);
     if (!response.success || !response.data?.order) {
-        showDetailMessage(response.message || 'Unable to load order details.', true, loadCustomerOrderDetail);
         return;
     }
     renderDetail(response.data.order);
@@ -28,24 +41,26 @@ function renderDetail(order) {
     document.getElementById('detailReference')?.replaceChildren(document.createTextNode(order.order_number));
     document.getElementById('detailPlacedDate')?.replaceChildren(document.createTextNode(formatDate(order.created_at)));
     document.getElementById('detailOrderTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(order.total)}`));
+    document.getElementById('detailHeroTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(order.total)}`));
     document.getElementById('detailPaymentMethod')?.replaceChildren(document.createTextNode(formatLabel(order.payment_method)));
     document.getElementById('detailPaymentStatus')?.replaceChildren(document.createTextNode(formatLabel(order.payment_status)));
-    document.getElementById('detailCustomer')?.replaceChildren(document.createTextNode(order.customer?.full_name || order.customer?.email || 'Customer'));
+    document.getElementById('detailPaymentStatusTop')?.replaceChildren(document.createTextNode(formatLabel(order.payment_status)));
+    document.getElementById('detailCustomer')?.replaceChildren(document.createTextNode(order.customer?.full_name || order.customer?.username || order.customer?.email || 'Customer'));
+    document.getElementById('detailCustomerPhone')?.replaceChildren(document.createTextNode(order.customer_phone || 'Provided at checkout'));
+    document.getElementById('detailDeliveryAddress')?.replaceChildren(document.createTextNode(order.delivery_address || 'In-Store Counter Pickup'));
     document.getElementById('detailOrderNotes')?.replaceChildren(document.createTextNode(order.notes || 'No notes provided'));
 
     const items = document.getElementById('detailOrderItems');
-    if (items) {
-        if (!order.items?.length) {
-            items.replaceChildren(document.createTextNode('No items were recorded for this order.'));
-        } else {
-            items.innerHTML = order.items.map(item => `
-                <div class="order-item-row">
-                    <div class="order-item-name">${escapeHtml(item.product_name_snapshot)}</div>
-                    <div class="order-item-qty">x${item.quantity}</div>
-                    <div class="order-item-price">₦${formatCurrency(item.line_total)}</div>
+    if (items && order.items?.length) {
+        items.innerHTML = order.items.map(item => `
+            <div class="order-item-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0;">
+                <div>
+                    <strong style="font-size: 14px; color: #0f172a;">${escapeHtml(item.product_name_snapshot || item.product_name)}</strong>
+                    <span style="font-size: 12.5px; color: #64748b; margin-left: 8px;">× ${item.quantity}</span>
                 </div>
-            `).join('');
-        }
+                <strong style="font-size: 14px; color: #0f172a;">₦ ${formatCurrency(item.line_total || item.total_price)}</strong>
+            </div>
+        `).join('');
     }
 
     renderTimeline(status, order.created_at);
@@ -54,11 +69,12 @@ function renderDetail(order) {
 function renderTimeline(currentStatus, createdAt) {
     const timeline = document.getElementById('detailTimeline');
     if (!timeline) return;
+
     if (currentStatus === 'CANCELLED') {
         timeline.innerHTML = `
             <div class="timeline-item cancelled current">
                 <strong>Cancelled</strong>
-                <span>This order is cancelled.</span>
+                <span>This order was cancelled.</span>
                 <span>${formatDate(createdAt)}</span>
             </div>
         `;
@@ -68,7 +84,7 @@ function renderTimeline(currentStatus, createdAt) {
     const currentIndex = customerOrderStatuses.indexOf(currentStatus);
     timeline.innerHTML = customerOrderStatuses.map((status, index) => {
         const state = index < currentIndex ? 'completed' : index === currentIndex ? 'current' : 'upcoming';
-        const description = state === 'completed' ? 'Completed' : state === 'current' ? 'Current status' : 'Upcoming';
+        const description = state === 'completed' ? 'Completed' : state === 'current' ? 'Current Status' : 'Upcoming';
         return `
             <div class="timeline-item ${state}">
                 <strong>${formatLabel(status)}</strong>
@@ -85,27 +101,30 @@ function setStatusElement(element, status) {
     element.className = `badge badge-primary status-${normalizeStatus(status)}`;
 }
 
-function showDetailMessage(message, isError = false, retry) {
-    const target = document.getElementById('detailOrderItems');
-    if (!target) return;
-    target.replaceChildren();
-    const text = document.createElement('p');
-    text.textContent = message;
-    target.append(text);
-    if (isError && retry) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'btn btn-secondary btn-sm';
-        button.textContent = 'Retry';
-        button.addEventListener('click', retry);
-        target.append(button);
-    }
+function normalizeStatus(status) {
+    return String(status || '').toLowerCase().replaceAll('_', '-');
 }
 
-function normalizeStatus(value) { return String(value || '').toLowerCase().replaceAll('_', '-'); }
-function formatLabel(value) { return String(value || '').toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase()); }
-function formatCurrency(value) { return Number(value || 0).toLocaleString('en-NG'); }
-function formatDate(value) { return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
+function formatLabel(value) {
+    if (!value) return '-';
+    return String(value).replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('en-NG', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function formatCurrency(value) {
+    return Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function escapeHtml(value) {
     const element = document.createElement('span');
     element.textContent = value == null ? '' : String(value);

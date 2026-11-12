@@ -1,0 +1,16 @@
+/* =========================================================
+   MADAM HY - BASE CONSOLIDATED STYLESHEET
+   Aggregates core design tokens, reset, typography, and layout
+   ========================================================= */
+
+@import url("./core/variables.css");
+@import url("./core/reset.css");
+@import url("./core/typography.css");
+@import url("./core/navbar.css");
+@import url("./core/sidebar.css");
+@import url("./core/forms.css");
+@import url("./core/modals.css");
+@import url("./core/tables.css");
+@import url("./core/components.css");
+@import url("./core/responsive.css");
+@import url("./pages/dashboard.css");

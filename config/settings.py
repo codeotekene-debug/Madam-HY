@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import urllib.parse
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,27 +21,146 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+def env_bool(name: str, default: bool = False) -> bool:
+    """Parse boolean environment variables safely."""
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return val.strip().lower() in ("true", "1", "yes", "on")
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-development-key"
-)
 
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+def env_int(name: str, default: int = 0) -> int:
+    """Parse integer environment variables safely."""
+    val = os.getenv(name)
+    if val is None:
+        return default
+    try:
+        return int(val.strip())
+    except (ValueError, TypeError):
+        return default
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv(
-        "ALLOWED_HOSTS",
-        "127.0.0.1,localhost"
-    ).split(",")
-    if host.strip()
+
+def parse_database_url(url_str: str) -> dict:
+    """Parse standard database connection strings into Django DATABASES configuration."""
+    parsed = urllib.parse.urlparse(url_str)
+    scheme = parsed.scheme.lower()
+
+    if scheme == "sqlite":
+        path = parsed.path
+        if path in ("/:memory:", ":memory:"):
+            db_name = ":memory:"
+        elif path.startswith("/"):
+            db_name = path[1:]
+        else:
+            db_name = path or str(BASE_DIR / "db.sqlite3")
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": db_name,
+        }
+
+    engine_map = {
+        "mysql": "django.db.backends.mysql",
+        "postgres": "django.db.backends.postgresql",
+        "postgresql": "django.db.backends.postgresql",
+    }
+    engine = engine_map.get(scheme, f"django.db.backends.{scheme}")
+
+    config = {
+        "ENGINE": engine,
+        "NAME": urllib.parse.unquote(parsed.path.lstrip("/")),
+        "USER": urllib.parse.unquote(parsed.username or ""),
+        "PASSWORD": urllib.parse.unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port) if parsed.port else "",
+    }
+    if "mysql" in engine:
+        config["OPTIONS"] = {"charset": "utf8mb4"}
+    return config
+
+
+# ==============================================================================
+# CORE ENVIRONMENT & SECURITY CONFIGURATION
+# ==============================================================================
+
+# DEBUG: Default to False in production; safely read from environment
+DEBUG = env_bool("DEBUG", default=False)
+
+# SECRET_KEY: Strictly require in production; fallback only allowed when DEBUG=True
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+
+if not DEBUG:
+    if (
+        not SECRET_KEY
+        or SECRET_KEY.startswith("django-insecure-")
+        or SECRET_KEY == "change-this-to-a-random-secret-key"
+        or len(SECRET_KEY) < 50
+        or len(set(SECRET_KEY)) < 5
+    ):
+        raise ImproperlyConfigured(
+            "A secure SECRET_KEY must be provided via the environment when DEBUG=False. "
+            "Insecure defaults, keys shorter than 50 characters, or low-entropy keys are disallowed in production."
+        )
+else:
+    if not SECRET_KEY:
+        SECRET_KEY = "django-insecure-development-key-only-for-local-debugging"
+
+# ALLOWED_HOSTS: Comma-separated list from environment; '*' disallowed in production
+raw_allowed_hosts = os.getenv("ALLOWED_HOSTS", "")
+if raw_allowed_hosts:
+    ALLOWED_HOSTS = [h.strip() for h in raw_allowed_hosts.split(",") if h.strip()]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '.ngrok-free.app', '.ngrok-free.dev', '.ngrok.app', '.ngrok.io','juniper-strife-grimy.ngrok-free.dev', '*'] if DEBUG else []
+
+if not DEBUG:
+    if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
+        raise ImproperlyConfigured(
+            "ALLOWED_HOSTS must be explicitly defined with specific hostnames when DEBUG=False. "
+            "Empty hosts or wildcard ('*') are disallowed in production."
+        )
+
+# Required for Django 4.0+ form submissions and login via ngrok HTTPS
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.app',
+    'https://*.ngrok-free.dev',
+    'https://*.ngrok.app',
+    'https://*.ngrok.io',
 ]
 
+# ==============================================================================
+# SECURITY HEADERS & COOKIES HARDENING
+# ==============================================================================
 
-# Application definition
+SECURE_BROWSER_XSS_FILTER = env_bool("SECURE_BROWSER_XSS_FILTER", default=True)
+SECURE_CONTENT_TYPE_NOSNIFF = env_bool("SECURE_CONTENT_TYPE_NOSNIFF", default=True)
+X_FRAME_OPTIONS = os.getenv("X_FRAME_OPTIONS", "DENY").strip().upper()
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", default=True)
+    CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", default=True)
+    SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=True)
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", default=True)
+else:
+    SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", default=False)
+    CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", default=False)
+    SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", default=0)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=False)
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", default=False)
+
+raw_proxy_ssl = os.getenv("SECURE_PROXY_SSL_HEADER", "").strip()
+if raw_proxy_ssl:
+    if raw_proxy_ssl.lower() in ("true", "1", "yes", "on"):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    elif "," in raw_proxy_ssl:
+        header, proto = [p.strip() for p in raw_proxy_ssl.split(",", 1)]
+        SECURE_PROXY_SSL_HEADER = (header, proto)
+
+
+# ==============================================================================
+# APPLICATION DEFINITION
+# ==============================================================================
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -62,6 +183,8 @@ INSTALLED_APPS = [
     "apps.requests",
     "apps.notifications",
     "apps.activity_logs",
+    "apps.delivery",
+    "apps.preview",
 ]
 
 MIDDLEWARE = [
@@ -96,27 +219,124 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = "config.asgi.application"
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# ==============================================================================
+# DATABASE CONFIGURATION
+# ==============================================================================
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("DB_NAME", "madam_hy"),
-        "USER": os.getenv("DB_USER", "root"),
-        "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-        "PORT": os.getenv("DB_PORT", "3306"),
-        "OPTIONS": {
-            "charset": "utf8mb4",
-        },
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+conn_max_age = env_int("CONN_MAX_AGE", default=0)
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": parse_database_url(DATABASE_URL)
     }
+else:
+    DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower().strip()
+    if DB_ENGINE in ("mysql", "django.db.backends.mysql"):
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": os.getenv("DB_NAME", "madam_hy"),
+                "USER": os.getenv("DB_USER", "root"),
+                "PASSWORD": os.getenv("DB_PASSWORD", ""),
+                "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+                "PORT": os.getenv("DB_PORT", "3306"),
+                "OPTIONS": {
+                    "charset": "utf8mb4",
+                },
+            }
+        }
+    elif DB_ENGINE in ("postgres", "postgresql", "django.db.backends.postgresql"):
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": os.getenv("DB_NAME", "madam_hy"),
+                "USER": os.getenv("DB_USER", "postgres"),
+                "PASSWORD": os.getenv("DB_PASSWORD", ""),
+                "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+                "PORT": os.getenv("DB_PORT", "5432"),
+            }
+        }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+
+if conn_max_age > 0:
+    DATABASES["default"]["CONN_MAX_AGE"] = conn_max_age
+
+
+# ==============================================================================
+# LOGGING CONFIGURATION
+# ==============================================================================
+
+LOGS_DIR = BASE_DIR / "logs"
+try:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} [{name}:{lineno}] {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'smart_shop.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    },
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# ==============================================================================
+# PASSWORD VALIDATION
+# ==============================================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -134,37 +354,58 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+# ==============================================================================
+# INTERNATIONALIZATION
+# ==============================================================================
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = "Africa/Lagos"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+# ==============================================================================
+# STATIC & MEDIA FILES
+# ==============================================================================
 
 STATIC_URL = 'static/'
-
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
-
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# MEDIA FILES
-
 MEDIA_URL = "/media/"
-
 MEDIA_ROOT = BASE_DIR / "media"
 
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# ==============================================================================
+# DEFAULT PRIMARY KEY & CUSTOM USER
+# ==============================================================================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTH_USER_MODEL = 'accounts.User'
+
+
+# ==============================================================================
+# PAYMENT GATEWAYS & RECONCILIATION PROVIDERS
+# ==============================================================================
+
+# Paystack (Phase 4A: Online payment verification)
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "").strip()
+PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "").strip()
+PAYSTACK_BASE_URL = os.getenv("PAYSTACK_BASE_URL", "https://api.paystack.co").strip().rstrip("/")
+
+# Moniepoint POS Terminal Integration & In-Store Counter Transfer
+MONIEPOINT_API_KEY = os.getenv("MONIEPOINT_API_KEY", "").strip()
+MONIEPOINT_SECRET_KEY = os.getenv("MONIEPOINT_SECRET_KEY", "").strip()
+MONIEPOINT_CLIENT_ID = os.getenv("MONIEPOINT_CLIENT_ID", "").strip()
+MONIEPOINT_CLIENT_SECRET = os.getenv("MONIEPOINT_CLIENT_SECRET", "").strip()
+MONIEPOINT_AUTH_METHOD = os.getenv("MONIEPOINT_AUTH_METHOD", "").strip().upper()  # 'API_KEY' or 'CLIENT_CREDENTIALS'
+MONIEPOINT_BASE_URL = os.getenv("MONIEPOINT_BASE_URL", "https://api.pos.moniepoint.com").strip().rstrip("/")
+MONIEPOINT_TERMINAL_ID = os.getenv("MONIEPOINT_TERMINAL_ID", "").strip()  # Hardware Serial Number of POS Terminal
+MONIEPOINT_COUNTER_ACCOUNT = os.getenv("MONIEPOINT_COUNTER_ACCOUNT", "").strip()
+MONIEPOINT_BANK_NAME = os.getenv("MONIEPOINT_BANK_NAME", "Moniepoint MFB").strip()
+try:
+    MONIEPOINT_TIMEOUT = int(os.getenv("MONIEPOINT_TIMEOUT", "15"))
+except (ValueError, TypeError):
+    MONIEPOINT_TIMEOUT = 15

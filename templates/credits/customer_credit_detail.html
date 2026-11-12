@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credit Detail — {{ account.customer.get_full_name|default:account.customer.username }} | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Credit Detail
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/detail.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="credits" current_tab="accounts" %}
+{% endblock %}
+
+{% block content %}
+<div class="credit-detail-page">
+    <header class="credits-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
+                    <span>Credit Account Record</span>
+                </span>
+            </div>
+            <h2>Credit Account: {{ account.customer.get_full_name|default:account.customer.username }}</h2>
+            <p>Complete credit ledger history, available limit allowance, and repayment schedule.</p>
+        </div>
+
+        <div class="page-actions u-flex-gap-sm" >
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' %}
+            <a href="{% url 'credits:add_customer_credit' %}?customer_id={{ account.customer.id }}" class="btn btn-primary" id="heroAddCreditBtn">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>Add / Adjust Credit</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'credits:credit_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span>Back to Accounts</span>
+            </a>
+        </div>
+    </header>
+
+    <section class="detail-layout">
+        <article class="card detail-summary-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3 id="detailCustomerName">{{ account.customer.get_full_name|default:account.customer.username }}</h3>
+                    <p id="detailCustomerPhone">{{ account.customer.phone_number|default:account.customer.email }}</p>
+                </div>
+                <span id="detailCreditStatus" class="status-pill {{ account.get_status_display|lower|slugify }}">
+                    {{ account.get_status_display }}
+                </span>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <span class="detail-label">Approved Credit Limit</span>
+                    <strong id="detailCreditLimit">₦ {{ account.credit_limit|floatformat:2 }}</strong>
+                </div>
+                <div>
+                    <span class="detail-label">Amount Used / Debt</span>
+                    <strong id="detailAmountUsed" style="color: {% if account.outstanding_balance > 0 %}var(--warning-dark, #b87700){% else %}var(--text){% endif %};">
+                        ₦ {{ account.outstanding_balance|floatformat:2 }}
+                    </strong>
+                </div>
+                <div>
+                    <span class="detail-label">Available Credit Line</span>
+                    <strong id="detailAvailableCredit"  class="text-primary">
+                        ₦ {{ account.get_available_credit|floatformat:2 }}
+                    </strong>
+                </div>
+                <div>
+                    <span class="detail-label">Account Standing</span>
+                    <strong id="detailAccountStatus">{{ account.get_status_display }}</strong>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4 class="section-title">Debt &amp; Repayment Standing</h4>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Total Outstanding Debt</span>
+                        <strong id="detailOutstanding" class="outstanding-amount" style="color: {% if account.outstanding_balance > 0 %}#be123c{% else %}var(--success-dark, #057a44){% endif %};">
+                            ₦ {{ account.outstanding_balance|floatformat:2 }}
+                        </strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Next Scheduled Due Date</span>
+                        <strong id="detailDueDate">{{ account.next_due_date|date:"M d, Y"|default:'None scheduled' }}</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Last Repayment Date</span>
+                        <strong id="detailLastPayment">{{ account.last_payment_date|date:"M d, Y"|default:'No repayments yet' }}</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Authorized Approver</span>
+                        <strong id="detailApprover">{{ account.approved_by.get_full_name|default:account.approved_by.email|default:'System' }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            {% if account.is_overdue %}
+            <div class="detail-section" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 14px;">
+                <h4 class="section-title" style="color: #991b1b; margin-top: 0;">Overdue Alert</h4>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Overdue Debt</span>
+                        <strong class="overdue-amount" style="color: #be123c;">₦ {{ account.outstanding_balance|floatformat:2 }}</strong>
+                    </div>
+                    <div>
+                        <span class="detail-label">Past Due Since</span>
+                        <strong>{{ account.next_due_date|date:"M d, Y" }}</strong>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </article>
+
+        <aside class="card detail-transactions-card">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Ledger Activity</h3>
+                    <p>Verified balance changes and credit transactions.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailTransactionsBody">
+                        {% for tx in transactions %}
+                        <tr>
+                            <td>{{ tx.created_at|date:"M d, Y" }}</td>
+                            <td><span class="status-pill status-pill-sm">{{ tx.get_transaction_type_display }}</span></td>
+                            <td class="num" style="{% if tx.transaction_type == 'CREDIT_PURCHASE' %}color: #be123c;{% elif tx.transaction_type == 'REPAYMENT' %}color: #057a44;{% endif %}">
+                                {% if tx.transaction_type == 'CREDIT_PURCHASE' %}+{% elif tx.transaction_type == 'REPAYMENT' %}-{% endif %}₦ {{ tx.amount|floatformat:2 }}
+                            </td>
+                            <td class="num">₦ {{ tx.new_balance|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--muted); padding: 24px;">No transactions recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="detail-actions" style="display: flex; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);">
+                {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' %}
+                <a href="{% url 'credits:add_customer_credit' %}?customer_id={{ account.customer.id }}" class="btn btn-primary" id="bottomAddCreditBtn">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Credit
+                </a>
+                {% endif %}
+                <a href="/credits/payment/?account_id={{ account.id }}" class="btn btn-secondary">Record Repayment</a>
+            </div>
+        </aside>
+    </section>
+</div>
+
+<script id="creditAccountJson" type="application/json">{{ serialized_account_json|safe }}</script>
+<script id="creditTransactionsJson" type="application/json">{{ transactions_json|safe }}</script>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/credits/detail.js' %}"></script>
+{% endblock %}

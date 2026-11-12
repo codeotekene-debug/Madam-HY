@@ -35,7 +35,7 @@ function setupManagementControls() {
         deactivateButton?.remove();
         return;
     }
-    if (editLink && productId) editLink.href = `/preview/products/edit/?id=${productId}`;
+    if (editLink && productId) editLink.href = `/products/${productId}/edit/`;
     deactivateButton?.addEventListener("click", () => deactivateProduct(productId));
 }
 
@@ -46,12 +46,12 @@ async function deactivateProduct(productId) {
         showDetailMessage(formatApiErrors(response) || "Unable to deactivate product.");
         return;
     }
-    window.location.href = "/preview/products/";
+    window.location.href = "/products/";
 }
 
 function renderProductDetail(product) {
     const status = normalizeStatus(product.stock?.status);
-    const image = product.primary_image?.url || product.images?.[0]?.url || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+    const image = product.primary_image?.url || product.images?.[0]?.url || "/static/img/defaults/product-placeholder.svg";
     setText("productName", product.name);
     setText("productSku", `SKU: ${product.sku}`);
     setText("productCategory", product.category?.name || "Uncategorised");

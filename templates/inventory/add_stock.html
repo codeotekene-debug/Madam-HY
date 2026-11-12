@@ -7,11 +7,15 @@
 {% endblock %}
 
 {% block page_title %}
-    Add Stock
+    Stock Intake &amp; Adjustments
 {% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{% static 'css/pages/inventory/add-stock.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="inventory" active_tab="adjustments" %}
 {% endblock %}
 
 {% block content %}
@@ -19,74 +23,407 @@
     <section class="inventory-hero compact-hero">
         <div>
             <span class="badge badge-primary">Stock intake</span>
-            <h2>Add stock</h2>
-            <p>Record incoming inventory and keep replenishment information aligned with business operations.</p>
+            <h2>Stock Intake &amp; Adjustments</h2>
+            <p>Record newly received inventory, perform stock audit corrections, write off damages, and remove expired products with full ledger traceability.</p>
         </div>
 
-        <a href="#" class="btn btn-secondary">Back to inventory</a>
+        <a href="{% url 'inventory:list' %}" class="btn btn-secondary">Back to inventory</a>
     </section>
 
-    <form class="card inventory-form" id="stockForm" novalidate>
-        <div class="form-grid">
-            <div class="form-column">
+    <form class="card inventory-form" id="stockForm" method="post" action="{% url 'inventory:add_stock' %}" onsubmit="event.preventDefault(); return false;" novalidate>
+        {% csrf_token %}
+        <div id="stock-form-error" class="alert alert-danger {% if not error_message and not form.errors %}d-none{% endif %} my-2" role="alert">
+            {% if error_message %}
+                {{ error_message }}
+            {% elif form.errors %}
+                {% if form.errors.items %}
+                    <ul style="margin: 0; padding-left: 20px;">
+                        {% for field, errors in form.errors.items %}
+                            <li><strong>{{ field|title }}:</strong> {{ errors|striptags }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    {{ form.errors }}
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div id="stock-form-success" class="alert alert-success {% if not success_message %}d-none{% endif %} my-2" role="status" aria-live="polite">
+            {% if success_message %}
+                {{ success_message }}
+            {% endif %}
+        </div>
+
+        <!-- 1. PRIMARY SELECTION: AUDIT REASON & PRODUCT -->
+        <div class="action-selector-card">
+            <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label" for="stockProduct">Product <span class="required">*</span></label>
-                    <select id="stockProduct" class="form-select" required>
-                        <option value="">Select product</option>
-                        <option>Green Ankara Fabric Premium</option>
-                        <option>Velvet Evening Gown</option>
-                        <option>Radiant Glow Serum</option>
-                        <option>Kitchen Storage Basket</option>
+                    <label class="form-label" for="stockReason"><strong>Audit Reason / Inventory Action <span class="required">*</span></strong></label>
+                    <select id="stockReason" name="reason" class="form-select">
+                        <option value="RESTOCK" selected>Restock (Record Newly Received Inventory)</option>
+                        <option value="CORRECTION">Correction (Inventory Audit / Physical Count)</option>
+                        <option value="DAMAGE">Damage (Shelf Defect / Stock Write-Off)</option>
+                        <option value="EXPIRY">Expiry (Expired Product Removal)</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="stockSupplier">Supplier</label>
-                    <input id="stockSupplier" class="form-control" type="text" placeholder="Supplier or vendor name" />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="stockQuantity">Quantity <span class="required">*</span></label>
-                    <input id="stockQuantity" class="form-control" type="number" min="1" required placeholder="0" />
+                    <label class="form-label" for="stockProduct"><strong>Product Selection <span class="required">*</span></strong></label>
+                    <select id="stockProduct" name="product_id" class="form-select" required>
+                        <option value="">-- Choose a product --</option>
+                        {% for product in products %}
+                        <option value="{{ product.id }}" {% if selected_product_id == product.id|stringformat:"s" or selected_product_id == product.id %}selected{% endif %}>
+                            {{ product.name }} ({{ product.sku }}) — Current Stock: {{ product.current_stock }} units
+                        </option>
+                        {% empty %}
+                        <option value="">No products available</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 
-            <div class="form-column">
-                <div class="form-group">
-                    <label class="form-label" for="stockUnitCost">Unit cost</label>
-                    <input id="stockUnitCost" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
-                </div>
+            <!-- Dynamic Action Explanation Banner -->
+            <div id="reasonDescriptionBox" class="action-description-box">
+                <strong>Restock Intake:</strong> Record newly purchased or delivered inventory from suppliers. Increases available stock and optionally updates product cost and selling prices.
+            </div>
+        </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="stockDate">Date received</label>
-                    <input id="stockDate" class="form-control" type="date" />
+        <!-- 2. PRODUCT DETAILS & VALUATION PREVIEW CARD -->
+        <div id="productPreviewCard" class="product-preview-card empty-preview">
+            <div id="previewCardEmptyMessage">Please select a product above to view current stock, prices, and margin details.</div>
+            <div id="previewCardContent" class="d-none" style="display: flex; align-items: center; gap: 18px; width: 100%;">
+                <img id="productThumb" class="product-preview-thumb" src="{% static 'images/placeholder-product.svg' %}" alt="Product Image" onerror="this.src='/static/images/placeholder-product.svg';">
+                <div class="product-preview-details">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <h4 id="productTitle">Product Name</h4>
+                        <span id="productStockBadge" class="badge badge-success">0 units in stock</span>
+                    </div>
+                    <div class="product-preview-meta">
+                        <span>SKU: <strong id="productSku">--</strong></span>
+                    </div>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="stockReason">Reason</label>
-                    <select id="stockReason" class="form-select">
-                        <option value="Restock">Restock</option>
-                        <option value="New arrival">New arrival</option>
-                        <option value="Seasonal order">Seasonal order</option>
-                        <option value="Damaged replacement">Damaged replacement</option>
-                    </select>
+                <div class="product-preview-metrics">
+                    <div class="metric-pill">
+                        <span class="metric-label">Current Stock</span>
+                        <span class="metric-value" id="metricStock">0 units</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span class="metric-label">Cost Price</span>
+                        <span class="metric-value" id="metricCost">₦0.00</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span class="metric-label">Selling Price</span>
+                        <span class="metric-value" id="metricSelling">₦0.00</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span class="metric-label">Gross Margin</span>
+                        <span class="metric-value" id="metricMargin">0.0%</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label" for="stockNotes">Notes</label>
-            <textarea id="stockNotes" class="form-textarea" placeholder="Add receiving notes, packaging notes, or supplier remarks."></textarea>
+        <!-- 3. ACTION SPECIFIC SECTIONS -->
+
+        <!-- A. RESTOCK SECTION -->
+        <div id="restockSection" class="action-fields-section">
+            <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: #1e293b;">Stock Receipt Information</h4>
+            <div class="form-grid">
+                <div class="form-column">
+                    <div class="form-group">
+                        <label class="form-label" for="stockQuantity">Quantity Received <span class="required">*</span></label>
+                        <input id="stockQuantity" name="quantity" class="form-control" type="number" min="1" step="1" placeholder="e.g. 50" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="stockSupplier">Supplier / Vendor</label>
+                        <input id="stockSupplier" name="supplier" class="form-control" type="text" placeholder="e.g. Lagos Wholesale Depot" />
+                    </div>
+                </div>
+
+                <div class="form-column">
+                    <div class="form-group">
+                        <label class="form-label" for="stockDate">Purchase / Delivery Date</label>
+                        <input id="stockDate" name="date" class="form-control" type="date" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="stockReference">Purchase Order / Delivery Reference</label>
+                        <input id="stockReference" name="reference" class="form-control" type="text" placeholder="e.g. PO-2026-0042 / Waybill #883" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="stockNotes">Receiving Notes</label>
+                <textarea id="stockNotes" name="notes" class="form-textarea" placeholder="Add optional delivery remarks, condition on arrival, or warehouse notes..."></textarea>
+            </div>
+
+            <!-- Optional Product Price Update for Restock -->
+            {% if can_manage_prices %}
+            <div class="pricing-update-card" id="pricingUpdateBox">
+                <div class="pricing-toggle-header">
+                    <label class="pricing-toggle-label" for="updatePricingToggle">
+                        <input type="checkbox" id="updatePricingToggle" name="update_pricing" value="1">
+                        <span><strong>Update Product Pricing with this Restock (Optional)</strong></span>
+                    </label>
+                    <span class="badge badge-secondary" style="font-size: 0.75rem;">Manager / Owner Only</span>
+                </div>
+
+                <div id="pricingFieldsContainer" class="d-none" style="margin-top: 16px; border-top: 1px dashed #cbd5e1; padding-top: 14px;">
+                    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">
+                        Adjust the authoritative cost and retail selling price for this product. Price changes are logged permanently in the price history audit log. Selling price cannot be lower than cost price.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="newCostPrice">New Cost Price (₦) <span class="required">*</span></label>
+                            <input id="newCostPrice" name="new_cost_price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="newSellingPrice">New Selling Price (₦) <span class="required">*</span></label>
+                            <input id="newSellingPrice" name="new_selling_price" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+                        </div>
+                    </div>
+
+                    <div class="form-group u-mt-10" >
+                        <label class="form-label" for="priceChangeReason">Reason for Price Change <span class="required">*</span></label>
+                        <input id="priceChangeReason" name="price_change_reason" class="form-control" type="text" placeholder="e.g. Supplier invoice price increase, seasonal margin revision" />
+                    </div>
+
+                    <!-- Live Gross Profit & Margin Preview -->
+                    <div class="pricing-preview-badge-group">
+                        <div>
+                            <span class="metric-label">Estimated Gross Profit Per Unit</span>
+                            <div class="metric-value" id="previewGrossProfit" style="color: #166534; font-size: 1.1rem;">₦0.00</div>
+                        </div>
+                        <div>
+                            <span class="metric-label">Gross Profit Margin</span>
+                            <div class="metric-value" id="previewGrossMargin" style="color: #1e40af; font-size: 1.1rem;">0.0%</div>
+                        </div>
+                    </div>
+
+                    <div id="pricingValidationError" class="alert alert-danger d-none my-2" role="alert">
+                        Selling price cannot be lower than cost price.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- B. CORRECTION SECTION (Physical Count Audit) -->
+        <div id="correctionFields" class="action-fields-section d-none">
+            <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: #854d0e;">Authorized Physical Inventory Audit</h4>
+            <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 12px;">
+                Enter the verified physical count on the shelf. The system will automatically calculate the difference and record the correction.
+            </p>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Current Recorded Stock</label>
+                    <input id="correctionCurrentStock" class="form-control" type="text" readonly disabled value="--">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="actualQuantity">Verified Physical Count <span class="required">*</span></label>
+                    <input id="actualQuantity" name="actual_quantity" class="form-control" type="number" min="0" step="1" placeholder="e.g. 24" />
+                </div>
+            </div>
+
+            <!-- Live Calculated Difference Banner -->
+            <div id="correctionDiffBanner" class="calc-summary-banner banner-neutral">
+                <div>
+                    <strong>Calculated Adjustment:</strong> <span id="correctionDiffText">Enter verified count above</span>
+                </div>
+                <div>
+                    <strong>Resulting Stock Level:</strong> <span id="correctionResultingStock">-- units</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 14px;">
+                <label class="form-label" for="correctionNotes">Correction Explanation / Reason <span class="required">*</span></label>
+                <textarea id="correctionNotes" name="correction_notes" class="form-textarea" placeholder="State the reason for this inventory correction (e.g. Monthly stock audit discrepancy, misplaced box found in storage)..."></textarea>
+            </div>
+
+            <div class="confirmation-checkbox-card">
+                <input type="checkbox" id="confirmCorrection" name="confirm_correction" required>
+                <label for="confirmCorrection">
+                    I confirm that a physical inventory count was performed and this correction adjusts the authoritative inventory balance.
+                </label>
+            </div>
+        </div>
+
+        <!-- C. DAMAGE SECTION (Shelf Defect / Write-Off) -->
+        <div id="damageFields" class="action-fields-section d-none">
+            <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: #9f1239;">Damaged Stock Write-Off</h4>
+            <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 12px;">
+                Record items that are broken, contaminated, or defective. Units will be permanently deducted from sellable stock.
+            </p>
+
+            <div class="form-grid">
+                <div class="form-column">
+                    <div class="form-group">
+                        <label class="form-label" for="damageQuantity">Quantity Damaged <span class="required">*</span></label>
+                        <input id="damageQuantity" name="damage_quantity" class="form-control" type="number" min="1" step="1" placeholder="e.g. 3" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="damageDate">Date Discovered</label>
+                        <input id="damageDate" name="damage_date" class="form-control" type="date" />
+                    </div>
+                </div>
+
+                <div class="form-column">
+                    <div class="form-group">
+                        <label class="form-label" for="damageReference">Damage Report Reference / Tag</label>
+                        <input id="damageReference" name="damage_reference" class="form-control" type="text" placeholder="e.g. INC-2026-014 / Broken Seal" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Available Sellable Stock</label>
+                        <input id="damageAvailableStock" class="form-control" type="text" readonly disabled value="--">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Reduction Preview -->
+            <div id="damageReductionBanner" class="calc-summary-banner banner-negative">
+                <div>
+                    <strong>Stock Write-Off Preview:</strong> <span id="damageReductionText">Enter damaged units above</span>
+                </div>
+                <div>
+                    <strong>Remaining Sellable Stock:</strong> <span id="damageRemainingStock">-- units</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 14px;">
+                <label class="form-label" for="damageReason">Description of Damage &amp; Cause <span class="required">*</span></label>
+                <textarea id="damageReason" name="damage_reason" class="form-textarea" placeholder="Describe the damage, cause, condition of goods, and disposal disposition..."></textarea>
+            </div>
+
+            <div class="confirmation-checkbox-card">
+                <input type="checkbox" id="confirmDamage" name="confirm_damage" required>
+                <label for="confirmDamage">
+                    I confirm that these units are damaged and must be written off from sellable inventory.
+                </label>
+            </div>
+        </div>
+
+        <!-- D. EXPIRY SECTION (Expired Product Removal) -->
+        <div id="expiryFields" class="action-fields-section d-none">
+            <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: #9d174d;">Expired Stock Removal</h4>
+            <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 12px;">
+                Remove products that have passed their expiration date. These units will be locked from future sales.
+            </p>
+
+            <div class="form-grid">
+                <div class="form-column">
+                    <div class="form-group">
+                        <label class="form-label" for="expiryQuantity">Quantity Expired <span class="required">*</span></label>
+                        <input id="expiryQuantity" name="expiry_quantity" class="form-control" type="number" min="1" step="1" placeholder="e.g. 10" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="expiryDate">Expiration Date on Product</label>
+                        <input id="expiryDate" name="expiry_date" class="form-control" type="date" />
+                    </div>
+                </div>
+
+                <div class="form-column">
+                    <div class="form-group">
+                        <label class="form-label" for="expiryBatchRef">Batch / Lot Reference</label>
+                        <input id="expiryBatchRef" name="expiry_batch" class="form-control" type="text" placeholder="e.g. LOT-2025-08-A" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="expiryDiscoveredDate">Date Discovered / Inspected</label>
+                        <input id="expiryDiscoveredDate" name="expiry_discovered_date" class="form-control" type="date" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Reduction Preview -->
+            <div id="expiryReductionBanner" class="calc-summary-banner banner-negative">
+                <div>
+                    <strong>Stock Removal Preview:</strong> <span id="expiryReductionText">Enter expired units above</span>
+                </div>
+                <div>
+                    <strong>Remaining Sellable Stock:</strong> <span id="expiryRemainingStock">-- units</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 14px;">
+                <label class="form-label" for="expiryNotes">Relevant Notes / Disposal Remarks <span class="required">*</span></label>
+                <textarea id="expiryNotes" name="expiry_notes" class="form-textarea" placeholder="Detail the expiry findings, lot inspection, quarantine location, or disposal remarks..."></textarea>
+            </div>
+
+            <div class="confirmation-checkbox-card">
+                <input type="checkbox" id="confirmExpiry" name="confirm_expiry" required>
+                <label for="confirmExpiry">
+                    I confirm that these units have expired and must be permanently removed from sellable stock.
+                </label>
+            </div>
         </div>
 
         <div class="form-actions">
-            <button type="reset" class="btn btn-secondary">Clear</button>
-            <button type="submit" class="btn btn-primary">Save stock entry</button>
+            <button type="button" class="btn btn-secondary" id="clearFormBtn">Clear</button>
+            <button type="submit" class="btn btn-primary" id="saveStockBtn">Confirm Restock Intake</button>
         </div>
 
-        <div id="stockFormMessage" class="alert alert-success" hidden role="status" aria-live="polite"></div>
+        <div id="stockFormMessage" class="alert alert-success d-none" role="status" aria-live="polite"></div>
     </form>
+
+    <!-- Real-time Updated Inventory Stock Levels Table -->
+    <section class="card inventory-panel" style="margin-top: 24px;">
+        <div class="section-header compact-header" style="margin-bottom: 14px;">
+            <div>
+                <h3>Inventory Stock Ledger</h3>
+                <p>Live inventory counts updated instantly upon stock intake, audit correction, or write-off.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper table-responsive">
+            <table class="table inventory-table" id="stockIntakeTable">
+                <thead>
+                    <tr>
+                        <th scope="col">Product</th>
+                        <th scope="col">SKU</th>
+                        <th scope="col" class="num">Current Stock</th>
+                        <th scope="col" class="num">Cost Price</th>
+                        <th scope="col" class="num">Selling Price</th>
+                        <th scope="col" class="num">Reorder Level</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="stockIntakeTableBody">
+                    {% for product in products %}
+                    <tr data-product-row="{{ product.id }}">
+                        <td data-label="Product"><strong>{{ product.name }}</strong></td>
+                        <td data-label="SKU">{{ product.sku }}</td>
+                        <td data-label="Current Stock" class="num stock-qty-cell"><strong>{{ product.current_stock }}</strong></td>
+                        <td data-label="Cost Price" class="num stock-cost-cell">₦{{ product.cost_price|default:"0.00" }}</td>
+                        <td data-label="Selling Price" class="num stock-price-cell">₦{{ product.selling_price|default:"0.00" }}</td>
+                        <td data-label="Reorder Level" class="num reorder-level-cell">{{ product.reorder_level }}</td>
+                        <td data-label="Status">
+                            <span class="stock-status-badge badge {% if product.current_stock > product.reorder_level %}badge-success{% elif product.current_stock > 0 %}badge-warning{% else %}badge-danger{% endif %}">
+                                {% if product.current_stock > product.reorder_level %}In Stock{% elif product.current_stock > 0 %}Low Stock{% else %}Out of Stock{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7">No products found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+
+<!-- Embedded Products JSON Data for Dynamic Instant Client UI -->
+<script id="products-data" type="application/json">
+{{ products_json|safe }}
+</script>
 {% endblock %}
 
 {% block page_js %}

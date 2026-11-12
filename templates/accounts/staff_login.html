@@ -1,0 +1,202 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal Sign In | MADAM HY</title>
+
+    <!-- Bootstrap Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Design Tokens & Core Styles -->
+    <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/modals.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages/accounts/login.css' %}">
+</head>
+
+<body>
+    <main class="auth-shell">
+        <section class="auth-panel" aria-labelledby="staffLoginTitle">
+            <a href="{% url 'accounts:login' %}" class="auth-brand" aria-label="MADAM HY home">
+                <span class="auth-logo has-emblem">
+                    <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg" width="36" height="36" />
+                </span>
+                <span>
+                    <strong>MADAM HY</strong>
+                    <small>Smart Shop</small>
+                </span>
+            </a>
+
+            <div class="auth-card">
+                <div class="auth-header">
+                    <div class="auth-header-crest" style="margin-bottom: 12px;">
+                        <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg auth-header-emblem" width="48" height="48" />
+                    </div>
+
+                    <span class="badge badge-primary">
+                        <i class="bi bi-key-fill" aria-hidden="true"></i>
+                        <span>Staff &amp; Terminal Access</span>
+                    </span>
+
+                    <h1 id="staffLoginTitle">Staff Portal Sign In</h1>
+
+                    <p>
+                        Authorized employees only. Store managers, cashiers, and terminal staff.
+                    </p>
+                </div>
+
+                {% if error %}
+                <div
+                    class="alert alert-error account-message"
+                    id="loginMessage"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% else %}
+                <div
+                    class="alert alert-error account-message"
+                    id="loginMessage"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                >
+                </div>
+                {% endif %}
+
+                <form
+                    class="account-form"
+                    id="staffLoginForm"
+                    method="post"
+                    action="{% url 'accounts:staff_login' %}"
+                    novalidate
+                >
+                    {% csrf_token %}
+                    {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label class="form-label" for="staffLoginIdentifier">
+                            Staff Username or Email
+                            <span class="required">*</span>
+                        </label>
+
+                        <div class="input-with-icon-wrap">
+                            <i class="bi bi-person-badge input-leading-icon" aria-hidden="true"></i>
+                            <input
+                                class="form-control"
+                                type="text"
+                                id="staffLoginIdentifier"
+                                name="identifier"
+                                autocomplete="username"
+                                value="{{ identifier|default:'' }}"
+                                placeholder="staff@madamhy.com"
+                                required
+                            >
+                        </div>
+
+                        <span class="form-error" data-error-for="staffLoginIdentifier"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="staffLoginPassword">
+                            Password
+                            <span class="required">*</span>
+                        </label>
+
+                        <div class="password-field">
+                            <i class="bi bi-key input-leading-icon" aria-hidden="true"></i>
+                            <input
+                                class="form-control"
+                                type="password"
+                                id="staffLoginPassword"
+                                name="password"
+                                autocomplete="current-password"
+                                placeholder="Enter your password"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                data-password-toggle="staffLoginPassword"
+                                aria-label="Show password"
+                            >
+                                Show
+                            </button>
+                        </div>
+
+                        <span class="form-error" data-error-for="staffLoginPassword"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="check-control">
+                            <input type="checkbox" name="remember">
+                            <span>Remember terminal session</span>
+                        </label>
+
+                        <a href="https://wa.me/2348000000000?text=MADAM%20HY%20Staff%20Portal%20Access%20Assistance" target="_blank" rel="noopener noreferrer" class="text-link">Need assistance?</a>
+                    </div>
+
+                    <button class="btn btn-primary btn-block btn-lg" type="submit">
+                        <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                        <span>Sign in to Staff Portal</span>
+                    </button>
+                </form>
+
+                <p class="auth-footer">
+                    Customer shopping account?
+                    <a href="{% url 'accounts:login' %}" class="text-link">Customer Login &rarr;</a>
+                </p>
+            </div>
+        </section>
+
+        <aside class="auth-aside auth-aside-staff" aria-label="MADAM HY retail operations overview">
+            <div class="auth-aside-content">
+                <span class="auth-kicker">
+                    <i class="bi bi-terminal" aria-hidden="true"></i>
+                    <span>Operations Control Center</span>
+                </span>
+                <h2>Run the shop with calm, clear information.</h2>
+                <p>
+                    Full operational control for authorized store personnel: register counter sales, reconcile stock, manage credit balances, and process customer fulfillment.
+                </p>
+
+                <div class="auth-highlights">
+                    <div class="highlight-item">
+                        <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
+                        <span>POS Register</span>
+                    </div>
+                    <div class="highlight-item">
+                        <i class="bi bi-boxes" aria-hidden="true"></i>
+                        <span>Inventory</span>
+                    </div>
+                    <div class="highlight-item">
+                        <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                        <span>Audit Logs</span>
+                    </div>
+                    <div class="highlight-item">
+                        <i class="bi bi-wallet2" aria-hidden="true"></i>
+                        <span>Credit Ledger</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="{% static 'js/pages/accounts/login.js' %}"></script>
+</body>
+
+</html>

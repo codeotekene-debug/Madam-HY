@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <linearGradient id="bagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#166534" />
+    </linearGradient>
+    <linearGradient id="handleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" rx="16" fill="url(#bgGrad)" stroke="#e2e8f0" stroke-width="2" />
+  <g transform="translate(44, 30)">
+    <!-- Handle -->
+    <path d="M 120,135 C 120,65 192,65 192,135" fill="none" stroke="url(#handleGrad)" stroke-width="12" stroke-linecap="round" />
+    <circle cx="120" cy="140" r="7" fill="#ffffff" stroke="#166534" stroke-width="3" />
+    <circle cx="192" cy="140" r="7" fill="#ffffff" stroke="#166534" stroke-width="3" />
+    <!-- Bag Body -->
+    <path d="M 112,138 C 118,138 124,146 135,146 L 177,146 C 188,146 194,138 200,138 C 214,138 220,146 225,162 L 238,235 C 241,255 227,264 210,264 L 102,264 C 85,264 71,255 74,235 L 87,162 C 92,146 98,138 112,138 Z" fill="url(#bagGrad)" />
+    <!-- Piping Accent -->
+    <path d="M 86,165 C 116,202 196,202 226,165" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.9" />
+    <!-- Center Clasp -->
+    <g transform="translate(156, 190)">
+      <rect x="-10" y="-16" width="20" height="32" rx="10" fill="#ffffff" />
+      <rect x="-5" y="-11" width="10" height="22" rx="5" fill="#166534" />
+    </g>
+    <!-- Label -->
+    <text x="156" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="middle" letter-spacing="0.5">MADAM HY RETAIL</text>
+  </g>
+</svg>

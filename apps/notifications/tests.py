@@ -12,7 +12,12 @@ from apps.credits.models import CreditAccount
 from apps.expenses.models import Expense
 from apps.inventory.models import InventoryItem
 from apps.notifications.models import Notification
-from apps.notifications.services import create_notification, mark_all_notifications_as_read, unread_notifications_count
+from apps.notifications.services import (
+    NotificationService,
+    create_notification,
+    mark_all_notifications_as_read,
+    unread_notifications_count,
+)
 from apps.orders.models import Order
 from apps.payments.models import Payment
 from apps.products.models import Product, ProductCategory
@@ -385,3 +390,261 @@ class NotificationModelTests(TestCase):
         ).mark_as_read()
         expense.refresh_from_db()
         self.assertEqual(expense.amount, original_amount)
+
+
+class NotificationServiceTests(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(
+            username='service_user1',
+            email='service_user1@example.com',
+            password='StrongPass123!',
+            role='CUSTOMER',
+        )
+        self.user2 = User.objects.create_user(
+            username='service_user2',
+            email='service_user2@example.com',
+            password='StrongPass123!',
+            role='CUSTOMER',
+        )
+
+    def test_service_create_notification(self):
+        notif = NotificationService.create_notification(
+            recipient=self.user1,
+            notification_type='ORDER',
+            title='Order received',
+            message='Your order is confirmed.',
+            priority='HIGH',
+            action_url='/orders/ORD-001/',
+        )
+        self.assertEqual(notif.recipient, self.user1)
+        self.assertEqual(notif.notification_type, 'ORDER')
+        self.assertEqual(notif.priority, 'HIGH')
+        self.assertFalse(notif.is_read)
+
+    def test_service_get_user_notifications_filtering(self):
+        n1 = NotificationService.create_notification(self.user1, 'ORDER', 'Order 1', 'Shipped', priority='NORMAL')
+        n2 = NotificationService.create_notification(self.user1, 'PAYMENT', 'Payment 1', 'Paid', priority='HIGH')
+        n3 = NotificationService.create_notification(self.user1, 'SYSTEM', 'Alert', 'Maintenance', priority='URGENT')
+        n3.mark_as_read()
+        NotificationService.create_notification(self.user2, 'ORDER', 'Order User 2', 'Shipped', priority='NORMAL')
+
+        user1_all = NotificationService.get_user_notifications(self.user1)
+        self.assertEqual(user1_all.count(), 3)
+
+        unread = NotificationService.get_user_notifications(self.user1, is_read=False)
+        self.assertEqual(unread.count(), 2)
+
+        read = NotificationService.get_user_notifications(self.user1, is_read=True)
+        self.assertEqual(read.count(), 1)
+        self.assertEqual(read.first(), n3)
+
+        order_type = NotificationService.get_user_notifications(self.user1, notification_type='ORDER')
+        self.assertEqual(order_type.count(), 1)
+        self.assertEqual(order_type.first(), n1)
+
+        high_prio = NotificationService.get_user_notifications(self.user1, priority='HIGH')
+        self.assertEqual(high_prio.count(), 1)
+        self.assertEqual(high_prio.first(), n2)
+
+        search_res = NotificationService.get_user_notifications(self.user1, search='Maintenance')
+        self.assertEqual(search_res.count(), 1)
+        self.assertEqual(search_res.first(), n3)
+
+    def test_service_metrics(self):
+        NotificationService.create_notification(self.user1, 'ORDER', 'O1', 'M1', priority='NORMAL')
+        NotificationService.create_notification(self.user1, 'ORDER', 'O2', 'M2', priority='URGENT')
+        n3 = NotificationService.create_notification(self.user1, 'ORDER', 'O3', 'M3', priority='LOW')
+        n3.mark_as_read()
+
+        metrics = NotificationService.get_notification_metrics(self.user1)
+        self.assertEqual(metrics['total'], 3)
+        self.assertEqual(metrics['unread'], 2)
+        self.assertEqual(metrics['read'], 1)
+        self.assertEqual(metrics['urgent_unread'], 1)
+
+    def test_service_mark_as_read_isolation(self):
+        n_user2 = NotificationService.create_notification(self.user2, 'ORDER', 'User 2', 'Message')
+        from django.core.exceptions import PermissionDenied
+        with self.assertRaises(PermissionDenied):
+            NotificationService.mark_as_read(n_user2.id, user=self.user1)
+
+    def test_service_mark_all_as_read(self):
+        NotificationService.create_notification(self.user1, 'ORDER', 'O1', 'M1')
+        NotificationService.create_notification(self.user1, 'ORDER', 'O2', 'M2')
+        NotificationService.create_notification(self.user2, 'ORDER', 'O3', 'M3')
+
+        updated = NotificationService.mark_all_as_read(self.user1)
+        self.assertEqual(updated, 2)
+        self.assertEqual(NotificationService.get_unread_count(self.user1), 0)
+        self.assertEqual(NotificationService.get_unread_count(self.user2), 1)
+
+    def test_service_serialize_notification(self):
+        n = NotificationService.create_notification(self.user1, 'ORDER', 'Title', 'Msg', priority='HIGH')
+        data = NotificationService.serialize_notification(n)
+        self.assertEqual(data['id'], n.id)
+        self.assertEqual(data['title'], 'Title')
+        self.assertEqual(data['priority'], 'HIGH')
+        self.assertFalse(data['is_read'])
+        self.assertIn('created_at_display', data)
+
+
+class NotificationViewsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='view_user',
+            email='view_user@example.com',
+            password='StrongPass123!',
+            first_name='View',
+            last_name='User',
+            role='CUSTOMER',
+        )
+        self.other_user = User.objects.create_user(
+            username='other_user',
+            email='other_user@example.com',
+            password='StrongPass123!',
+            first_name='Other',
+            last_name='User',
+            role='CUSTOMER',
+        )
+        self.n1 = NotificationService.create_notification(
+            self.user, 'ORDER', 'Order Placed', 'Your order was received.', priority='NORMAL'
+        )
+        self.n2 = NotificationService.create_notification(
+            self.user, 'PAYMENT', 'Payment Received', 'Receipt for payment.', priority='HIGH'
+        )
+        self.other_n = NotificationService.create_notification(
+            self.other_user, 'CREDIT', 'Credit Alert', 'Credit limit updated.', priority='URGENT'
+        )
+
+    def test_inbox_requires_authentication(self):
+        res_html = self.client.get('/notifications/')
+        self.assertEqual(res_html.status_code, 302)
+        self.assertIn('/accounts/login/', res_html.url)
+
+        res_json = self.client.get('/notifications/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res_json.status_code, 401)
+        self.assertFalse(res_json.json()['success'])
+
+    def test_inbox_html_rendering(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/notifications/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'notifications/notifications.html')
+        self.assertContains(res, 'Notifications Center')
+        self.assertContains(res, 'Order Placed')
+        self.assertContains(res, 'Payment Received')
+        self.assertNotContains(res, 'Credit Alert')
+
+    def test_inbox_json_api(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/notifications/?format=json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        notifs = data['data']['notifications']
+        self.assertEqual(len(notifs), 2)
+        titles = [n['title'] for n in notifs]
+        self.assertIn('Order Placed', titles)
+        self.assertIn('Payment Received', titles)
+        self.assertNotIn('Credit Alert', titles)
+        self.assertEqual(data['data']['metrics']['unread'], 2)
+        self.assertEqual(data['unread_count'], 2)
+
+    def test_inbox_filtering(self):
+        self.client.force_login(self.user)
+        res_order = self.client.get('/notifications/?type=ORDER&format=json')
+        self.assertEqual(res_order.status_code, 200)
+        data = res_order.json()['data']['notifications']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['title'], 'Order Placed')
+
+        res_prio = self.client.get('/notifications/?priority=HIGH&format=json')
+        self.assertEqual(res_prio.status_code, 200)
+        data = res_prio.json()['data']['notifications']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['title'], 'Payment Received')
+
+        res_search = self.client.get('/notifications/?q=Receipt&format=json')
+        self.assertEqual(res_search.status_code, 200)
+        data = res_search.json()['data']['notifications']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['title'], 'Payment Received')
+
+    def test_unread_count_api(self):
+        res_anon = self.client.get('/notifications/unread-count/')
+        self.assertEqual(res_anon.status_code, 401)
+
+        self.client.force_login(self.user)
+        res = self.client.get('/notifications/unread-count/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['unread_count'], 2)
+        self.assertEqual(data['data']['unread_count'], 2)
+
+    def test_mark_single_as_read(self):
+        self.client.force_login(self.user)
+        res = self.client.post(f'/notifications/{self.n1.id}/read/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['data']['notification']['is_read'])
+        self.assertEqual(data['unread_count'], 1)
+
+        self.n1.refresh_from_db()
+        self.assertTrue(self.n1.is_read)
+        self.assertIsNotNone(self.n1.read_at)
+        self.assertEqual(NotificationService.get_unread_count(self.user), 1)
+
+    def test_mark_single_as_read_isolation(self):
+        self.client.force_login(self.user)
+        res = self.client.post(f'/notifications/{self.other_n.id}/read/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 403)
+        self.assertFalse(res.json()['success'])
+        self.assertIn('Permission denied', res.json()['message'])
+
+        self.other_n.refresh_from_db()
+        self.assertFalse(self.other_n.is_read)
+
+    def test_mark_single_as_read_not_found(self):
+        self.client.force_login(self.user)
+        res = self.client.post('/notifications/99999/read/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 404)
+        self.assertFalse(res.json()['success'])
+
+    def test_mark_single_as_read_invalid_id(self):
+        self.client.force_login(self.user)
+        res = self.client.post('/notifications/invalid-id/read/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(res.json()['success'])
+
+    def test_mark_single_as_read_method_not_allowed(self):
+        self.client.force_login(self.user)
+        res = self.client.get(f'/notifications/{self.n1.id}/read/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 405)
+
+    def test_mark_single_as_unread(self):
+        self.n1.mark_as_read()
+        self.client.force_login(self.user)
+        res = self.client.post(f'/notifications/{self.n1.id}/unread/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.json()['data']['notification']['is_read'])
+        self.n1.refresh_from_db()
+        self.assertFalse(self.n1.is_read)
+
+    def test_mark_all_as_read(self):
+        self.client.force_login(self.user)
+        res = self.client.post('/notifications/read-all/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['marked_count'], 2)
+        self.assertEqual(data['unread_count'], 0)
+
+        self.assertEqual(NotificationService.get_unread_count(self.user), 0)
+        self.assertEqual(NotificationService.get_unread_count(self.other_user), 1)
+
+    def test_mark_all_as_read_method_not_allowed(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/notifications/read-all/', HTTP_ACCEPT='application/json')
+        self.assertEqual(res.status_code, 405)

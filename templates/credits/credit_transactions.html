@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credit Transactions &amp; Audit Ledger | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Credit Transactions
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/credits.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="credits" current_tab="transactions" %}
+{% endblock %}
+
+{% block content %}
+<div class="credits-page transactions-page">
+
+    <!-- Page Header & Hero -->
+    <header class="credits-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-clock-history" aria-hidden="true"></i>
+                    <span>Credit &amp; Debt Audit</span>
+                </span>
+            </div>
+            <h2>Credit Transaction History &amp; Ledger</h2>
+            <p>Immutable audit trail of credit disbursements, customer debt repayments, adjustments, and balance transitions.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="{% url 'credits:credit_payment' %}" class="btn btn-primary" aria-label="Record customer credit repayment">
+                <i class="bi bi-credit-card" aria-hidden="true"></i>
+                <span>Settle Credit</span>
+            </a>
+            <a href="{% url 'credits:credit_account_list' %}" class="btn btn-secondary" aria-label="View credit accounts">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                <span>Credit Accounts</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Credit Transactions Data Panel -->
+    <section class="card credits-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Transaction Ledger</h3>
+                <p>Filter transactions by type or search by customer name, reference, or notes.</p>
+            </div>
+        </div>
+
+        <div class="credits-toolbar">
+            <form method="get" class="toolbar-search" style="display: flex; gap: 8px; width: 100%;">
+                <label class="visually-hidden" for="txSearch">Search transactions</label>
+                <input
+                    id="txSearch"
+                    name="search"
+                    class="form-control"
+                    type="search"
+                    value="{{ search_query|default:'' }}"
+                    placeholder="Search by reference, customer name, notes..."
+                    aria-label="Search credit transactions"
+                />
+                <select name="type" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+                    <option value="ALL">All Types</option>
+                    <option value="DISBURSEMENT" {% if type_filter == 'DISBURSEMENT' %}selected{% endif %}>Disbursement</option>
+                    <option value="REPAYMENT" {% if type_filter == 'REPAYMENT' %}selected{% endif %}>Repayment</option>
+                    <option value="ADJUSTMENT" {% if type_filter == 'ADJUSTMENT' %}selected{% endif %}>Adjustment</option>
+                    <option value="INTEREST" {% if type_filter == 'INTEREST' %}selected{% endif %}>Interest</option>
+                </select>
+                <button type="submit" class="btn btn-secondary">Filter</button>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table" aria-label="Credit transactions ledger">
+                <thead>
+                    <tr>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Balance Transition</th>
+                        <th scope="col">Reference</th>
+                        <th scope="col">Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>
+                            <span class="font-mono">{{ tx.created_at|date:"Y-m-d H:i" }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ tx.credit_account.customer.get_full_name|default:tx.credit_account.customer.username }}</strong>
+                            <div class="text-muted small">{{ tx.credit_account.customer.phone_number }}</div>
+                        </td>
+                        <td>
+                            <span class="badge {% if tx.transaction_type == 'REPAYMENT' %}badge-success{% elif tx.transaction_type == 'DISBURSEMENT' %}badge-warning{% else %}badge-info{% endif %}">
+                                {{ tx.get_transaction_type_display|default:tx.transaction_type }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong class="font-mono">₦ {{ tx.amount }}</strong>
+                        </td>
+                        <td>
+                            <span class="text-muted font-mono">₦ {{ tx.previous_balance }}</span>
+                            <i class="bi bi-arrow-right text-muted" aria-hidden="true" style="margin: 0 4px;"></i>
+                            <strong class="font-mono">₦ {{ tx.new_balance }}</strong>
+                        </td>
+                        <td>
+                            <span class="font-mono small">{{ tx.reference|default:"—" }}</span>
+                        </td>
+                        <td>
+                            <span>{{ tx.created_by.get_full_name|default:tx.created_by.username|default:"System" }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="empty-cell" style="text-align: center; padding: 32px;">
+                            <i class="bi bi-clock-history" style="font-size: 32px; color: var(--text-muted); display: block; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; color: var(--text-muted);">No credit transactions found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

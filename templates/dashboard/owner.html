@@ -1,737 +1,428 @@
 {% extends "base.html" %}
-
 {% load static %}
 
 {% block title %}
-    Dashboard | MADAM HY
+    Executive Dashboard | MADAM HY
 {% endblock %}
-
 
 {% block page_title %}
-    Dashboard
+    Executive Dashboard
 {% endblock %}
-
 
 {% block page_css %}
-
-<link
-    rel="stylesheet"
-    href="{% static 'css/pages/dashboard/owner.css' %}"
->
-
+<link rel="stylesheet" href="{% static 'css/pages/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/dashboard/owner.css' %}">
 {% endblock %}
 
-
 {% block content %}
-
 <div class="dashboard">
 
-
     <!-- =========================================
-         WELCOME
+         WELCOME & EXECUTIVE SUMMARY
          ========================================= -->
-
     <section class="dashboard-welcome">
-
         <div>
-
-            <p class="dashboard-greeting">
-                Welcome back
-            </p>
-
-            <h2>
-                Madam HY
-            </h2>
-
-            <p>
-                Here's what's happening in your shop today.
-            </p>
-
-        </div>
-
-
-        <div class="dashboard-date">
-
-            <span>
-                Today
+            <span class="dashboard-greeting">
+                <i class="bi bi-shield-check" aria-hidden="true"></i> Executive Overview
             </span>
-
-            <strong id="currentDate">
-                -
-            </strong>
-
+            <h2>
+                Welcome back, {{ request.user.first_name|default:"Madam HY" }}
+            </h2>
+            <p>
+                Here's your live retail performance and shop operations summary for today.
+            </p>
         </div>
 
+        <div class="dashboard-header-stats">
+            <div class="dashboard-date" aria-label="Current date">
+                <span>Today's Date</span>
+                <strong id="currentDate">-</strong>
+                <div class="shift-status-pill">
+                    <span class="status-dot-pulse" aria-hidden="true"></span>
+                    <span>Store Active</span>
+                </div>
+            </div>
+        </div>
     </section>
 
-
-
     <!-- =========================================
-         KEY BUSINESS METRICS
+         KEY BUSINESS METRICS (KPI STAT CARDS)
          ========================================= -->
+    <section class="dashboard-metrics" aria-label="Executive Key Performance Indicators">
 
-    <section class="dashboard-metrics">
-
-
-        <!-- Today's Sales -->
-
+        <!-- Today's Sales (Emerald Accent) -->
         <article class="metric-card">
-
             <div class="metric-card-header">
-
-                <span class="metric-card-title">
-                    Today's Sales
+                <span class="metric-card-title">Today's Sales</span>
+                <span class="metric-card-icon accent-emerald" aria-hidden="true">
+                    <i class="bi bi-cash-stack"></i>
                 </span>
-
-                <span class="metric-card-icon">
-                    NGN
-                </span>
-
             </div>
-
 
             <div class="metric-card-value">
-                NGN <span id="todaySales">0.00</span>
+                NGN <span id="todaySales">{{ metrics.today_sales|default:"0.00" }}</span>
             </div>
-
 
             <div class="metric-card-footer">
-
-                <span
-                    class="metric-change"
-                    id="salesChange"
-                >
-                    —
-                </span>
-
-                <span>
-                    vs yesterday
-                </span>
-
+                <span class="metric-change" id="salesChange">—</span>
+                <span>vs yesterday</span>
             </div>
 
+            <div class="kpi-pill kpi-pill-emerald u-mt-10" >
+                <i class="bi bi-graph-up" aria-hidden="true"></i>
+                <span>Profit: NGN <span id="todayProfit">{{ metrics.today_profit|default:"0.00" }}</span> (<span id="profitChange">—</span>)</span>
+            </div>
         </article>
 
-
-
-        <!-- Today's Profit -->
-
+        <!-- Monthly Revenue (Blue Accent) -->
         <article class="metric-card">
-
             <div class="metric-card-header">
-
-                <span class="metric-card-title">
-                    Today's Profit
+                <span class="metric-card-title">Monthly Revenue</span>
+                <span class="metric-card-icon accent-blue" aria-hidden="true">
+                    <i class="bi bi-graph-up-arrow"></i>
                 </span>
-
-                <span class="metric-card-icon">
-                    %
-                </span>
-
             </div>
-
 
             <div class="metric-card-value">
-                NGN <span id="todayProfit">0.00</span>
+                NGN <span id="monthlySales">{{ metrics.monthly_sales|default:"0.00" }}</span>
             </div>
-
 
             <div class="metric-card-footer">
-
-                <span
-                    class="metric-change"
-                    id="profitChange"
-                >
-                    —
-                </span>
-
-                <span>
-                    vs yesterday
-                </span>
-
+                <span class="metric-change" id="monthlySalesChange">—</span>
+                <span>this month</span>
             </div>
 
+            <div class="kpi-pill kpi-pill-blue u-mt-10" >
+                <i class="bi bi-calendar-check" aria-hidden="true"></i>
+                <span>Month-to-date sales</span>
+            </div>
         </article>
 
-
-
-        <!-- Monthly Sales -->
-
+        <!-- Low Stock Alerts (Amber Accent) -->
         <article class="metric-card">
-
             <div class="metric-card-header">
-
-                <span class="metric-card-title">
-                    Monthly Sales
+                <span class="metric-card-title">Low Stock Alerts</span>
+                <span class="metric-card-icon accent-amber" aria-hidden="true">
+                    <i class="bi bi-exclamation-triangle"></i>
                 </span>
-
-                <span class="metric-card-icon">
-                    M
-                </span>
-
             </div>
-
 
             <div class="metric-card-value">
-                NGN <span id="monthlySales">0.00</span>
+                <span id="lowStockCount">{{ low_stock_count|default:metrics.low_stock_count|default:"0" }}</span>
+                <small>items</small>
             </div>
-
 
             <div class="metric-card-footer">
-
-                <span
-                    class="metric-change"
-                    id="monthlySalesChange"
-                >
-                    —
-                </span>
-
-                <span>
-                    this month
-                </span>
-
+                <span>below reorder threshold</span>
             </div>
 
+            <div class="kpi-pill kpi-pill-amber u-mt-10" >
+                <i class="bi bi-boxes" aria-hidden="true"></i>
+                <span>Needs restocking</span>
+            </div>
         </article>
 
-
-
-        <!-- Outstanding Credit -->
-
+        <!-- Outstanding Credit (Rose Accent) -->
         <article class="metric-card">
-
             <div class="metric-card-header">
-
-                <span class="metric-card-title">
-                    Customer Credit
+                <span class="metric-card-title">Customer Credit</span>
+                <span class="metric-card-icon accent-rose" aria-hidden="true">
+                    <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
                 </span>
-
-                <span class="metric-card-icon">
-                    CR
-                </span>
-
             </div>
-
 
             <div class="metric-card-value">
-                NGN <span id="outstandingCredit">0.00</span>
+                NGN <span id="outstandingCredit">{{ metrics.outstanding_credit|default:"0.00" }}</span>
             </div>
-
 
             <div class="metric-card-footer">
-
-                <span>
-                    outstanding
-                </span>
-
+                <span>active customer debt</span>
             </div>
 
+            <div class="kpi-pill kpi-pill-rose u-mt-10" >
+                <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                <span>Accounts receivable</span>
+            </div>
         </article>
 
     </section>
 
-
-
     <!-- =========================================
-         MAIN DASHBOARD GRID
+         MAIN DASHBOARD GRID (CHARTS & ACTIONS)
          ========================================= -->
-
     <section class="dashboard-grid">
 
-
-        <!-- =====================================
-             SALES OVERVIEW
-             ===================================== -->
-
+        <!-- Sales Performance Overview -->
         <article class="dashboard-card sales-overview">
-
             <div class="dashboard-card-header">
-
                 <div>
-
-                    <h3>
-                        Sales Overview
-                    </h3>
-
-                    <p>
-                        Track your shop's sales performance.
-                    </p>
-
+                    <h3>Sales Performance Trend</h3>
+                    <p>Track historical transaction volume and revenue over time.</p>
                 </div>
-
 
                 <select
                     id="salesPeriod"
                     class="dashboard-filter"
                     aria-label="Sales overview period"
                 >
-
-                    <option value="7">
-                        Last 7 days
-                    </option>
-
-                    <option value="30">
-                        Last 30 days
-                    </option>
-
-                    <option value="90">
-                        Last 3 months
-                    </option>
-
-                    <option value="365">
-                        This year
-                    </option>
-
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 3 months</option>
+                    <option value="365">This year</option>
                 </select>
-
             </div>
 
-
-            <div
-                class="sales-chart"
-                id="salesChart"
-            >
-
+            <div class="sales-chart" id="salesChart" role="region" aria-label="Sales trend chart">
                 <div class="chart-placeholder">
-
-                    Sales chart will appear here.
-
+                    <div class="spinner"></div>
+                    <span>Loading sales performance...</span>
                 </div>
-
             </div>
-
         </article>
 
-
-
-        <!-- =====================================
-             QUICK ACTIONS
-             ===================================== -->
-
+        <!-- Quick Actions -->
         <article class="dashboard-card quick-actions">
-
             <div class="dashboard-card-header">
-
                 <div>
-
-                    <h3>
-                        Quick Actions
-                    </h3>
-
-                    <p>
-                        Common shop operations.
-                    </p>
-
+                    <h3>Quick Actions</h3>
+                    <p>Frequent shop operations and management shortcuts.</p>
                 </div>
-
             </div>
-
 
             <div class="quick-action-grid">
-
-
                 <a
-                    href="#"
+                    href="/sales/"
                     class="quick-action"
+                    aria-label="Launch POS register"
                 >
-
-                    <span class="quick-action-icon">
-                        +
+                    <span class="quick-action-icon accent-emerald" aria-hidden="true">
+                        <svg class="retail-svg icon-md"><use href="#icon-retail-pos"></use></svg>
                     </span>
-
-                    <span>
-                        Add Product
-                    </span>
-
+                    <div>
+                        <strong>New Sale</strong>
+                        <small>Launch POS counter</small>
+                    </div>
                 </a>
 
-
                 <a
-                    href="#"
+                    href="/products/add/"
                     class="quick-action"
+                    aria-label="Add new inventory product"
                 >
-
-                    <span class="quick-action-icon">
-                        POS
+                    <span class="quick-action-icon accent-blue" aria-hidden="true">
+                        <i class="bi bi-box-seam"></i>
                     </span>
-
-                    <span>
-                        New Sale
-                    </span>
-
+                    <div>
+                        <strong>Add Product</strong>
+                        <small>New inventory item</small>
+                    </div>
                 </a>
 
-
                 <a
-                    href="#"
+                    href="/credits/"
                     class="quick-action"
+                    aria-label="Manage customer credits"
                 >
-
-                    <span class="quick-action-icon">
-                        CU
+                    <span class="quick-action-icon accent-rose" aria-hidden="true">
+                        <svg class="retail-svg icon-md"><use href="#icon-retail-credit"></use></svg>
                     </span>
-
-                    <span>
-                        Add Customer
-                    </span>
-
+                    <div>
+                        <strong>Credit Ledger</strong>
+                        <small>Customer accounts</small>
+                    </div>
                 </a>
 
-
                 <a
-                    href="#"
+                    href="/expenses/create/"
                     class="quick-action"
+                    aria-label="Record operational expense"
                 >
-
-                    <span class="quick-action-icon">
-                        NGN
+                    <span class="quick-action-icon accent-amber" aria-hidden="true">
+                        <i class="bi bi-wallet2"></i>
                     </span>
-
-                    <span>
-                        Add Expense
-                    </span>
-
+                    <div>
+                        <strong>Add Expense</strong>
+                        <small>Operational outflow</small>
+                    </div>
                 </a>
-
             </div>
-
         </article>
 
-
-
-        <!-- =====================================
-             RECENT SALES
-             ===================================== -->
-
+        <!-- Recent Sales Table -->
         <article class="dashboard-card recent-sales">
-
             <div class="dashboard-card-header">
-
                 <div>
-
-                    <h3>
-                        Recent Sales
-                    </h3>
-
-                    <p>
-                        Latest transactions in your shop.
-                    </p>
-
+                    <h3>Recent Transactions</h3>
+                    <p>Latest completed sales recorded in your shop.</p>
                 </div>
 
-
                 <a
-                    href="#"
+                    href="/sales/"
                     class="view-all-link"
+                    aria-label="View all sales records"
                 >
-                    View all
+                    <span>View all</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </a>
-
             </div>
 
-
-            <div class="table-wrapper">
-
+            <div class="table-wrapper table-responsive">
                 <table class="table">
-
                     <thead>
-
                         <tr>
-
-                            <th>
-                                Customer
-                            </th>
-
-                            <th>
-                                Amount
-                            </th>
-
-                            <th>
-                                Payment
-                            </th>
-
-                            <th>
-                                Date
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
+                            <th scope="col">Customer</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Payment</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Status</th>
                         </tr>
-
                     </thead>
 
-
                     <tbody id="recentSalesTable">
-
                         <tr>
-
                             <td colspan="5">
-
                                 <div class="dashboard-loading">
-
-                                    Loading sales...
-
+                                    <div class="spinner"></div>
+                                    <span>Loading recent sales...</span>
                                 </div>
-
                             </td>
-
                         </tr>
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </article>
 
-
-
-        <!-- =====================================
-             LOW STOCK
-             ===================================== -->
-
+        <!-- Low Stock Alerts List -->
         <article class="dashboard-card low-stock">
-
             <div class="dashboard-card-header">
-
                 <div>
-
-                    <h3>
-                        Low Stock
-                    </h3>
-
-                    <p>
-                        Products that need restocking.
-                    </p>
-
+                    <h3>Low Stock Attention</h3>
+                    <p>Products at or below their reorder threshold.</p>
                 </div>
-
 
                 <a
-                    href="#"
+                    href="/inventory/"
                     class="view-all-link"
+                    aria-label="View full inventory list"
                 >
-                    View inventory
+                    <span>View inventory</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </a>
-
             </div>
 
-
-            <div
-                class="low-stock-list"
-                id="lowStockList"
-            >
-
+            <div class="low-stock-list" id="lowStockList">
                 <div class="dashboard-loading">
-                    Loading inventory...
+                    <div class="spinner"></div>
+                    <span>Loading inventory status...</span>
                 </div>
-
             </div>
-
         </article>
 
-
-
-        <!-- =====================================
-             CUSTOMER CREDITS
-             ===================================== -->
-
+        <!-- Customer Credits Summary -->
         <article class="dashboard-card credit-summary">
-
             <div class="dashboard-card-header">
-
                 <div>
-
-                    <h3>
-                        Customer Credits
-                    </h3>
-
-                    <p>
-                        Outstanding customer balances.
-                    </p>
-
+                    <h3>Customer Credit Ledger</h3>
+                    <p>Top outstanding customer debt accounts.</p>
                 </div>
-
 
                 <a
-                    href="#"
+                    href="/credits/"
                     class="view-all-link"
+                    aria-label="View customer credits ledger"
                 >
-                    View credits
+                    <span>View credits</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </a>
-
             </div>
 
-
-            <div
-                class="credit-list"
-                id="creditList"
-            >
-
+            <div class="credit-list" id="creditList">
                 <div class="dashboard-loading">
-                    Loading credits...
+                    <div class="spinner"></div>
+                    <span>Loading credit balances...</span>
                 </div>
-
             </div>
-
         </article>
 
-
-
-        <!-- =====================================
-             PRODUCT REQUESTS
-             ===================================== -->
-
+        <!-- Product Requests -->
         <article class="dashboard-card product-requests">
-
             <div class="dashboard-card-header">
-
                 <div>
-
-                    <h3>
-                        Product Requests
-                    </h3>
-
-                    <p>
-                        Products customers want you to find.
-                    </p>
-
+                    <h3>Product Requests</h3>
+                    <p>Special inquiries from customers awaiting sourcing.</p>
                 </div>
-
 
                 <a
-                    href="#"
+                    href="/requests/"
                     class="view-all-link"
+                    aria-label="View product requests queue"
                 >
-                    View requests
+                    <span>View requests</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </a>
-
             </div>
 
-
-            <div
-                class="request-list"
-                id="requestList"
-            >
-
+            <div class="request-list" id="requestList">
                 <div class="dashboard-loading">
-                    Loading requests...
+                    <div class="spinner"></div>
+                    <span>Loading customer requests...</span>
                 </div>
-
             </div>
-
         </article>
 
     </section>
 
-
-
     <!-- =========================================
-         BUSINESS GROWTH
+         BUSINESS GROWTH METRICS
          ========================================= -->
-
     <section class="dashboard-card business-growth">
-
         <div class="dashboard-card-header">
-
             <div>
-
-                <h3>
-                    Business Growth
-                </h3>
-
-                <p>
-                    Monitor how your business is performing over time.
-                </p>
-
+                <h3>Business Growth & Volume</h3>
+                <p>Period comparisons and business expansion velocity.</p>
             </div>
-
 
             <a
-                href="#"
+                href="/reports/growth/"
                 class="view-all-link"
+                aria-label="View full business growth report"
             >
-                Full report
+                <span>Full report</span>
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
             </a>
-
         </div>
-
 
         <div class="growth-summary">
-
-
             <div class="growth-item">
-
-                <span>
-                    Sales Growth
-                </span>
-
-                <strong id="salesGrowth">
-                    —
-                </strong>
-
+                <span>Sales Growth</span>
+                <strong id="salesGrowth">—</strong>
             </div>
 
-
             <div class="growth-item">
-
-                <span>
-                    Profit Growth
-                </span>
-
-                <strong id="profitGrowth">
-                    —
-                </strong>
-
+                <span>Profit Growth</span>
+                <strong id="profitGrowth">—</strong>
             </div>
 
-
             <div class="growth-item">
-
-                <span>
-                    Customers
-                </span>
-
-                <strong id="customerGrowth">
-                    —
-                </strong>
-
+                <span>Customer Base</span>
+                <strong id="customerGrowth">—</strong>
             </div>
 
-
             <div class="growth-item">
-
-                <span>
-                    Orders
-                </span>
-
-                <strong id="orderGrowth">
-                    —
-                </strong>
-
+                <span>Order Volume</span>
+                <strong id="orderGrowth">—</strong>
             </div>
-
         </div>
-
     </section>
 
 </div>
-
 {% endblock %}
 
-
-
 {% block page_js %}
+<script id="owner-dashboard-data" type="application/json">
+{{ dashboard_json|safe }}
+</script>
 
-<script
-    src="{% static 'js/ajax/dashboard/owner.ajax.js' %}"
-></script>
-
-<script
-    src="{% static 'js/pages/dashboard/owner.js' %}"
-></script>
-
+<script src="{% static 'js/ajax/dashboard/owner.ajax.js' %}"></script>
+<script src="{% static 'js/pages/dashboard/owner.js' %}"></script>
 {% endblock %}

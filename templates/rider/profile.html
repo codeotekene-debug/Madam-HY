@@ -1,0 +1,1 @@
+{% extends 'rider/base.html' %}{% block rider_content %}<section class="delivery-panel"><h2>Profile</h2><p>{{ request.user.get_full_name|default:request.user.username }}</p><p>{{ profile.vehicle_type }} · {{ profile.vehicle_number }}</p><p>{{ profile.contact_phone }}</p><p>Availability: {{ profile.get_status_display }}</p></section>{% endblock %}

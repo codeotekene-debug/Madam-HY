@@ -16,9 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function bindManagementOrderFilters() {
     const search = document.getElementById('ordersSearch');
+    const initialSearch = new URLSearchParams(window.location.search).get('search') || '';
+    if (search && initialSearch) search.value = initialSearch;
     const status = document.getElementById('ordersStatusFilter');
     const payment = document.getElementById('ordersPaymentFilter');
-    const customer = document.getElementById('ordersCustomerFilter');
     const dateFrom = document.getElementById('ordersDateFrom');
     const dateTo = document.getElementById('ordersDateTo');
     const ordering = document.getElementById('ordersOrdering');
@@ -33,7 +34,6 @@ function bindManagementOrderFilters() {
     });
     status?.addEventListener('change', refresh);
     payment?.addEventListener('change', refresh);
-    customer?.addEventListener('change', refresh);
     dateFrom?.addEventListener('change', refresh);
     dateTo?.addEventListener('change', refresh);
     ordering?.addEventListener('change', refresh);
@@ -63,12 +63,11 @@ async function loadManagementOrders() {
         search: document.getElementById('ordersSearch')?.value.trim() || '',
         status: getFilterValue('ordersStatusFilter'),
         payment_method: getFilterValue('ordersPaymentFilter'),
-        customer: document.getElementById('ordersCustomerFilter')?.value.trim() || '',
         date_from: document.getElementById('ordersDateFrom')?.value || '',
         date_to: document.getElementById('ordersDateTo')?.value || '',
         ordering: document.getElementById('ordersOrdering')?.value || '-created_at',
     });
-    ['search', 'status', 'payment_method', 'customer', 'date_from', 'date_to'].forEach(key => {
+    ['search', 'status', 'payment_method', 'date_from', 'date_to'].forEach(key => {
         if (!params.get(key)) params.delete(key);
     });
     setManagementOrderState('loading');
@@ -117,7 +116,7 @@ function renderManagementOrder(order) {
             <td data-label="Order status"><span class="status-pill ${normalizeStatus(status)}">${formatLabel(status)}</span></td>
             <td data-label="Payment"><span class="payment-badge">${formatLabel(order.payment_method)}</span></td>
             <td data-label="Action" class="order-actions">
-                <a href="/preview/orders/detail/?id=${encodeURIComponent(order.id)}" class="action-link">View</a>
+                <a href="/orders/${encodeURIComponent(order.id)}/" class="action-link">View</a>
                 ${actionMarkup}
                 ${convert}
             </td>

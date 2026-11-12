@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
@@ -11,8 +12,13 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.accounts.models import User
+from apps.activity_logs.models import ActivityLog
+from apps.credits.models import CreditAccount, CreditTransaction
+from apps.expenses.models import Expense
 from apps.inventory.models import InventoryItem, StockMovement
+from apps.orders.models import Order
 from apps.products.models import Product, ProductCategory
+from apps.requests.models import Request
 from .models import Sale, SaleItem
 
 
@@ -803,10 +809,11 @@ class SalesReadApiTests(TestCase):
         Sale.objects.filter(pk=self.sale.pk).update(created_at=now - timedelta(days=3), updated_at=now - timedelta(days=3))
         Sale.objects.filter(pk=self.other_sale.pk).update(created_at=now - timedelta(days=1), updated_at=now - timedelta(days=1))
 
-    def make_sale(self, sale_number, cashier, payment_method, status, product, quantity):
+    def make_sale(self, sale_number, cashier, payment_method, status, product, quantity, customer=None):
         sale = Sale.objects.create(
             sale_number=sale_number,
             cashier=cashier,
+            customer=customer,
             payment_method=payment_method,
             status=status,
             payment_status='COMPLETED' if status == Sale.SaleStatus.COMPLETED else 'PENDING',
@@ -826,11 +833,18 @@ class SalesReadApiTests(TestCase):
         )
         return sale
 
-    def test_sales_list_requires_authentication_and_denies_customer_and_staff(self):
+    def test_sales_list_requires_authentication_and_allows_customer_own_sales_only(self):
         self.assertEqual(self.client.get('/sales/').status_code, 401)
-        for user in (self.customer, self.staff):
-            self.client.force_login(user)
-            self.assertEqual(self.client.get('/sales/').status_code, 403)
+
+        customer_sale = self.make_sale('READ-CUSTOMER-SALE', self.cashier, 'CASH', Sale.SaleStatus.COMPLETED, self.product, 1, customer=self.customer)
+        self.client.force_login(self.customer)
+        response = self.client.get('/sales/')
+        self.assertEqual(response.status_code, 200)
+        sales = response.json()['data']['sales']
+        self.assertEqual([sale['id'] for sale in sales], [customer_sale.id])
+
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get('/sales/').status_code, 403)
 
     def test_sales_list_returns_paginated_sales_and_supports_filters(self):
         self.client.force_login(self.owner)
@@ -1002,7 +1016,7 @@ class SalesApiTests(TestCase):
     def test_completion_deducts_inventory_and_returns_sale_data(self):
         sale = self.create_sale()
         self.client.force_login(self.cashier)
-        response = self.post_json(self.complete_url(sale), {})
+        response = self.post_json(self.complete_url(sale), {'amount_received': '251.00'})
 
         self.assertEqual(response.status_code, 200)
         data = response.json()['data']
@@ -1010,6 +1024,8 @@ class SalesApiTests(TestCase):
         self.assertEqual(data['status'], Sale.SaleStatus.COMPLETED)
         self.assertEqual(data['payment_status'], Sale.PaymentStatus.COMPLETED)
         self.assertEqual(data['subtotal'], '251.00')
+        self.assertEqual(data['amount_received'], '251.00')
+        self.assertEqual(data['change_amount'], '0.00')
         self.assertIn('completed_at', data)
         self.inventory.refresh_from_db()
         self.assertEqual(self.inventory.quantity, 8)
@@ -1074,6 +1090,14 @@ class SalesPaymentApiTests(TestCase):
         self.owner = User.objects.create_user(email='payment-owner@example.com', username='payment-owner', password='Pass123', role='OWNER')
         self.cashier = User.objects.create_user(email='payment-cashier@example.com', username='payment-cashier', password='Pass123', role='CASHIER')
         self.customer = User.objects.create_user(email='payment-customer@example.com', username='payment-customer', password='Pass123', role='CUSTOMER')
+        self.credit_account = CreditAccount.objects.create(
+            customer=self.customer,
+            credit_limit=Decimal('50000.00'),
+            outstanding_balance=Decimal('0.00'),
+            status=CreditAccount.Status.APPROVED,
+            approved_by=self.owner,
+            approved_at=timezone.now(),
+        )
 
     def complete_url(self, sale):
         return f'/sales/{sale.id}/complete/'
@@ -1153,6 +1177,15 @@ class SalesPaymentApiTests(TestCase):
         sale.refresh_from_db()
         self.assertEqual(sale.amount_received, Decimal('0.00'))
         self.assertEqual(sale.change_amount, Decimal('0.00'))
+        self.assertEqual(sale.status, Sale.SaleStatus.COMPLETED)
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, sale.total)
+        self.assertEqual(self.credit_account.status, CreditAccount.Status.ACTIVE)
+        tx = CreditTransaction.objects.get(sale=sale)
+        self.assertEqual(tx.credit_account, self.credit_account)
+        self.assertEqual(tx.transaction_type, CreditTransaction.TransactionType.CREDIT_PURCHASE)
+        self.assertEqual(tx.amount, sale.total)
+        self.assertEqual(tx.created_by, self.cashier)
 
     def test_payment_validation_and_inventory_failure_leave_sale_and_stock_unchanged(self):
         self.client.force_login(self.owner)
@@ -1312,3 +1345,745 @@ class SalesReportingApiTests(TestCase):
             response = self.client.get('/sales/reports/summary/')
         self.assertEqual(response.status_code, 200)
         self.assertLessEqual(len(queries), 3)
+
+
+class SalesCreditEnforcementTests(TestCase):
+    """
+    Dedicated tests for the Credit workflow enforcement on POS Sales.
+    Verifies that credit sales enforce customer credit account existence,
+    approval status, credit limit availability, atomic balance deduction,
+    credit ledger transaction creation, and transactional rollback on failures.
+    """
+
+    def setUp(self):
+        self.category = ProductCategory.objects.create(
+            name='Fashion Credit',
+            slug='fashion-credit',
+        )
+        self.product = Product.objects.create(
+            name='Designer Lace Fabric',
+            slug='designer-lace-fabric',
+            sku='CRD-FAB-001',
+            category=self.category,
+            selling_price=Decimal('10000.00'),
+            cost_price=Decimal('7000.00'),
+        )
+        self.inventory = InventoryItem.objects.create(
+            product=self.product,
+            quantity=10,
+        )
+        self.owner = User.objects.create_user(
+            email='credit-owner@example.com',
+            username='credit-owner',
+            password='Pass123',
+            role='OWNER',
+        )
+        self.cashier = User.objects.create_user(
+            email='credit-cashier@example.com',
+            username='credit-cashier',
+            password='Pass123',
+            role='CASHIER',
+        )
+        self.customer = User.objects.create_user(
+            email='credit-cust@example.com',
+            username='credit-cust',
+            password='Pass123',
+            role='CUSTOMER',
+        )
+        self.credit_account = CreditAccount.objects.create(
+            customer=self.customer,
+            credit_limit=Decimal('50000.00'),
+            outstanding_balance=Decimal('0.00'),
+            status=CreditAccount.Status.APPROVED,
+            approved_by=self.owner,
+            approved_at=timezone.now(),
+        )
+        self.customer_no_credit = User.objects.create_user(
+            email='no-credit@example.com',
+            username='no-credit',
+            password='Pass123',
+            role='CUSTOMER',
+        )
+        self.customer_suspended = User.objects.create_user(
+            email='suspended-credit@example.com',
+            username='suspended-credit',
+            password='Pass123',
+            role='CUSTOMER',
+        )
+        self.suspended_account = CreditAccount.objects.create(
+            customer=self.customer_suspended,
+            credit_limit=Decimal('20000.00'),
+            outstanding_balance=Decimal('5000.00'),
+            status=CreditAccount.Status.SUSPENDED,
+            approved_by=self.owner,
+            approved_at=timezone.now(),
+        )
+
+    def _create_credit_sale(self, customer, quantity=1, cashier=None):
+        cashier = cashier or self.cashier
+        sale = Sale.objects.create(
+            sale_number=f'MH-CRD-{uuid4().hex[:8].upper()}',
+            cashier=cashier,
+            customer=customer,
+            payment_method=Sale.PaymentMethod.CREDIT,
+            subtotal=self.product.selling_price * quantity,
+            total=self.product.selling_price * quantity,
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.product,
+            quantity=quantity,
+            unit_price=self.product.selling_price,
+            product_name_snapshot=self.product.name,
+            sku_snapshot=self.product.sku,
+        )
+        return sale
+
+    def test_credit_sale_completion_success(self):
+        """Valid credit purchase completes, deducts inventory, increases balance, and creates transaction."""
+        self.client.force_login(self.cashier)
+        sale = self._create_credit_sale(self.customer, quantity=2)  # total 20,000.00
+        response = self.client.post(f'/sales/{sale.id}/complete/', {}, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.COMPLETED)
+        self.assertEqual(sale.payment_status, Sale.PaymentStatus.COMPLETED)
+        self.assertEqual(sale.amount_received, Decimal('0.00'))
+        self.assertEqual(sale.change_amount, Decimal('0.00'))
+
+        # Inventory verified
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 8)
+        movement = StockMovement.objects.get(reference=sale.sale_number)
+        self.assertEqual(movement.movement_type, 'STOCK_OUT')
+        self.assertEqual(movement.quantity, -2)
+
+        # Credit verified
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('20000.00'))
+        self.assertEqual(self.credit_account.get_available_credit(), Decimal('30000.00'))
+        self.assertEqual(self.credit_account.status, CreditAccount.Status.ACTIVE)
+
+        tx = CreditTransaction.objects.get(sale=sale)
+        self.assertEqual(tx.credit_account, self.credit_account)
+        self.assertEqual(tx.transaction_type, CreditTransaction.TransactionType.CREDIT_PURCHASE)
+        self.assertEqual(tx.amount, Decimal('20000.00'))
+        self.assertEqual(tx.previous_balance, Decimal('0.00'))
+        self.assertEqual(tx.new_balance, Decimal('20000.00'))
+        self.assertEqual(tx.created_by, self.cashier)
+
+    def test_credit_sale_completion_exact_limit(self):
+        """Credit purchase matching exactly the available credit succeeds."""
+        self.client.force_login(self.cashier)
+        # Account has 50k limit; make a 5-item sale = 50,000.00
+        sale = self._create_credit_sale(self.customer, quantity=5)
+        response = self.client.post(f'/sales/{sale.id}/complete/', {}, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('50000.00'))
+        self.assertEqual(self.credit_account.get_available_credit(), Decimal('0.00'))
+        self.assertFalse(self.credit_account.can_use_credit(Decimal('0.01')))
+
+    def test_credit_sale_rejected_without_credit_account(self):
+        """Credit purchase fails if customer has no credit account, leaving inventory and sale intact."""
+        self.client.force_login(self.cashier)
+        sale = self._create_credit_sale(self.customer_no_credit, quantity=1)
+        response = self.client.post(f'/sales/{sale.id}/complete/', {}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+        self.assertEqual(StockMovement.objects.filter(reference=sale.sale_number).count(), 0)
+        self.assertEqual(CreditTransaction.objects.filter(sale=sale).count(), 0)
+
+    def test_credit_sale_rejected_if_account_suspended(self):
+        """Suspended credit account cannot complete credit purchase."""
+        self.client.force_login(self.cashier)
+        sale = self._create_credit_sale(self.customer_suspended, quantity=1)
+        response = self.client.post(f'/sales/{sale.id}/complete/', {}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+        self.suspended_account.refresh_from_db()
+        self.assertEqual(self.suspended_account.outstanding_balance, Decimal('5000.00'))
+
+    def test_credit_sale_rejected_if_exceeds_credit_limit(self):
+        """Credit purchase exceeding available credit fails validation."""
+        self.client.force_login(self.cashier)
+        # Limit is 50,000; try 6 items = 60,000
+        sale = self._create_credit_sale(self.customer, quantity=6)
+        response = self.client.post(f'/sales/{sale.id}/complete/', {}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('0.00'))
+        self.assertEqual(CreditTransaction.objects.filter(sale=sale).count(), 0)
+
+    def test_credit_sale_rollback_on_inventory_failure(self):
+        """If inventory adjustment fails (insufficient stock), credit balance is not deducted."""
+        self.inventory.quantity = 1
+        self.inventory.save()
+
+        self.client.force_login(self.cashier)
+        sale = self._create_credit_sale(self.customer, quantity=2)  # requires 2, stock is 1
+        response = self.client.post(f'/sales/{sale.id}/complete/', {}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('0.00'))
+        self.assertEqual(CreditTransaction.objects.filter(sale=sale).count(), 0)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 1)
+
+    def test_direct_complete_sale_model_method_enforces_credit(self):
+        """Calling sale.complete_sale() directly in Python enforces credit rules and creates transaction."""
+        sale = self._create_credit_sale(self.customer, quantity=1)
+        sale.complete_sale()
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.COMPLETED)
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('10000.00'))
+        tx = CreditTransaction.objects.get(sale=sale)
+        self.assertEqual(tx.amount, Decimal('10000.00'))
+
+    def test_direct_complete_sale_model_method_raises_on_exceeded_credit(self):
+        """Direct call to sale.complete_sale() raises ValidationError if credit exceeded."""
+        sale = self._create_credit_sale(self.customer, quantity=6)  # 60,000 > 50,000
+        with self.assertRaises(ValidationError):
+            sale.complete_sale()
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.status, Sale.SaleStatus.DRAFT)
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('0.00'))
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)
+
+
+class ManagementOperationsDashboardTests(TestCase):
+    """Comprehensive test suite for Management Operations Dashboards (Owner & Staff Live Views)."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username='owner_user',
+            email='owner@test.com',
+            password='password123',
+            role='OWNER',
+        )
+        self.manager = User.objects.create_user(
+            username='manager_user',
+            email='manager@test.com',
+            password='password123',
+            role='MANAGER',
+        )
+        self.cashier = User.objects.create_user(
+            username='cashier_user',
+            email='cashier@test.com',
+            password='password123',
+            role='CASHIER',
+        )
+        self.staff = User.objects.create_user(
+            username='staff_user',
+            email='staff@test.com',
+            password='password123',
+            role='STAFF',
+        )
+        self.customer = User.objects.create_user(
+            username='customer_user',
+            email='customer@test.com',
+            password='password123',
+            role='CUSTOMER',
+        )
+
+        self.category = ProductCategory.objects.create(
+            name='Dashboard Cat',
+            slug='dashboard-cat',
+        )
+        # Low stock item: reorder_level=5, quantity=2
+        self.product_low = Product.objects.create(
+            name='Low Stock Item',
+            slug='low-stock-item',
+            sku='DASH-LOW-1',
+            category=self.category,
+            selling_price=Decimal('5000.00'),
+            cost_price=Decimal('3000.00'),
+            reorder_level=5,
+        )
+        self.inv_low = InventoryItem.objects.create(
+            product=self.product_low,
+            quantity=2,
+        )
+
+        # Normal stock item: reorder_level=5, quantity=25
+        self.product_normal = Product.objects.create(
+            name='Normal Item',
+            slug='normal-item',
+            sku='DASH-NORM-1',
+            category=self.category,
+            selling_price=Decimal('10000.00'),
+            cost_price=Decimal('6000.00'),
+            reorder_level=5,
+        )
+        self.inv_normal = InventoryItem.objects.create(
+            product=self.product_normal,
+            quantity=25,
+        )
+
+        # Completed sale today: total=10,000, cost=6,000 -> profit=4,000
+        self.today_sale = Sale.objects.create(
+            sale_number='MH-SALE-TODAY-01',
+            cashier=self.cashier,
+            customer=self.customer,
+            subtotal=Decimal('10000.00'),
+            total=Decimal('10000.00'),
+            payment_method=Sale.PaymentMethod.CASH,
+            payment_status=Sale.PaymentStatus.COMPLETED,
+            status=Sale.SaleStatus.COMPLETED,
+        )
+        SaleItem.objects.create(
+            sale=self.today_sale,
+            product=self.product_normal,
+            quantity=1,
+            unit_price=Decimal('10000.00'),
+            product_name_snapshot=self.product_normal.name,
+            sku_snapshot=self.product_normal.sku,
+        )
+
+        # Active orders (CONFIRMED, PROCESSING) and COMPLETED order
+        self.order_confirmed = Order.objects.create(
+            order_number='MH-ORD-DASH-1',
+            customer=self.customer,
+            status=Order.OrderStatus.CONFIRMED,
+            payment_method=Order.PaymentMethod.CASH,
+            total=Decimal('5000.00'),
+        )
+        self.order_processing = Order.objects.create(
+            order_number='MH-ORD-DASH-2',
+            customer=self.customer,
+            status=Order.OrderStatus.PROCESSING,
+            payment_method=Order.PaymentMethod.TRANSFER,
+            total=Decimal('7000.00'),
+        )
+        self.order_completed = Order.objects.create(
+            order_number='MH-ORD-DASH-3',
+            customer=self.customer,
+            status=Order.OrderStatus.COMPLETED,
+            payment_method=Order.PaymentMethod.CASH,
+            total=Decimal('3000.00'),
+        )
+
+        # Pending Expense
+        self.pending_expense = Expense.objects.create(
+            expense_reference='EXP-DASH-01',
+            category=Expense.Category.SUPPLIES,
+            amount=Decimal('4500.00'),
+            expense_date=timezone.now().date(),
+            vendor='Stationery Hub',
+            status=Expense.Status.PENDING,
+            recorded_by=self.owner,
+        )
+        # Approved Expense
+        self.approved_expense = Expense.objects.create(
+            expense_reference='EXP-DASH-02',
+            category=Expense.Category.UTILITIES,
+            amount=Decimal('8000.00'),
+            expense_date=timezone.now().date(),
+            vendor='Power Corp',
+            status=Expense.Status.APPROVED,
+            recorded_by=self.owner,
+        )
+
+        # Outstanding Credit Account
+        self.credit_acc, _ = CreditAccount.objects.get_or_create(
+            customer=self.customer,
+            defaults={'credit_limit': Decimal('50000.00')},
+        )
+        self.credit_acc.outstanding_balance = Decimal('12500.00')
+        self.credit_acc.save()
+
+        # Customer Request
+        self.request_pending = Request.objects.create(
+            request_number='REQ-DASH-01',
+            customer=self.customer,
+            title='Lace Material',
+            description='Customer requesting lace material.',
+            status=Request.Status.PENDING,
+        )
+
+        # Activity Log
+        self.activity_log = ActivityLog.objects.create(
+            actor=self.owner,
+            action_type=ActivityLog.ActionType.CREATED,
+            action_label='Item Created',
+            description='Created dashboard inventory item',
+        )
+
+    def test_unauthenticated_user_redirects_to_login_on_html(self):
+        """Unauthenticated HTML request to /dashboard/ redirects to login."""
+        response = self.client.get('/dashboard/')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+        self.assertIn('next=/dashboard/', response.url)
+
+    def test_unauthenticated_user_returns_401_on_json(self):
+        """Unauthenticated JSON request to /dashboard/ returns 401 Unauthorized."""
+        response = self.client.get('/dashboard/?format=json')
+        self.assertEqual(response.status_code, 401)
+        payload = response.json()
+        self.assertFalse(payload['success'])
+        self.assertIn('Authentication required', payload['message'])
+
+        response_header = self.client.get('/dashboard/', HTTP_ACCEPT='application/json')
+        self.assertEqual(response_header.status_code, 401)
+
+    def test_customer_redirects_to_customer_dashboard_on_html(self):
+        """Customer accessing /dashboard/ via HTML is redirected to customer dashboard."""
+        self.client.force_login(self.customer)
+        response = self.client.get('/dashboard/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/customer/dashboard/')
+
+    def test_customer_returns_403_on_json(self):
+        """Customer requesting JSON from /dashboard/ receives 403 Forbidden."""
+        self.client.force_login(self.customer)
+        response = self.client.get('/dashboard/?format=json')
+        self.assertEqual(response.status_code, 403)
+        payload = response.json()
+        self.assertFalse(payload['success'])
+        self.assertIn('Customers cannot access the management dashboard', payload['message'])
+
+    def test_owner_receives_owner_dashboard_html(self):
+        """Owner receives owner.html with serialized context."""
+        self.client.force_login(self.owner)
+        response = self.client.get('/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/owner.html')
+        self.assertIn('dashboard_json', response.context)
+        self.assertContains(response, 'id="owner-dashboard-data"')
+
+    def test_manager_receives_owner_dashboard_html(self):
+        """Manager receives owner.html with serialized context."""
+        self.client.force_login(self.manager)
+        response = self.client.get('/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/owner.html')
+        self.assertIn('dashboard_json', response.context)
+
+    def test_cashier_receives_staff_dashboard_html(self):
+        """Cashier receives staff.html with operational context."""
+        self.client.force_login(self.cashier)
+        response = self.client.get('/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/staff.html')
+        self.assertIn('dashboard_json', response.context)
+        self.assertContains(response, 'id="staff-dashboard-data"')
+
+    def test_staff_receives_staff_dashboard_html(self):
+        """Staff receives staff.html with operational context."""
+        self.client.force_login(self.staff)
+        response = self.client.get('/dashboard/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dashboard/staff.html')
+        self.assertIn('dashboard_json', response.context)
+
+    def test_owner_json_payload_and_metrics_accuracy(self):
+        """Owner JSON payload accurately aggregates live business and financial metrics."""
+        self.client.force_login(self.owner)
+        response = self.client.get('/dashboard/?format=json')
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        data = payload['data']
+
+        self.assertEqual(data['role'], 'OWNER')
+        metrics = data['metrics']
+        self.assertEqual(metrics['todaySales'], 10000.0)
+        self.assertEqual(metrics['todayProfit'], 4000.0)
+        self.assertEqual(metrics['pending_expenses_count'], 1)
+        self.assertEqual(metrics['active_orders_count'], 2)
+        self.assertEqual(metrics['low_stock_count'], 1)
+        self.assertEqual(metrics['outstandingCredit'], 12500.0)
+
+        # Audit logs
+        self.assertTrue(len(data['recent_activity']) >= 1)
+        self.assertEqual(data['recent_activity'][0]['action_label'], 'Item Created')
+
+    def test_cashier_staff_json_payload_and_financial_isolation(self):
+        """Cashier JSON payload returns operational queues and conceals owner financials."""
+        self.client.force_login(self.cashier)
+        response = self.client.get('/dashboard/?format=json')
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        data = payload['data']
+
+        self.assertEqual(data['role'], 'STAFF')
+        metrics = data['metrics']
+        self.assertEqual(metrics['ordersToPrepare'], 2)
+        self.assertEqual(metrics['stockChecks'], 1)
+        self.assertEqual(metrics['requestsToReview'], 1)
+        self.assertEqual(metrics['todayTransactions'], 1)
+
+        # Financial isolation verification: staff payload must NOT leak profit, unapproved expenses, or credit
+        self.assertNotIn('todayProfit', metrics)
+        self.assertNotIn('outstandingCredit', metrics)
+        self.assertNotIn('monthlySales', metrics)
+        self.assertNotIn('pending_expenses_count', metrics)
+        self.assertNotIn('recent_activity', data)
+
+    def test_post_method_not_allowed(self):
+        """POST method is rejected with 405 Method Not Allowed."""
+        self.client.force_login(self.owner)
+        response = self.client.post('/dashboard/')
+        self.assertEqual(response.status_code, 405)
+
+    def test_url_reversals(self):
+        """Management dashboard URL names resolve correctly."""
+        from django.urls import reverse
+        self.assertEqual(reverse('management_dashboard'), '/dashboard/')
+        self.assertEqual(reverse('sales:dashboard'), '/sales/dashboard/')
+
+
+class POSTemplateRenderingTests(TestCase):
+    """Verify POS and checkout templates render without VariableDoesNotExist errors."""
+
+    def setUp(self):
+        self.cashier = User.objects.create_user(
+            username='cashier_pos_template_test',
+            password='password123',
+            role='CASHIER',
+        )
+
+    def test_pos_view_renders_cleanly_without_variable_does_not_exist(self):
+        """Navigating to /sales/pos/ renders 200 OK without VariableDoesNotExist crashes."""
+        self.client.force_login(self.cashier)
+        response = self.client.get('/sales/pos/')
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('posFallbackRefValue', content)
+        self.assertIn('posFallbackAccountNumber', content)
+
+    def test_sales_checkout_template_renders_without_variable_does_not_exist(self):
+        """sales/checkout.html renders with empty context without VariableDoesNotExist crashes."""
+        from django.template.loader import render_to_string
+        rendered = render_to_string('sales/checkout.html', {})
+        self.assertIn('fallbackRefValue', rendered)
+        self.assertIn('fallbackAccountNumber', rendered)
+
+
+class SalesCreditPaymentTests(TestCase):
+    """Tests for Pay with Store Credit in Sales/POS."""
+
+    def setUp(self):
+        self.category = ProductCategory.objects.create(name='POS Category', slug='pos-cat')
+        self.product = Product.objects.create(
+            name='POS Retail Shirt',
+            slug='pos-retail-shirt',
+            sku='POS-SHIRT-01',
+            category=self.category,
+            selling_price=Decimal('5000.00'),
+            cost_price=Decimal('3000.00'),
+        )
+        self.inventory = InventoryItem.objects.create(product=self.product, quantity=15)
+
+        self.owner = User.objects.create_user(
+            email='owner_pos_credit@example.com',
+            username='owner_pos_credit',
+            password='Password123',
+            role='OWNER',
+        )
+        self.cashier = User.objects.create_user(
+            email='cashier_pos_credit@example.com',
+            username='cashier_pos_credit',
+            password='Password123',
+            role='CASHIER',
+        )
+        self.customer = User.objects.create_user(
+            email='customer_pos_credit@example.com',
+            username='customer_pos_credit',
+            password='Password123',
+            role='CUSTOMER',
+            first_name='Tunde',
+            last_name='Bakare',
+            phone_number='08012345678',
+        )
+        self.credit_account = CreditAccount.objects.create(
+            customer=self.customer,
+            credit_limit=Decimal('20000.00'),
+            outstanding_balance=Decimal('0.00'),
+            status=CreditAccount.Status.ACTIVE,
+            approved_by=self.owner,
+            approved_at=timezone.now(),
+        )
+
+    def test_customer_can_pay_with_sufficient_credit(self):
+        """Sale succeeds, inventory decreases, debt increases."""
+        self.client.force_login(self.cashier)
+        create_resp = self.client.post(
+            '/sales/',
+            data=json.dumps({
+                'customer_id': self.customer.id,
+                'payment_method': 'CREDIT',
+                'discount': '0.00',
+                'items': [{'product_id': self.product.id, 'quantity': 3, 'discount': '0.00'}],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(create_resp.status_code, 200)
+        sale_id = create_resp.json()['data']['sale']['id']
+
+        complete_resp = self.client.post(
+            f'/sales/{sale_id}/complete/',
+            data=json.dumps({}),
+            content_type='application/json',
+        )
+        self.assertEqual(complete_resp.status_code, 200)
+
+        # Inventory decreases
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 12)
+
+        # Debt increases
+        self.credit_account.refresh_from_db()
+        self.assertEqual(self.credit_account.outstanding_balance, Decimal('15000.00'))
+        self.assertEqual(self.credit_account.current_balance, Decimal('15000.00'))
+        self.assertEqual(self.credit_account.available_credit, Decimal('5000.00'))
+
+    def test_customer_cannot_exceed_credit_limit(self):
+        """Rejects with 400 error and helpful message."""
+        self.client.force_login(self.cashier)
+        # 5 units * 5000 = 25000 > credit limit 20000
+        create_resp = self.client.post(
+            '/sales/',
+            data=json.dumps({
+                'customer_id': self.customer.id,
+                'payment_method': 'CREDIT',
+                'discount': '0.00',
+                'items': [{'product_id': self.product.id, 'quantity': 5, 'discount': '0.00'}],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(create_resp.status_code, 400)
+        data = create_resp.json()
+        self.assertFalse(data['success'])
+        err_msg = str(data.get('errors') or data.get('message'))
+        self.assertTrue('credit' in err_msg.lower() or 'limit' in err_msg.lower())
+
+    def test_credit_transaction_audit_logged(self):
+        """Confirms CreditTransaction record exists with correct amount and user."""
+        self.client.force_login(self.cashier)
+        create_resp = self.client.post(
+            '/sales/',
+            data=json.dumps({
+                'customer_id': self.customer.id,
+                'payment_method': 'CREDIT',
+                'discount': '0.00',
+                'items': [{'product_id': self.product.id, 'quantity': 2, 'discount': '0.00'}],
+            }),
+            content_type='application/json',
+        )
+        sale_id = create_resp.json()['data']['sale']['id']
+        complete_resp = self.client.post(
+            f'/sales/{sale_id}/complete/',
+            data=json.dumps({}),
+            content_type='application/json',
+        )
+        self.assertEqual(complete_resp.status_code, 200)
+
+        tx = CreditTransaction.objects.filter(credit_account=self.credit_account).latest('created_at')
+        self.assertEqual(tx.amount, Decimal('10000.00'))
+        self.assertEqual(tx.created_by, self.cashier)
+        self.assertEqual(tx.type, 'DEBIT')
+        self.assertEqual(tx.transaction_type, CreditTransaction.TransactionType.CREDIT_PURCHASE)
+
+    def test_customer_search_endpoint(self):
+        """Customer search endpoint returns credit balance details."""
+        self.client.force_login(self.cashier)
+        resp = self.client.get('/sales/customers/search/?q=Tunde')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()['data']['customers']
+        self.assertTrue(any(c['id'] == self.customer.id for c in data))
+        found = next(c for c in data if c['id'] == self.customer.id)
+        self.assertEqual(found['credit_limit'], '20000.00')
+        self.assertEqual(found['available_credit'], '20000.00')
+
+
+class SaleCostPriceFloorTests(TestCase):
+    def setUp(self):
+        self.category = ProductCategory.objects.create(name='Provisions', slug='provisions')
+        self.product = Product.objects.create(
+            name='Peak Milk Powder 400g',
+            sku='PM-400G',
+            category=self.category,
+            cost_price=Decimal('2000.00'),
+            selling_price=Decimal('2600.00'),
+        )
+        self.inventory = InventoryItem.objects.create(product=self.product, quantity=50)
+        self.cashier = User.objects.create_user(
+            email='cashier-floor@example.com',
+            username='cashierfloor',
+            password='Password123',
+            role='CASHIER',
+        )
+
+    def test_line_discount_below_cost_rejected(self):
+        self.client.force_login(self.cashier)
+        resp = self.client.post(
+            '/sales/',
+            data=json.dumps({
+                'payment_method': 'CASH',
+                'discount': '0.00',
+                'items': [{'product_id': self.product.id, 'quantity': 2, 'discount': '1500.00'}],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 400)
+        data = resp.json()
+        self.assertFalse(data['success'])
+        self.assertIn('Line discount causes effective selling price to fall below cost price', str(data['errors']))
+
+    def test_sale_total_discount_below_cost_rejected(self):
+        self.client.force_login(self.cashier)
+        resp = self.client.post(
+            '/sales/',
+            data=json.dumps({
+                'payment_method': 'CASH',
+                'discount': '1500.00',
+                'items': [{'product_id': self.product.id, 'quantity': 2, 'discount': '0.00'}],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 400)
+        data = resp.json()
+        self.assertFalse(data['success'])
+        self.assertIn('Sale discount causes effective sale total to fall below total product cost price', str(data['errors']))
+
+    def test_sale_at_cost_price_break_even_permitted(self):
+        self.client.force_login(self.cashier)
+        resp = self.client.post(
+            '/sales/',
+            data=json.dumps({
+                'payment_method': 'CASH',
+                'discount': '1200.00',
+                'items': [{'product_id': self.product.id, 'quantity': 2, 'discount': '0.00'}],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['sale']['total'], '4000.00')

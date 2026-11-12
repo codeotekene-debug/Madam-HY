@@ -5,12 +5,13 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     setCurrentDate();
+    hydrateOwnerData();
     renderOwnerDashboard();
     setupSalesPeriod();
     setupPlaceholderActions();
 });
 
-const ownerDashboardData = {
+let ownerDashboardData = {
     metrics: {
         todaySales: 428500,
         todayProfit: 96500,
@@ -66,6 +67,40 @@ function setCurrentDate() {
             month: "short",
             year: "numeric"
         });
+}
+
+function hydrateOwnerData() {
+    const dataScript = document.getElementById("owner-dashboard-data");
+    if (!dataScript || !dataScript.textContent) return;
+
+    try {
+        const parsed = JSON.parse(dataScript.textContent);
+        if (parsed && typeof parsed === "object") {
+            if (parsed.metrics) {
+                Object.assign(ownerDashboardData.metrics, parsed.metrics);
+            }
+            if (parsed.sales) {
+                Object.assign(ownerDashboardData.sales, parsed.sales);
+            }
+            if (Array.isArray(parsed.recentSales)) {
+                ownerDashboardData.recentSales = parsed.recentSales;
+            }
+            if (Array.isArray(parsed.lowStock)) {
+                ownerDashboardData.lowStock = parsed.lowStock;
+            }
+            if (Array.isArray(parsed.credits)) {
+                ownerDashboardData.credits = parsed.credits;
+            }
+            if (Array.isArray(parsed.requests)) {
+                ownerDashboardData.requests = parsed.requests;
+            }
+            if (parsed.growth) {
+                Object.assign(ownerDashboardData.growth, parsed.growth);
+            }
+        }
+    } catch (err) {
+        console.warn("Failed to parse embedded owner dashboard data:", err);
+    }
 }
 
 function renderOwnerDashboard() {
@@ -242,7 +277,7 @@ function getEmptyState(message) {
     return `
         <div class="empty-state dashboard-empty-state">
             <h3>${message}</h3>
-            <p>Demo data can be replaced when backend integration begins.</p>
+            <p>There is no recorded information to display for this section yet.</p>
         </div>
     `;
 }

@@ -5,14 +5,13 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | MADAM HY Storefront</title>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <!-- Bootstrap Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <title>Login | MADAM HY</title>
-
+    <!-- Design Tokens & Core Styles -->
     <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
     <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
     <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
@@ -27,8 +26,10 @@
 <body>
     <main class="auth-shell">
         <section class="auth-panel" aria-labelledby="loginTitle">
-            <a href="#" class="auth-brand" aria-label="MADAM HY home">
-                <span class="auth-logo">HY</span>
+            <a href="/" class="auth-brand" aria-label="MADAM HY home">
+                <span class="auth-logo has-emblem">
+                    <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg" width="36" height="36" />
+                </span>
                 <span>
                     <strong>MADAM HY</strong>
                     <small>Smart Shop</small>
@@ -37,16 +38,33 @@
 
             <div class="auth-card">
                 <div class="auth-header">
-                    <span class="badge badge-primary">Secure access</span>
+                    <div class="auth-header-crest" style="margin-bottom: 12px;">
+                        <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg auth-header-emblem" width="48" height="48" />
+                    </div>
 
-                    <h1 id="loginTitle">Welcome back</h1>
+                    <span class="badge badge-primary">
+                        <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                        <span>Secure Customer Access</span>
+                    </span>
+
+                    <h1 id="loginTitle">Welcome Back</h1>
 
                     <p>
-                        Sign in to continue managing shop operations,
-                        sales, stock, and customer activity.
+                        Sign in to access your orders, store credit account, and personalized shopping features.
                     </p>
                 </div>
 
+                {% if error %}
+                <div
+                    class="alert alert-error account-message"
+                    id="loginMessage"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% else %}
                 <div
                     class="alert alert-error account-message"
                     id="loginMessage"
@@ -55,31 +73,39 @@
                     hidden
                 >
                 </div>
+                {% endif %}
 
                 <form
                     class="account-form"
                     id="loginForm"
                     method="post"
+                    action="{% url 'accounts:login' %}"
                     novalidate
-                    data-demo-form
                 >
                     {% csrf_token %}
+                    {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
 
                     <div class="form-group">
                         <label class="form-label" for="loginIdentifier">
-                            Email or username
+                            Email or Username
                             <span class="required">*</span>
                         </label>
 
-                        <input
-                            class="form-control"
-                            type="text"
-                            id="loginIdentifier"
-                            name="identifier"
-                            autocomplete="username"
-                            placeholder="owner@madamhy.com"
-                            required
-                        >
+                        <div class="input-with-icon-wrap">
+                            <i class="bi bi-person input-leading-icon" aria-hidden="true"></i>
+                            <input
+                                class="form-control"
+                                type="text"
+                                id="loginIdentifier"
+                                name="identifier"
+                                autocomplete="username"
+                                value="{{ identifier|default:'' }}"
+                                placeholder="customer@example.com"
+                                required
+                            >
+                        </div>
 
                         <span class="form-error" data-error-for="loginIdentifier"></span>
                     </div>
@@ -91,6 +117,7 @@
                         </label>
 
                         <div class="password-field">
+                            <i class="bi bi-key input-leading-icon" aria-hidden="true"></i>
                             <input
                                 class="form-control"
                                 type="password"
@@ -120,35 +147,57 @@
                             <span>Remember this device</span>
                         </label>
 
-                        <a href="#" class="text-link">Forgot password?</a>
+                        <a href="https://wa.me/2348000000000?text=MADAM%20HY%20Customer%20Password%20Reset%20Assistance" target="_blank" rel="noopener noreferrer" class="text-link">Forgot password?</a>
                     </div>
 
                     <button class="btn btn-primary btn-block btn-lg" type="submit">
-                        Sign in
+                        <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+                        <span>Sign In</span>
                     </button>
                 </form>
 
                 <p class="auth-footer">
                     New to MADAM HY?
-                    <a href="#" class="text-link">Create an account</a>
+                    <a href="{% url 'accounts:register' %}" class="text-link">Create an account</a>
                 </p>
+
+                <div class="staff-portal-link-wrap">
+                    <p class="auth-footer staff-link">
+                        Store employee?
+                        <a href="{% url 'accounts:staff_login' %}" class="text-link">Staff Login &rarr;</a>
+                    </p>
+                </div>
             </div>
         </section>
 
         <aside class="auth-aside" aria-label="MADAM HY retail overview">
             <div class="auth-aside-content">
-                <span class="auth-kicker">Retail control center</span>
-                <h2>Run the shop with calm, clear information.</h2>
+                <span class="auth-kicker">
+                    <i class="bi bi-stars" aria-hidden="true"></i>
+                    <span>Premium Retail Experience</span>
+                </span>
+                <h2>Shop quality products with full transparency.</h2>
                 <p>
-                    Accounts are prepared for owners, managers, cashiers,
-                    staff, and customers as the permission system grows.
+                    Track your orders from dispatch to delivery, access flexible store credit lines, and enjoy frictionless checkout with MADAM HY.
                 </p>
 
                 <div class="auth-highlights">
-                    <span>Sales</span>
-                    <span>Inventory</span>
-                    <span>Orders</span>
-                    <span>Credit</span>
+                    <div class="highlight-item">
+                        <i class="bi bi-bag-check" aria-hidden="true"></i>
+                        <span>Live Catalog</span>
+                    </div>
+                    <div class="highlight-item">
+                        <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                        <span>Store Credit</span>
+                    </div>
+                    <div class="highlight-item">
+                        <i class="bi bi-truck" aria-hidden="true"></i>
+                        <span>Fast Delivery</span>
+                    </div>
+                    <div class="highlight-item">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        <span>Secure Auth</span>
+                    </div>
                 </div>
             </div>
         </aside>

@@ -1,0 +1,18 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MADAM HY Frontend Preview</title>
+    <link rel="stylesheet" href="{% static 'css/pages/preview.css' %}">
+</head>
+<body>
+    <h1>MADAM HY Frontend Preview</h1>
+    <ul>
+        {% for route, label in preview_routes %}
+            <li><a href="{{ route }}">{{ label }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

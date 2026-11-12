@@ -1,0 +1,56 @@
+.add-credit-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+}
+@media (max-width: 900px) {
+    .add-credit-layout {
+        grid-template-columns: 1fr;
+    }
+}
+.currency-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.currency-prefix {
+    position: absolute;
+    left: 14px;
+    font-weight: 700;
+    color: var(--muted);
+    font-size: 15px;
+    pointer-events: none;
+}
+.currency-input-wrapper input {
+    padding-left: 32px !important;
+}
+.customer-badge-info {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--background);
+    border: 1px solid var(--border);
+}
+.projection-box {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 14px;
+}
+.projection-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+.projection-row.highlight {
+    border-top: 1px dashed var(--border);
+    margin-top: 6px;
+    padding-top: 10px;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 14px;
+}

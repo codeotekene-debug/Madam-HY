@@ -1,83 +1,139 @@
-const expenseReportData = [
-    { category: 'Rent', amount: 1800000, vendor: 'Landmark Properties', description: 'Shop rent and maintenance', date: '2026-08-14' },
-    { category: 'Utilities', amount: 650000, vendor: 'Power Distribution', description: 'Electricity and water', date: '2026-08-12' },
-    { category: 'Supplies', amount: 540000, vendor: 'ABC Supplies', description: 'Packaging and stationery', date: '2026-08-10' },
-    { category: 'Maintenance', amount: 420000, vendor: 'Cool Tech', description: 'AC repairs and service', date: '2026-08-08' },
-    { category: 'Transport', amount: 310000, vendor: 'Shell Station', description: 'Vehicle fuel and logistics', date: '2026-08-06' },
-    { category: 'Salaries', amount: 1500000, vendor: 'Internal', description: 'Payroll disbursement', date: '2026-08-02' }
-];
+(function () {
+    'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderExpenseSummary();
-    renderTrendChart();
-    renderCategoryList();
-    renderExpenseTable();
-});
+    let expenseData = null;
+    let expenseReportData = [];
 
-function renderExpenseSummary() {
-    const total = expenseReportData.reduce((sum, item) => sum + item.amount, 0);
-    const average = total / expenseReportData.length;
-    const top = expenseReportData.reduce((winner, item) => item.amount > winner.amount ? item : winner, expenseReportData[0]);
+    function initExpense() {
+        const script = document.getElementById('expenseDataJson');
+        if (script) {
+            try {
+                expenseData = JSON.parse(script.textContent);
+            } catch (e) {
+                console.error('Failed to parse expense data JSON', e);
+            }
+        }
 
-    document.getElementById('expenseTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(total)}`));
-    document.getElementById('expenseAverage')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(average)}`));
-    document.getElementById('expenseTopCategory')?.replaceChildren(document.createTextNode(top.category));
-    document.getElementById('expenseGrowth')?.replaceChildren(document.createTextNode('+9.5%'));
-}
+        expenseReportData = (expenseData && expenseData.recent_expenses) ? expenseData.recent_expenses : [];
 
-function renderTrendChart() {
-    const chart = document.getElementById('expenseTrendChart');
-    if (!chart) return;
-
-    const values = [58, 61, 66, 72, 69, 80];
-    chart.innerHTML = values.map((value, index) => `
-        <div class="bar-segment" style="--value: ${value}%">
-            <span>${['Jan','Feb','Mar','Apr','May','Jun'][index]}</span>
-        </div>
-    `).join('');
-}
-
-function renderCategoryList() {
-    const container = document.getElementById('expenseCategoryList');
-    if (!container) return;
-
-    const total = expenseReportData.reduce((sum, item) => sum + item.amount, 0);
-    container.innerHTML = expenseReportData.map(item => `
-        <div class="category-item">
-            <strong>${item.category}</strong>
-            <span>${((item.amount / total) * 100).toFixed(1)}% · ₦ ${formatCurrency(item.amount)}</span>
-        </div>
-    `).join('');
-}
-
-function renderExpenseTable() {
-    const tableBody = document.getElementById('expenseTableBody');
-    const emptyState = document.getElementById('expenseEmptyState');
-
-    if (!tableBody) return;
-
-    if (!expenseReportData.length) {
-        tableBody.innerHTML = '';
-        emptyState?.classList.remove('empty-state-hidden');
-        return;
+        renderExpenseSummary();
+        renderTrendChart();
+        renderCategoryList();
+        renderExpenseTable();
     }
 
-    emptyState?.classList.add('empty-state-hidden');
-    tableBody.innerHTML = expenseReportData.map(item => `
-        <tr>
-            <td>${item.category}</td>
-            <td>${item.description}</td>
-            <td>${item.vendor}</td>
-            <td>${formatDate(item.date)}</td>
-            <td>₦ ${formatCurrency(item.amount)}</td>
-        </tr>
-    `).join('');
-}
+    function renderExpenseSummary() {
+        const total = expenseData ? Number(expenseData.total_expenses || 0) : expenseReportData.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        const count = expenseData ? Number(expenseData.expense_count || 0) : expenseReportData.length;
+        const average = count > 0 ? (total / count) : 0;
 
-function formatDate(value) {
-    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+        const categories = (expenseData && expenseData.expenses_by_category) ? expenseData.expenses_by_category : [];
+        const topCat = categories.length ? categories[0].category : '-';
 
-function formatCurrency(value) {
-    return Number(value).toLocaleString('en-NG');
-}
+        document.getElementById('expenseTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(total)}`));
+        document.getElementById('expenseAverage')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(average)}`));
+        document.getElementById('expenseTopCategory')?.replaceChildren(document.createTextNode(topCat));
+        document.getElementById('expenseGrowth')?.replaceChildren(document.createTextNode(count > 0 ? `${count} records` : '-'));
+    }
+
+    function renderTrendChart() {
+        const chart = document.getElementById('expenseTrendChart');
+        if (!chart) return;
+
+        const days = (expenseData && expenseData.expenses_by_day) ? expenseData.expenses_by_day : [];
+        if (!days.length) {
+            chart.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted, #718096); width: 100%;">No expense activity recorded in this period.</div>';
+            return;
+        }
+
+        const maxVal = Math.max(...days.map(d => Number(d.total_expenses || 0))) || 1;
+        chart.innerHTML = days.slice(-8).map(d => {
+            const pct = Math.max(8, Math.min(100, Math.round((Number(d.total_expenses || 0) / maxVal) * 100)));
+            const label = d.day ? String(d.day).slice(5) : '';
+            return `
+                <div class="bar-segment" style="--value: ${pct}%" title="₦ ${formatCurrency(d.total_expenses)}">
+                    <span>${escapeHtml(label)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderCategoryList() {
+        const container = document.getElementById('expenseCategoryList');
+        if (!container) return;
+
+        const categories = (expenseData && expenseData.expenses_by_category) ? expenseData.expenses_by_category : [];
+        if (!categories.length) {
+            container.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted, #718096);">No category breakdown available.</div>';
+            return;
+        }
+
+        const total = categories.reduce((sum, item) => sum + Number(item.total_expenses || 0), 0) || 1;
+        container.innerHTML = categories.map(item => {
+            const amt = Number(item.total_expenses || 0);
+            const pct = ((amt / total) * 100).toFixed(1);
+            return `
+                <div class="category-item">
+                    <strong>${escapeHtml(item.category)}</strong>
+                    <span>${pct}% · ₦ ${formatCurrency(amt)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderExpenseTable() {
+        const tableBody = document.getElementById('expenseTableBody');
+        const emptyState = document.getElementById('expenseEmptyState');
+
+        if (!tableBody) return;
+
+        if (!expenseReportData.length) {
+            tableBody.innerHTML = '';
+            emptyState?.classList.remove('empty-state-hidden');
+            return;
+        }
+
+        emptyState?.classList.add('empty-state-hidden');
+        tableBody.innerHTML = expenseReportData.map(item => `
+            <tr>
+                <td>${escapeHtml(item.category)}</td>
+                <td>${escapeHtml(item.description || '-')}</td>
+                <td>${escapeHtml(item.vendor || '-')}</td>
+                <td>${formatDate(item.expense_date)}</td>
+                <td>₦ ${formatCurrency(item.amount)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function formatDate(value) {
+        if (!value) return '-';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function formatCurrency(value) {
+        const num = Number(value || 0);
+        return num.toLocaleString('en-NG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initExpense);
+    } else {
+        initExpense();
+    }
+    window.addEventListener('page:load', initExpense);
+})();

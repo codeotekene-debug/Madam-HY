@@ -1,0 +1,217 @@
+/* Delivery and rider screens reuse the Smart Shop design tokens/components. */
+.delivery-shell {
+    width: min(100%, 1240px);
+    margin: 0 auto;
+    padding: 24px clamp(12px, 2vw, 24px) 40px;
+    color: var(--text);
+}
+
+.delivery-page-header {
+    margin-bottom: 16px;
+}
+
+.delivery-page-header h1 {
+    margin: 0;
+    color: var(--text-heading);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.delivery-page-header p {
+    margin: 6px 0 0;
+}
+
+.delivery-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 18px;
+    padding: 6px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
+    scrollbar-width: thin;
+}
+
+.delivery-nav a {
+    display: inline-flex;
+    min-height: 42px;
+    flex: 0 0 auto;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.delivery-nav a:hover {
+    background: var(--surface-hover);
+    color: var(--primary-dark);
+}
+
+.delivery-nav a[aria-current="page"] {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.delivery-nav a:focus-visible,
+.delivery-shell :is(button, a, input, select, textarea):focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-offset);
+}
+
+.delivery-card,
+.delivery-panel {
+    margin: 0 0 16px;
+    padding: clamp(14px, 2vw, 20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.delivery-panel > :first-child,
+.delivery-card > :first-child {
+    margin-top: 0;
+}
+
+.delivery-panel > :last-child,
+.delivery-card > :last-child {
+    margin-bottom: 0;
+}
+
+.delivery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+    gap: 14px;
+}
+
+.delivery-shell .delivery-muted,
+.delivery-shell .text-muted {
+    color: var(--muted);
+}
+
+.delivery-form,
+.delivery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+}
+
+.delivery-form label {
+    display: grid;
+    min-width: min(100%, 190px);
+    flex: 1 1 190px;
+    gap: 5px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.delivery-shell :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    width: 100%;
+    min-height: 44px;
+    max-width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+}
+
+.delivery-shell textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.delivery-shell button:not(.btn),
+.delivery-shell .delivery-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 16px;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: #fff;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.delivery-shell button:not(.btn):hover,
+.delivery-shell .delivery-btn:hover {
+    border-color: var(--primary-dark);
+    background: var(--primary-dark);
+}
+
+.delivery-shell button:not(.btn):disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.delivery-shell :is(button, .delivery-btn) {
+    min-height: 44px;
+}
+
+.delivery-shell .table-wrapper,
+.delivery-shell .table-responsive {
+    margin-top: 14px;
+}
+
+.delivery-shell table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.delivery-shell th,
+.delivery-shell td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.delivery-shell th {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.delivery-shell td {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.delivery-message {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 600px) {
+    .delivery-shell {
+        padding-top: 14px;
+    }
+
+    .delivery-nav {
+        margin-right: -12px;
+        border-radius: var(--radius-md) 0 0 var(--radius-md);
+    }
+
+    .delivery-shell .table {
+        min-width: 680px;
+    }
+
+    .delivery-actions > *,
+    .delivery-form > button {
+        flex: 1 1 auto;
+    }
+}

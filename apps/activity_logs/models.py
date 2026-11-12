@@ -5,8 +5,27 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 
+class ActivityLogQuerySet(models.QuerySet):
+    """Custom queryset providing convenience filters for activity log entries."""
+
+    def for_actor(self, user):
+        return self.filter(actor=user)
+
+    def for_action(self, action_type):
+        return self.filter(action_type=action_type)
+
+    def latest(self, *fields):
+        if fields:
+            return super().latest(*fields)
+        return self.order_by('-created_at', '-id')
+
+
 class ActivityLog(models.Model):
-    """Historical audit record for the MADAM HY business domain."""
+    """Historical audit record for the MADAM HY business domain.
+
+    Activity logs are immutable audit records that capture system events, user actions,
+    and entity mutations for security compliance and operational transparency.
+    """
 
     class ActionType(models.TextChoices):
         CREATED = 'CREATED', 'Created'
@@ -64,6 +83,8 @@ class ActivityLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = ActivityLogQuerySet.as_manager()
+
     class Meta:
         ordering = ['-created_at', '-id']
         verbose_name = 'Activity Log'
@@ -88,23 +109,67 @@ class ActivityLog(models.Model):
         if self.metadata is None:
             self.metadata = {}
 
+        # Enforce immutability on existing records
+        if self.pk:
+            try:
+                orig = ActivityLog.objects.get(pk=self.pk)
+                immutable_fields = [
+                    'actor_id', 'action_type', 'action_label', 'description',
+                    'content_type_id', 'object_id',
+                ]
+                for field in immutable_fields:
+                    if getattr(orig, field) != getattr(self, field):
+                        raise ValidationError(
+                            f'Activity log records are immutable. Field {field} cannot be modified.'
+                        )
+            except ActivityLog.DoesNotExist:
+                pass
+
     def save(self, *args, **kwargs):
         self.full_clean()
         if self.metadata is None:
             self.metadata = {}
         super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        """Disallow deletion of historical audit log records to preserve audit compliance."""
+        raise ValidationError('Historical activity log records must be preserved. They cannot be deleted.')
+
     @property
     def content_object(self):
         return self.related_object
 
+    @property
+    def ip_address(self):
+        """Extract IP address from metadata if recorded."""
+        if isinstance(self.metadata, dict):
+            return self.metadata.get('ip_address') or self.metadata.get('ip') or ''
+        return ''
 
-class ActivityLogQuerySet(models.QuerySet):
-    def for_actor(self, user):
-        return self.filter(actor=user)
+    @property
+    def user_agent(self):
+        """Extract User-Agent string from metadata if recorded."""
+        if isinstance(self.metadata, dict):
+            return self.metadata.get('user_agent', '')
+        return ''
 
-    def for_action(self, action_type):
-        return self.filter(action_type=action_type)
+    @property
+    def changes_diff(self):
+        """Extract structured before/after state diff from metadata if present."""
+        if not isinstance(self.metadata, dict):
+            return {}
 
-    def latest(self):
-        return self.order_by('-created_at', '-id')
+        if 'diff' in self.metadata and isinstance(self.metadata['diff'], dict):
+            return self.metadata['diff']
+        if 'changes' in self.metadata and isinstance(self.metadata['changes'], dict):
+            return self.metadata['changes']
+
+        old_values = self.metadata.get('old_values') or self.metadata.get('before')
+        new_values = self.metadata.get('new_values') or self.metadata.get('after')
+        if isinstance(old_values, dict) and isinstance(new_values, dict):
+            all_keys = set(old_values.keys()) | set(new_values.keys())
+            diff = {}
+            for k in all_keys:
+                diff[k] = {'old': old_values.get(k), 'new': new_values.get(k)}
+            return diff
+        return {}

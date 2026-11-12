@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+404 Page Not Found | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+Page Not Found
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/errors.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="error-page-wrapper">
+    <div class="error-card">
+        <span class="error-badge badge-404">404 Not Found</span>
+        <div class="error-icon">🧭</div>
+        <h2 class="error-title">Page Not Found</h2>
+        <p class="error-desc">
+            The boutique page or resource you are looking for does not exist, has been moved,
+            or the link is incomplete. Use the navigation links to explore available collections.
+        </p>
+        <div class="error-actions">
+            {% if user.is_authenticated %}
+                {% if user.role == "CUSTOMER" %}
+                <a href="/customer/" class="btn-return">
+                    <span>⌂</span>
+                    <span>Return to Customer Dashboard</span>
+                </a>
+                <a href="/customer/products/" class="btn-back">
+                    <span>◈</span>
+                    <span>Browse Products</span>
+                </a>
+                {% else %}
+                <a href="/dashboard/" class="btn-return">
+                    <span>▦</span>
+                    <span>Return to Shop Dashboard</span>
+                </a>
+                <button type="button" class="btn-back" onclick="window.history.back()">
+                    <span>←</span>
+                    <span>Go Back</span>
+                </button>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'accounts:login' %}" class="btn-return">
+                    <span>Sign In</span>
+                </a>
+                <a href="/customer/products/" class="btn-back">
+                    <span>Browse Storefront</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

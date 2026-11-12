@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}
-    Reports Overview | MADAM HY
+    Business Analytics &amp; Reports | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -16,128 +16,177 @@
 
 {% block content %}
 <div class="report-page">
-    <section class="report-hero">
-        <div>
-            <span class="badge badge-primary">Overview</span>
-            <h2>Business reports</h2>
-            <p>Monitor sales trends, profit health, expenses, and growth performance across the current operating period.</p>
-        </div>
-        <div class="report-actions">
-            <button type="button" class="btn btn-secondary">Download report</button>
-            <a href="/reports/sales/" class="btn btn-primary">Open sales report</a>
-        </div>
-    </section>
 
+    <!-- Page Header & Hero -->
+    <header class="report-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-graph-up" aria-hidden="true"></i>
+                    <span>Analytics &amp; Performance</span>
+                </span>
+            </div>
+            <h2>Business Analytics &amp; Financial Reports</h2>
+            <p>Monitor revenue momentum, profit health, operating expense ratios, and retail performance across operating periods.</p>
+        </div>
+
+        <div class="report-actions">
+            <button type="button" class="btn btn-secondary" onclick="window.print()" aria-label="Export or print report summary">
+                <i class="bi bi-download" aria-hidden="true"></i>
+                <span>Export Report</span>
+            </button>
+            <a href="/reports/sales/" class="btn btn-primary" aria-label="Open detailed sales report">
+                <i class="bi bi-table" aria-hidden="true"></i>
+                <span>Detailed Sales Report</span>
+            </a>
+        </div>
+    </header>
+
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+    <!-- Top Statistical KPI Cards -->
     <section class="report-summary" aria-label="Reports overview summary">
-        <article class="summary-card">
-            <span>Total sales</span>
-            <strong id="overviewTotalSales">₦ 0</strong>
+        <article class="summary-card" aria-label="Total recorded sales">
+            <div class="summary-top">
+                <span>Gross Revenue</span>
+                <span class="card-icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
+            </div>
+            <strong id="overviewTotalSales">₦ 0.00</strong>
         </article>
-        <article class="summary-card">
-            <span>Total expenses</span>
-            <strong id="overviewTotalExpenses">₦ 0</strong>
+
+        <article class="summary-card" aria-label="Total operating expenses">
+            <div class="summary-top">
+                <span>Total Expenses</span>
+                <span class="card-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span>
+            </div>
+            <strong id="overviewTotalExpenses">₦ 0.00</strong>
         </article>
-        <article class="summary-card">
-            <span>Gross profit</span>
-            <strong id="overviewGrossProfit">₦ 0</strong>
+
+        <article class="summary-card" aria-label="Gross profit amount">
+            <div class="summary-top">
+                <span class="text-primary">Gross Profit</span>
+                <span class="card-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+            </div>
+            <strong id="overviewGrossProfit">₦ 0.00</strong>
         </article>
-        <article class="summary-card">
-            <span>Net profit</span>
-            <strong id="overviewNetProfit">₦ 0</strong>
+
+        <article class="summary-card" aria-label="Net profit amount">
+            <div class="summary-top">
+                <span class="text-primary-dark">Net Profit</span>
+                <span class="card-icon"><i class="bi bi-piggy-bank" aria-hidden="true"></i></span>
+            </div>
+            <strong id="overviewNetProfit">₦ 0.00</strong>
         </article>
-        <article class="summary-card">
-            <span>Transactions</span>
+
+        <article class="summary-card" aria-label="Total transaction count">
+            <div class="summary-top">
+                <span>Transactions</span>
+                <span class="card-icon"><i class="bi bi-receipt" aria-hidden="true"></i></span>
+            </div>
             <strong id="overviewTransactions">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Average order value</span>
-            <strong id="overviewAov">₦ 0</strong>
+
+        <article class="summary-card" aria-label="Average order value">
+            <div class="summary-top">
+                <span>Avg Order Value</span>
+                <span class="card-icon"><i class="bi bi-cart-check" aria-hidden="true"></i></span>
+            </div>
+            <strong id="overviewAov">₦ 0.00</strong>
         </article>
     </section>
 
+    <!-- Period Toolbar -->
     <section class="report-toolbar">
-        <div class="range-switcher" aria-label="Select report range">
-            <button type="button" class="range-button active" data-range="month">This month</button>
-            <button type="button" class="range-button" data-range="quarter">Quarter</button>
-            <button type="button" class="range-button" data-range="year">Year</button>
+        <div class="range-switcher" role="group" aria-label="Select report time range">
+            <button type="button" class="range-button {% if period == 'this_month' or period == 'month' or not period %}active{% endif %}" data-range="month" aria-pressed="{% if period == 'this_month' or period == 'month' or not period %}true{% else %}false{% endif %}">This Month</button>
+            <button type="button" class="range-button {% if period == 'this_quarter' or period == 'quarter' %}active{% endif %}" data-range="quarter" aria-pressed="{% if period == 'this_quarter' or period == 'quarter' %}true{% else %}false{% endif %}">This Quarter</button>
+            <button type="button" class="range-button {% if period == 'this_year' or period == 'year' %}active{% endif %}" data-range="year" aria-pressed="{% if period == 'this_year' or period == 'year' %}true{% else %}false{% endif %}">This Year</button>
         </div>
         <div class="report-meta">
-            <span>Compared with previous period</span>
-            <strong id="overviewComparison">+0.0%</strong>
+            <span>Compared with previous period:</span>
+            <strong id="overviewComparison" class="text-primary">+0.0%</strong>
         </div>
     </section>
 
+    <!-- Report Chart & KPI Grid -->
     <section class="report-grid">
         <article class="card report-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Revenue trend</h3>
-                    <p>Sales momentum across the selected period.</p>
+                    <h3>Revenue Trajectory</h3>
+                    <p>Sales volume progression across the active comparison period.</p>
                 </div>
             </div>
 
-            <div class="chart-bars" id="overviewChart" aria-label="Revenue chart">
-                <div class="chart-bar" style="--value: 42%"><span>Jan</span></div>
-                <div class="chart-bar" style="--value: 58%"><span>Feb</span></div>
-                <div class="chart-bar" style="--value: 65%"><span>Mar</span></div>
-                <div class="chart-bar" style="--value: 72%"><span>Apr</span></div>
-                <div class="chart-bar" style="--value: 84%"><span>May</span></div>
-                <div class="chart-bar" style="--value: 96%"><span>Jun</span></div>
+            <div class="chart-scroll" tabindex="0" aria-label="Revenue chart, horizontally scrollable when needed">
+                <div class="chart-bars" id="overviewChart" role="img" aria-label="Completed sales revenue for the selected reporting period"></div>
             </div>
+            <p id="overviewChartEmpty" class="chart-empty" hidden>No completed sales were recorded during this reporting period.</p>
+            <table class="visually-hidden" id="overviewChartDataTable">
+                <caption>Revenue by interval for the selected reporting period</caption>
+                <thead><tr><th scope="col">Interval</th><th scope="col">Revenue</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </article>
 
         <article class="card report-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Key highlights</h3>
-                    <p>High-impact business signals.</p>
+                    <h3>Key Operating Signals</h3>
+                    <p>Core performance ratios and margin health indicators.</p>
                 </div>
             </div>
 
             <div class="kpi-list">
                 <div class="kpi-item">
-                    <span>Top category</span>
+                    <span>Leading Category</span>
                     <strong id="overviewTopCategory">-</strong>
                 </div>
                 <div class="kpi-item">
-                    <span>Expense ratio</span>
+                    <span>Expense Ratio</span>
                     <strong id="overviewExpenseRatio">0%</strong>
                 </div>
                 <div class="kpi-item">
-                    <span>Profit margin</span>
+                    <span>Operating Profit Margin</span>
                     <strong id="overviewProfitMargin">0%</strong>
                 </div>
                 <div class="kpi-item">
-                    <span>Customer growth</span>
+                    <span>Customer Growth</span>
                     <strong id="overviewCustomerGrowth">+0.0%</strong>
                 </div>
             </div>
         </article>
     </section>
 
+    <!-- Performance Comparison Table -->
     <section class="card report-panel report-table-panel">
         <div class="panel-header compact-header">
             <div>
-                <h3>Recent performance</h3>
-                <p>Latest operating snapshot for manager review.</p>
+                <h3>Period Performance Ledger</h3>
+                <p>Detailed variance comparison against the previous operating benchmark.</p>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <div class="table-wrapper table-responsive">
             <table class="table report-table">
                 <thead>
                     <tr>
-                        <th>Metric</th>
-                        <th>Current</th>
-                        <th>Previous</th>
-                        <th>Change</th>
+                        <th scope="col">Financial Metric</th>
+                        <th scope="col" class="num">Current Period</th>
+                        <th scope="col" class="num">Previous Period</th>
+                        <th scope="col" class="text-right">Variance / Delta</th>
                     </tr>
                 </thead>
                 <tbody id="overviewTableBody"></tbody>
             </table>
         </div>
     </section>
+
 </div>
+
+{{ overview_data|json_script:"overviewDataJson" }}
+{{ growth_report|json_script:"growthReportJson" }}
+{{ revenue_chart|json_script:"revenueChartDataJson" }}
 {% endblock %}
 
 {% block page_js %}

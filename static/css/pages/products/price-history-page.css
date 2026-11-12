@@ -1,0 +1,11 @@
+.font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.price-change-up {
+    color: var(--danger-dark, #b02a37);
+    font-weight: 600;
+}
+.price-change-down {
+    color: var(--primary, #087a3d);
+    font-weight: 600;
+}

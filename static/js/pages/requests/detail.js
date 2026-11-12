@@ -1,4 +1,4 @@
-const requestDetailData = {
+const requestDetailData = window.__REQUEST_DETAIL__ || {
     id: 'REQ-1003',
     customer: 'Grace Nnaji',
     type: 'Inventory Issue',
@@ -24,20 +24,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderDetail() {
     document.getElementById('detailTitle')?.replaceChildren(document.createTextNode(requestDetailData.title));
-    document.getElementById('detailSubtitle')?.replaceChildren(document.createTextNode(`${requestDetailData.customer} • ${requestDetailData.type}`));
-    document.getElementById('detailReference')?.replaceChildren(document.createTextNode(requestDetailData.id));
-    document.getElementById('detailPriority')?.replaceChildren(document.createTextNode(requestDetailData.priority));
-    document.getElementById('detailStatus')?.replaceChildren(document.createTextNode(requestDetailData.status));
-    document.getElementById('detailAssignee')?.replaceChildren(document.createTextNode(requestDetailData.assignee));
-    document.getElementById('detailCustomer')?.replaceChildren(document.createTextNode(requestDetailData.customer));
-    document.getElementById('detailType')?.replaceChildren(document.createTextNode(requestDetailData.type));
-    document.getElementById('detailCreated')?.replaceChildren(document.createTextNode(formatDate(requestDetailData.created)));
-    document.getElementById('detailUpdated')?.replaceChildren(document.createTextNode(formatDate(requestDetailData.updated)));
-    document.getElementById('detailDescription')?.replaceChildren(document.createTextNode(requestDetailData.description));
-    document.getElementById('detailNotes')?.replaceChildren(document.createTextNode(requestDetailData.notes));
+    document.getElementById('detailSubtitle')?.replaceChildren(document.createTextNode(`${requestDetailData.customer_name || requestDetailData.customer || ''} • ${requestDetailData.type || requestDetailData.request_type_display || ''}`));
+    document.getElementById('detailReference')?.replaceChildren(document.createTextNode(requestDetailData.request_number || requestDetailData.id || '-'));
+    document.getElementById('detailPriority')?.replaceChildren(document.createTextNode(requestDetailData.priority_display || requestDetailData.priority || '-'));
+    document.getElementById('detailStatus')?.replaceChildren(document.createTextNode(requestDetailData.status_display || requestDetailData.status || '-'));
+    document.getElementById('detailAssignee')?.replaceChildren(document.createTextNode(requestDetailData.assignee || '-'));
+    document.getElementById('detailCustomer')?.replaceChildren(document.createTextNode(requestDetailData.customer_name || requestDetailData.customer || '-'));
+    document.getElementById('detailType')?.replaceChildren(document.createTextNode(requestDetailData.type || requestDetailData.request_type_display || '-'));
+    document.getElementById('detailCreated')?.replaceChildren(document.createTextNode(formatDate(requestDetailData.created_at || requestDetailData.created)));
+    document.getElementById('detailUpdated')?.replaceChildren(document.createTextNode(formatDate(requestDetailData.updated_at || requestDetailData.updated)));
+    document.getElementById('detailDescription')?.replaceChildren(document.createTextNode(requestDetailData.description || '-'));
+    document.getElementById('detailNotes')?.replaceChildren(document.createTextNode(requestDetailData.notes || requestDetailData.resolution || '-'));
 
     const timeline = document.getElementById('detailTimeline');
-    if (timeline) {
+    if (timeline && requestDetailData.timeline) {
         timeline.innerHTML = requestDetailData.timeline.map(item => `
             <div class="timeline-item">
                 <strong>${item.title}</strong>
@@ -49,12 +49,34 @@ function renderDetail() {
 }
 
 function bindActions() {
+    function getCsrfToken() {
+        return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+    }
+
+    async function sendStatusUpdate(newStatus) {
+        const targetId = requestDetailData.uuid || requestDetailData.id;
+        if (!targetId) return;
+        try {
+            await fetch(`/requests/${encodeURIComponent(targetId)}/status/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+        } catch (e) {
+            console.error('Failed to update status', e);
+        }
+    }
+
     document.getElementById('requestActionReview')?.addEventListener('click', () => {
         const status = document.getElementById('detailStatus');
         if (status) {
             status.textContent = 'In Review';
             status.classList.add('request-status-in-review');
         }
+        sendStatusUpdate('REVIEWING');
     });
 
     document.getElementById('requestActionApprove')?.addEventListener('click', () => {
@@ -63,6 +85,7 @@ function bindActions() {
             status.textContent = 'Approved';
             status.classList.add('request-status-approved');
         }
+        sendStatusUpdate('APPROVED');
     });
 }
 

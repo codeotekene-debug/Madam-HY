@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/products/products.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="products" active_tab="catalog" %}
+{% endblock %}
+
 {% block content %}
 <div class="products-page">
     <section class="page-hero">
@@ -25,7 +29,7 @@
 
         <div class="page-actions">
             <button type="button" class="btn btn-secondary" id="toggleViewBtn">Grid view</button>
-            <a href="/preview/products/add/" class="btn btn-primary" id="addProductLink">Add product</a>
+            <a href="/products/create/" class="btn btn-primary" id="addProductLink">Add product</a>
         </div>
     </section>
 

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Expense Categories &amp; Overhead Breakdown | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Expense Categories
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/expenses/expenses.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/expenses/categories-page.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="expenses" current_tab="categories" %}
+{% endblock %}
+
+{% block content %}
+<div class="expenses-page categories-page">
+
+    <!-- Page Header & Hero -->
+    <header class="expenses-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-tags" aria-hidden="true"></i>
+                    <span>Overhead Breakdown</span>
+                </span>
+            </div>
+            <h2>Operational Expense Categories</h2>
+            <p>Categorization of store operational costs, overhead distribution, and operational spending analytics.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="{% url 'expenses:expense_create' %}" class="btn btn-primary" aria-label="Record a new expense">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span>Add Expense</span>
+            </a>
+            <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary" aria-label="View all expenses">
+                <i class="bi bi-wallet2" aria-hidden="true"></i>
+                <span>All Expenses</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Category Cards Grid -->
+    <section class="categories-grid" aria-label="Expense categories breakdown">
+        {% for cat in categories %}
+        <article class="category-card">
+            <div class="category-top">
+                <span class="category-name">{{ cat.label }}</span>
+                <span class="badge badge-info">{{ cat.count }} record{{ cat.count|pluralize }}</span>
+            </div>
+            <div class="category-amount">₦ {{ cat.total_spent }}</div>
+            <div class="category-meta">
+                <span>Share of Total</span>
+                <strong>{{ cat.percentage }}%</strong>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: {{ cat.percentage }}%;"></div>
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+
+    <!-- Category Detailed Table Panel -->
+    <section class="card expenses-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Category Audit Directory</h3>
+                <p>Summary breakdown of operational budget per authorized category.</p>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table" aria-label="Expense categories directory">
+                <thead>
+                    <tr>
+                        <th scope="col">Category</th>
+                        <th scope="col">Identifier</th>
+                        <th scope="col">Total Expenses</th>
+                        <th scope="col">Total Expenditure</th>
+                        <th scope="col">Share of Budget</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>
+                            <strong>{{ cat.label }}</strong>
+                        </td>
+                        <td>
+                            <code class="font-mono text-muted">{{ cat.category }}</code>
+                        </td>
+                        <td>
+                            <span>{{ cat.count }}</span>
+                        </td>
+                        <td>
+                            <strong class="font-mono">₦ {{ cat.total_spent }}</strong>
+                        </td>
+                        <td>
+                            <span>{{ cat.percentage }}%</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'expenses:expense_list' %}?category={{ cat.category }}" class="btn btn-sm btn-secondary">
+                                View Entries
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            No categories available.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

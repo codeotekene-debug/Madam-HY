@@ -5,14 +5,13 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Customer Account | MADAM HY</title>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <!-- Bootstrap Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <title>Register | MADAM HY</title>
-
+    <!-- Design Tokens & Core Styles -->
     <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
     <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
     <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
@@ -28,8 +27,10 @@
 <body>
     <main class="auth-shell auth-shell-wide">
         <section class="auth-panel" aria-labelledby="registerTitle">
-            <a href="#" class="auth-brand" aria-label="MADAM HY home">
-                <span class="auth-logo">HY</span>
+            <a href="/" class="auth-brand" aria-label="MADAM HY home">
+                <span class="auth-logo has-emblem">
+                    <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg" width="36" height="36" />
+                </span>
                 <span>
                     <strong>MADAM HY</strong>
                     <small>Smart Shop</small>
@@ -38,16 +39,32 @@
 
             <div class="auth-card">
                 <div class="auth-header">
-                    <span class="badge badge-primary">Account setup</span>
+                    <div class="auth-header-crest" style="margin-bottom: 12px;">
+                        <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY Emblem" class="brand-emblem-svg auth-header-emblem" width="48" height="48" />
+                    </div>
+                    <span class="badge badge-primary">
+                        <i class="bi bi-person-plus-fill" aria-hidden="true"></i>
+                        <span>Customer Account Setup</span>
+                    </span>
 
-                    <h1 id="registerTitle">Create your account</h1>
+                    <h1 id="registerTitle">Create Your Account</h1>
 
                     <p>
-                        Prepare access for shopping, requests, orders,
-                        or shop operations.
+                        Join MADAM HY to shop our curated catalog, track your order history, and unlock customer credit benefits.
                     </p>
                 </div>
 
+                {% if error %}
+                <div
+                    class="alert alert-error account-message"
+                    id="registerMessage"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% else %}
                 <div
                     class="alert alert-error account-message"
                     id="registerMessage"
@@ -56,13 +73,14 @@
                     hidden
                 >
                 </div>
+                {% endif %}
 
                 <form
                     class="account-form"
                     id="registerForm"
                     method="post"
+                    action="{% url 'accounts:register' %}"
                     novalidate
-                    data-demo-form
                 >
                     {% csrf_token %}
 
@@ -73,14 +91,19 @@
                                 <span class="required">*</span>
                             </label>
 
-                            <input
-                                class="form-control"
-                                type="text"
-                                id="firstName"
-                                name="first_name"
-                                autocomplete="given-name"
-                                required
-                            >
+                            <div class="input-with-icon-wrap">
+                                <i class="bi bi-person input-leading-icon" aria-hidden="true"></i>
+                                <input
+                                    class="form-control"
+                                    type="text"
+                                    id="firstName"
+                                    name="first_name"
+                                    autocomplete="given-name"
+                                    value="{{ first_name|default:'' }}"
+                                    placeholder="e.g. Adebayo"
+                                    required
+                                >
+                            </div>
 
                             <span class="form-error" data-error-for="firstName"></span>
                         </div>
@@ -91,14 +114,19 @@
                                 <span class="required">*</span>
                             </label>
 
-                            <input
-                                class="form-control"
-                                type="text"
-                                id="lastName"
-                                name="last_name"
-                                autocomplete="family-name"
-                                required
-                            >
+                            <div class="input-with-icon-wrap">
+                                <i class="bi bi-person input-leading-icon" aria-hidden="true"></i>
+                                <input
+                                    class="form-control"
+                                    type="text"
+                                    id="lastName"
+                                    name="last_name"
+                                    autocomplete="family-name"
+                                    value="{{ last_name|default:'' }}"
+                                    placeholder="e.g. Ogunlesi"
+                                    required
+                                >
+                            </div>
 
                             <span class="form-error" data-error-for="lastName"></span>
                         </div>
@@ -110,56 +138,42 @@
                             <span class="required">*</span>
                         </label>
 
-                        <input
-                            class="form-control"
-                            type="email"
-                            id="registerEmail"
-                            name="email"
-                            autocomplete="email"
-                            placeholder="customer@example.com"
-                            required
-                        >
+                        <div class="input-with-icon-wrap">
+                            <i class="bi bi-envelope input-leading-icon" aria-hidden="true"></i>
+                            <input
+                                class="form-control"
+                                type="email"
+                                id="registerEmail"
+                                name="email"
+                                autocomplete="email"
+                                value="{{ email|default:'' }}"
+                                placeholder="customer@example.com"
+                                required
+                            >
+                        </div>
 
                         <span class="form-error" data-error-for="registerEmail"></span>
                     </div>
 
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label class="form-label" for="registerPhone">
-                                Phone number
-                            </label>
+                    <div class="form-group">
+                        <label class="form-label" for="registerPhone">
+                            Phone number
+                        </label>
 
+                        <div class="input-with-icon-wrap">
+                            <i class="bi bi-telephone input-leading-icon" aria-hidden="true"></i>
                             <input
                                 class="form-control"
                                 type="tel"
                                 id="registerPhone"
                                 name="phone"
                                 autocomplete="tel"
-                                placeholder="+234"
+                                value="{{ phone|default:'' }}"
+                                placeholder="+234 801 234 5678"
                             >
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="accountRole">
-                                Account type
-                                <span class="required">*</span>
-                            </label>
-
-                            <select
-                                class="form-select"
-                                id="accountRole"
-                                name="role"
-                                required
-                            >
-                                <option value="">Select type</option>
-                                <option value="CUSTOMER">Customer</option>
-                                <option value="STAFF">Staff</option>
-                                <option value="CASHIER">Cashier</option>
-                                <option value="MANAGER">Manager</option>
-                            </select>
-
-                            <span class="form-error" data-error-for="accountRole"></span>
-                        </div>
+                        <span class="form-error" data-error-for="registerPhone"></span>
                     </div>
 
                     <div class="form-grid">
@@ -170,12 +184,14 @@
                             </label>
 
                             <div class="password-field">
+                                <i class="bi bi-lock input-leading-icon" aria-hidden="true"></i>
                                 <input
                                     class="form-control"
                                     type="password"
                                     id="registerPassword"
                                     name="password"
                                     autocomplete="new-password"
+                                    placeholder="Create password"
                                     required
                                     data-strength-source
                                 >
@@ -212,12 +228,14 @@
                             </label>
 
                             <div class="password-field">
+                                <i class="bi bi-lock-fill input-leading-icon" aria-hidden="true"></i>
                                 <input
                                     class="form-control"
                                     type="password"
                                     id="confirmPassword"
                                     name="confirm_password"
                                     autocomplete="new-password"
+                                    placeholder="Repeat password"
                                     required
                                     data-confirm-password="registerPassword"
                                 >
@@ -239,19 +257,19 @@
                     <label class="check-control terms-control">
                         <input type="checkbox" name="terms" required>
                         <span>
-                            I understand access will follow MADAM HY role
-                            permissions when backend security is connected.
+                            I agree to the MADAM HY Terms of Service and Privacy Policy for storefront shopping.
                         </span>
                     </label>
 
                     <button class="btn btn-primary btn-block btn-lg" type="submit">
-                        Create account
+                        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                        <span>Create Account</span>
                     </button>
                 </form>
 
                 <p class="auth-footer">
                     Already have an account?
-                    <a href="#" class="text-link">Sign in</a>
+                    <a href="{% url 'accounts:login' %}" class="text-link">Sign in</a>
                 </p>
             </div>
         </section>

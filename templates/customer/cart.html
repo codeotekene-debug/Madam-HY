@@ -1,76 +1,123 @@
-{% extends "base.html" %}
-
+{% extends "customer/base.html" %}
 {% load static %}
 
 {% block title %}
-    Cart | MADAM HY Customer
+    Your Shopping Cart | MADAM HY Storefront
 {% endblock %}
 
 {% block page_title %}
     Shopping Cart
 {% endblock %}
 
-{% block page_css %}
+{% block customer_css %}
 <link rel="stylesheet" href="{% static 'css/pages/customer/cart.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block customer_content %}
 <div class="customer-cart-page">
-    <section class="cart-hero">
-        <div>
-            <h2>Your cart</h2>
-            <p id="cartItemsCount">0 items in your cart</p>
-        </div>
-    </section>
 
+    <!-- Cart Hero Header -->
+    <header class="cart-hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-cart3" aria-hidden="true"></i>
+                    <span>Review &amp; Checkout</span>
+                </span>
+            </div>
+            <h2>Shopping Cart</h2>
+            <p id="cartItemsCount">Review your selected items and quantities before proceeding to checkout.</p>
+        </div>
+
+        <div class="cart-hero-actions">
+            <a href="/customer/products/" class="btn btn-secondary" aria-label="Continue shopping">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span>Continue Shopping</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Cart Layout Grid -->
     <section class="cart-layout">
+
+        <!-- Left Column: Items Panel -->
         <article class="card cart-items-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Cart items</h3>
+                    <h3>Cart Items</h3>
+                    <p>Adjust quantities or remove items from your bag</p>
                 </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="clearCartBtn" style="color: #dc2626;">
+                    <i class="bi bi-trash3"></i> Clear Bag
+                </button>
             </div>
 
-            <div id="cartItemsList" class="cart-items-list"></div>
+            <!-- Dynamic Cart Items List -->
+            <div id="cartItemsList" class="cart-items-list" aria-live="polite"></div>
 
+            <!-- Structured Empty State -->
             <div id="cartEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
-                <h3>Your cart is empty</h3>
-                <p>Add items to get started.</p>
-                <a href="/customer/products/" class="btn btn-primary">Continue shopping</a>
+                <div class="empty-state-icon" aria-hidden="true">
+                    <i class="bi bi-bag-x"></i>
+                </div>
+                <h3>Your shopping cart is empty</h3>
+                <p>Looks like you haven't added any products to your cart yet. Explore our curated catalog to start shopping.</p>
+                <div class="empty-state-action" style="margin-top: 18px;">
+                    <a href="/customer/products/" class="btn btn-primary" aria-label="Browse product catalog">
+                        <i class="bi bi-shop" aria-hidden="true"></i>
+                        <span>Explore Catalog</span>
+                    </a>
+                </div>
             </div>
         </article>
 
+        <!-- Right Column: Order Summary Card -->
         <aside class="card cart-summary-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Order summary</h3>
+                    <h3>Order Summary</h3>
+                    <p>Subtotal and estimated totals</p>
                 </div>
             </div>
 
             <div class="summary-breakdown">
                 <div class="summary-row">
                     <span>Subtotal</span>
-                    <strong id="cartSubtotal">₦ 0</strong>
+                    <strong id="cartSubtotal" class="font-mono">₦ 0.00</strong>
                 </div>
                 <div class="summary-row">
-                    <span>Tax (estimate)</span>
-                    <strong id="cartTax">₦ 0</strong>
+                    <span>Tax</span>
+                    <strong id="cartTax" class="summary-hint">Not calculated</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Delivery charge</span>
+                    <strong id="cartDeliveryRate" class="text-success" style="color: var(--primary, #15803d); font-weight: 700;">Not calculated</strong>
                 </div>
                 <div class="summary-row summary-total">
-                    <span>Total</span>
-                    <strong id="cartTotal">₦ 0</strong>
+                    <span>Total Amount</span>
+                    <strong id="cartTotal" class="font-mono text-primary" style="font-size: 22px; color: var(--primary, #15803d);">₦ 0.00</strong>
                 </div>
             </div>
+            <p class="summary-note">Any delivery charge is not included in the total shown here.</p>
 
             <div class="summary-actions">
-                <button type="button" id="checkoutBtn" class="btn btn-primary">Proceed to checkout</button>
-                <a href="/customer/products/" class="btn btn-secondary">Continue shopping</a>
+                <button type="button" id="checkoutBtn" class="btn btn-primary btn-block btn-lg" aria-label="Proceed to order checkout">
+                    <i class="bi bi-lock" aria-hidden="true"></i>
+                    <span>Proceed to Checkout</span>
+                </button>
+                <a href="/customer/products/" class="btn btn-secondary btn-block" aria-label="Continue shopping in catalogue">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                    <span>Continue Shopping</span>
+                </a>
             </div>
+
         </aside>
+
     </section>
+
 </div>
 {% endblock %}
 
-{% block page_js %}
+{% block customer_js %}
 <script src="{% static 'js/pages/customer/cart.js' %}"></script>
 {% endblock %}

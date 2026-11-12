@@ -6,6 +6,16 @@ from django.db import models
 from django.utils import timezone
 
 
+class NotificationQuerySet(models.QuerySet):
+    """Custom queryset providing convenience filters for read and unread notifications."""
+
+    def unread(self):
+        return self.filter(is_read=False)
+
+    def read(self):
+        return self.filter(is_read=True)
+
+
 class Notification(models.Model):
     """In-app notification record that remains lightweight and independent from business logic."""
 
@@ -85,6 +95,8 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = NotificationQuerySet.as_manager()
+
     class Meta:
         ordering = ['-created_at', '-id']
         verbose_name = 'Notification'
@@ -124,11 +136,3 @@ class Notification(models.Model):
         self.read_at = None
         self.save(update_fields=['is_read', 'read_at', 'updated_at'])
         return self
-
-
-class NotificationQuerySet(models.QuerySet):
-    def unread(self):
-        return self.filter(is_read=False)
-
-    def read(self):
-        return self.filter(is_read=True)

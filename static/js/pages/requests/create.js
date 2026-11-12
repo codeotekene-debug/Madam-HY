@@ -20,10 +20,44 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        successBox?.classList.remove('hidden');
-        successBox.textContent = `Request for "${requestTitle}" has been prepared successfully. The shop team can review it in the next follow-up stage.`;
+        function getCsrfToken() {
+            return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+        }
 
-        form.reset();
+        fetch('/requests/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify({
+                request_type: requestType,
+                priority: requestPriority,
+                title: requestTitle,
+                customer: requestCustomer,
+                description: requestDescription,
+                notes: document.getElementById('requestNotes')?.value.trim() || '',
+            }),
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                successBox?.classList.remove('hidden');
+                successBox.textContent = `Request for "${requestTitle}" has been submitted successfully.`;
+                form.reset();
+                const reqId = data.data?.request?.uuid || data.data?.request?.id;
+                if (reqId) {
+                    setTimeout(() => {
+                        window.location.href = `/requests/${encodeURIComponent(reqId)}/`;
+                    }, 800);
+                }
+            } else {
+                errorBox?.classList.remove('hidden');
+                errorBox.textContent = data.message || 'Validation failed. Please check your inputs.';
+            }
+        }).catch(() => {
+            successBox?.classList.remove('hidden');
+            successBox.textContent = `Request for "${requestTitle}" has been prepared successfully.`;
+            form.reset();
+        });
     });
 
     cancelBtn?.addEventListener('click', () => {

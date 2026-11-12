@@ -1,0 +1,499 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}MADAM HY | Smart Online Shopping{% endblock %}</title>
+
+    <!-- Bootstrap Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;850&display=swap" rel="stylesheet">
+
+    <!-- Core Design System CSS (No Staff/Admin CSS) -->
+    <link rel="stylesheet" href="{% static 'css/core/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/typography.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'css/core/modals.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages/customer/storefront.css' %}">
+
+    <!-- Page Specific CSS -->
+    {% block extra_css %}
+        {% block page_css %}{% endblock %}
+        {% block customer_css %}{% endblock %}
+    {% endblock %}
+</head>
+
+<body class="customer-storefront-body">
+
+    <!-- Accessible Skip Link -->
+    <a href="#customer-main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Application Context for Client JS -->
+    <div id="app-context"
+         data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+         data-user-id="{{ user.id|default:'' }}"
+         data-user-role="{{ user.role|default:'GUEST' }}"
+         data-username="{{ user.username|default:'' }}">
+    </div>
+
+    <!-- ==========================================================================
+         1. PROMOTIONAL ANNOUNCEMENT BAR
+         ========================================================================== -->
+    {% block announcement %}{% endblock %}
+
+    <!-- ==========================================================================
+         2. MODERN E-COMMERCE STICKY HEADER & NAVBAR
+         ========================================================================== -->
+    <header class="customer-header" id="customerHeader">
+        <div class="customer-header-inner">
+            <!-- Mobile Menu Toggle Button -->
+            <button type="button" class="customer-mobile-toggle" id="customerMobileMenuToggle" aria-label="Open mobile menu" aria-expanded="false" aria-controls="customerMobileDrawer">
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
+
+            <!-- Brand Logo & Emblem linked to Catalog -->
+            <a href="/customer/products/" class="customer-brand" aria-label="MADAM HY Storefront Homepage">
+                <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="customer-brand-logo" width="40" height="40" />
+                <div class="customer-brand-text">
+                    <span class="brand-title">MADAM HY</span>
+                    <span class="brand-subtitle">Smart Shop</span>
+                </div>
+            </a>
+
+            <!-- Omnipresent Live Search Bar with Category Select -->
+            {% if request.path != '/customer/products/' %}
+            <form action="/customer/products/" method="get" class="customer-search-form" id="customerSearchForm" role="search">
+                <div class="search-input-wrapper">
+                    <i class="bi bi-search search-input-icon" aria-hidden="true"></i>
+                    <input type="search"
+                           name="q"
+                           id="customerGlobalSearch"
+                           class="customer-search-input"
+                           placeholder="Search products by name, SKU, or category..."
+                           value="{{ request.GET.q|default:'' }}"
+                           autocomplete="off"
+                           aria-label="Search products" />
+                    <button type="submit" class="customer-search-btn" aria-label="Execute Search">
+                        <span>Search</span>
+                        <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+
+            <!-- Header Quick Actions & Controls -->
+            <div class="customer-header-actions">
+                <!-- Order Tracking Quick Link -->
+                <a href="/customer/orders/" class="customer-action-btn track-order-link" title="Track Your Orders">
+                    <i class="bi bi-truck" aria-hidden="true"></i>
+                    <span class="action-label">Track Orders</span>
+                </a>
+
+                <!-- Dynamic Cart Trigger Button -->
+                <a href="/customer/cart/" class="customer-action-btn cart-action-btn" id="customerCartBtn" aria-label="View Shopping Cart">
+                    <div class="cart-icon-wrapper">
+                        <i class="bi bi-bag-check" aria-hidden="true"></i>
+                        <span class="cart-badge-counter" id="customerCartBadge">0</span>
+                        <span id="topbarCartBadge" style="display: none;">0</span>
+                    </div>
+                    <span class="action-label">Cart</span>
+                </a>
+
+                <!-- Customer Account Dropdown / Authentication Controls -->
+                {% if user.is_authenticated %}
+                <div class="customer-account-dropdown" id="customerAccountDropdown">
+                    <button type="button" class="customer-account-trigger" id="customerAccountTrigger" aria-expanded="false" aria-controls="customerAccountMenu" aria-label="Customer account menu">
+                        <div class="customer-avatar" aria-hidden="true">
+                            {{ user.first_name|first|default:user.username|first|upper }}
+                        </div>
+                        <div class="customer-greeting">
+                            <span class="greeting-subtitle">Hello,</span>
+                            <strong class="greeting-name">{{ user.first_name|default:user.username }}</strong>
+                        </div>
+                        <i class="bi bi-chevron-down account-caret" aria-hidden="true"></i>
+                    </button>
+
+                    <!-- Account Dropdown Menu -->
+                    <div class="customer-account-menu" id="customerAccountMenu">
+                        <div class="account-menu-header">
+                            <strong class="menu-user-name">{{ user.get_full_name|default:user.username }}</strong>
+                            <span class="menu-user-email">{{ user.email|default:"Store Customer" }}</span>
+                        </div>
+                        <div class="account-menu-divider"></div>
+                        <a href="/customer/" class="account-menu-item">
+                            <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                            <span>Customer Dashboard</span>
+                        </a>
+                        <a href="/customer/orders/" class="account-menu-item">
+                            <i class="bi bi-box-seam" aria-hidden="true"></i>
+                            <span>My Orders</span>
+                        </a>
+                        <a href="/customer/credit/" class="account-menu-item">
+                            <i class="bi bi-wallet2" aria-hidden="true"></i>
+                            <span>Store Credit Account</span>
+                        </a>
+                        <a href="/customer/requests/" class="account-menu-item">
+                            <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+                            <span>Special Requests</span>
+                        </a>
+                        <a href="/customer/settings/" class="account-menu-item">
+                            <i class="bi bi-person-gear" aria-hidden="true"></i>
+                            <span>Profile &amp; Settings</span>
+                        </a>
+                        <div class="account-menu-divider"></div>
+                        <form method="post" action="{% url 'accounts:logout' %}" class="account-logout-form">
+                            {% csrf_token %}
+                            <button type="submit" class="account-menu-item logout-btn">
+                                <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                                <span>Sign Out</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="customer-auth-actions">
+                    <a href="{% url 'accounts:login' %}" class="btn-customer-outline">
+                        <i class="bi bi-person" aria-hidden="true"></i>
+                        <span>Sign In</span>
+                    </a>
+                    <a href="{% url 'accounts:register' %}" class="btn-customer-primary">
+                        <span>Join</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Storefront Sub-Navigation Strip (Quick Categorical Shortcuts) -->
+        <nav class="customer-subnav-strip" aria-label="Store navigation">
+            <div class="customer-subnav-inner">
+                <a href="/customer/products/" class="subnav-pill {% if request.path == '/customer/products/' and not request.GET.category %}active{% endif %}">
+                    <i class="bi bi-grid-fill" aria-hidden="true"></i>
+                    <span>All Products</span>
+                </a>
+                <a href="/customer/cart/" class="subnav-pill {% if request.path == '/customer/cart/' %}active{% endif %}">
+                    <i class="bi bi-cart3" aria-hidden="true"></i>
+                    <span>My Cart</span>
+                </a>
+                <a href="/customer/orders/" class="subnav-pill {% if '/customer/orders/' in request.path or '/customer/order' in request.path %}active{% endif %}">
+                    <i class="bi bi-receipt" aria-hidden="true"></i>
+                    <span>Order History</span>
+                </a>
+                <a href="/customer/credit/" class="subnav-pill {% if request.path == '/customer/credit/' %}active{% endif %}">
+                    <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                    <span>Store Credit</span>
+                </a>
+                <a href="/customer/requests/" class="subnav-pill {% if '/customer/requests/' in request.path %}active{% endif %}">
+                    <i class="bi bi-patch-question" aria-hidden="true"></i>
+                    <span>Special Request</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ==========================================================================
+         3. MOBILE OFF-CANVAS DRAWER NAVIGATION (< 768px)
+         ========================================================================== -->
+    <div class="customer-drawer-backdrop" id="customerDrawerBackdrop" aria-hidden="true"></div>
+    <aside class="customer-mobile-drawer" id="customerMobileDrawer" role="dialog" aria-modal="true" aria-label="Store navigation" aria-hidden="true" inert>
+        <div class="mobile-drawer-header">
+            <a href="/customer/products/" class="drawer-brand">
+                <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" width="36" height="36" />
+                <div class="drawer-brand-title">
+                    <strong>MADAM HY</strong>
+                    <span>Smart Shop</span>
+                </div>
+            </a>
+            <button type="button" class="drawer-close-btn" id="customerMobileDrawerClose" aria-label="Close mobile menu">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <!-- Mobile User Status Banner -->
+        <div class="drawer-user-card">
+            {% if user.is_authenticated %}
+            <div class="drawer-avatar">
+                {{ user.first_name|first|default:user.username|first|upper }}
+            </div>
+            <div class="drawer-user-info">
+                <strong>{{ user.get_full_name|default:user.username }}</strong>
+                <span>{{ user.email|default:"Store Customer" }}</span>
+            </div>
+            {% else %}
+            <div class="drawer-guest-info">
+                <strong>Welcome to MADAM HY</strong>
+                <p>Sign in to view orders and manage credit account.</p>
+                <div class="drawer-auth-btns">
+                    <a href="{% url 'accounts:login' %}" class="btn btn-sm btn-outline-primary">Sign In</a>
+                    <a href="{% url 'accounts:register' %}" class="btn btn-sm btn-primary">Create Account</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Mobile Navigation Links List -->
+        <nav class="mobile-drawer-links" aria-label="Mobile Menu Links">
+            <div class="drawer-links-section-title">Shop Collection</div>
+            <a href="/customer/products/" class="drawer-nav-item">
+                <i class="bi bi-shop-window" aria-hidden="true"></i>
+                <span>All Products</span>
+            </a>
+            <a href="/customer/cart/" class="drawer-nav-item">
+                <i class="bi bi-bag-check" aria-hidden="true"></i>
+                <span>Shopping Cart</span>
+            </a>
+
+            <div class="drawer-links-section-title">Customer Activities</div>
+            <a href="/customer/orders/" class="drawer-nav-item">
+                <i class="bi bi-box-seam" aria-hidden="true"></i>
+                <span>My Orders &amp; Receipts</span>
+            </a>
+            <a href="/customer/credit/" class="drawer-nav-item">
+                <i class="bi bi-wallet2" aria-hidden="true"></i>
+                <span>Store Credit Account</span>
+            </a>
+            <a href="/customer/requests/" class="drawer-nav-item">
+                <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+                <span>Make Special Request</span>
+            </a>
+            <a href="/customer/settings/" class="drawer-nav-item">
+                <i class="bi bi-person-gear" aria-hidden="true"></i>
+                <span>Account Settings</span>
+            </a>
+
+            {% if user.is_authenticated %}
+            <div class="drawer-logout-wrapper">
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="drawer-logout-btn">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </nav>
+    </aside>
+
+    <!-- ==========================================================================
+         4. MAIN CONTENT CONTAINER
+         ========================================================================== -->
+    <main id="customer-main-content" class="customer-main-content" role="main">
+        <div class="customer-container">
+            {% block content %}
+                {% block customer_content %}{% endblock %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- ==========================================================================
+         5. GLOBAL STOREFRONT FOOTER WITH VALUE GUARANTEES
+         ========================================================================== -->
+    <footer class="customer-footer" aria-label="Store information and customer navigation">
+        <div class="customer-container">
+            <!-- Storefront shortcuts -->
+            <div class="footer-pillars-grid">
+                <div class="pillar-card"><div class="pillar-text"><h4>Browse the catalog</h4><p>Explore products listed in the current store catalog.</p></div></div>
+                <div class="pillar-card"><div class="pillar-text"><h4>Check product details</h4><p>Review the listed price, description, and availability.</p></div></div>
+                <div class="pillar-card"><div class="pillar-text"><h4>Place an order</h4><p>Review your selected items before submitting an order.</p></div></div>
+                <div class="pillar-card"><div class="pillar-text"><h4>Follow order progress</h4><p>Open your order history to check available status updates.</p></div></div>
+            </div>
+
+            <!-- Footer Details & Navigation Grid -->
+            <div class="footer-details-grid">
+                <div class="footer-col brand-col"><div class="footer-brand"><img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" width="44" height="44" /><div><span class="footer-brand-title">MADAM HY</span><span class="footer-brand-tagline">Smart Shop</span></div></div><p class="footer-about">Browse the current catalog and manage your orders online.</p></div>
+                <div class="footer-col"><h5 class="footer-col-title">Shop</h5><ul class="footer-links-list"><li><a href="/customer/products/">All products</a></li><li><a href="/customer/cart/">Shopping cart</a></li><li><a href="/customer/orders/">My orders</a></li></ul></div>
+                <div class="footer-col"><h5 class="footer-col-title">Your account</h5><ul class="footer-links-list"><li><a href="/customer/settings/">Profile and settings</a></li><li><a href="/customer/requests/">Special requests</a></li></ul></div>
+            </div>
+
+            <!-- Footer Bottom Copyright Bar -->
+            <div class="footer-bottom-bar">
+                <span>&copy; {% now "Y" %} MADAM HY Smart Shop. All rights reserved.</span>
+                <div class="footer-bottom-links">
+                    <a href="/customer/products/">Shop Catalogue</a>
+                    <a href="/customer/orders/">Order Tracking</a>
+        
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================================================
+         6. FIXED MOBILE BOTTOM TAB BAR (< 768px)
+         ========================================================================== -->
+    <nav class="customer-bottom-nav" aria-label="Mobile bottom navigation">
+        <a href="/customer/products/" class="bottom-nav-item {% if request.path == '/customer/products/' and not request.GET.category %}active{% endif %}">
+            <i class="bi bi-shop-window" aria-hidden="true"></i>
+            <span>Catalog</span>
+        </a>
+
+        <a href="/customer/products/#customerCategoryFilter" class="bottom-nav-item {% if request.path == '/customer/products/' and request.GET.category %}active{% endif %}" id="bottomNavCategoriesBtn">
+            <i class="bi bi-grid" aria-hidden="true"></i>
+            <span>Categories</span>
+        </a>
+
+        <a href="/customer/cart/" class="bottom-nav-item {% if request.path == '/customer/cart/' %}active{% endif %}">
+            <div class="bottom-nav-icon-wrap">
+                <i class="bi bi-bag-check" aria-hidden="true"></i>
+                <span class="bottom-nav-badge" id="mobileCartBadge">0</span>
+            </div>
+            <span>Cart</span>
+        </a>
+
+        <a href="{% if user.is_authenticated %}/customer/orders/{% else %}{% url 'accounts:login' %}{% endif %}" class="bottom-nav-item {% if '/customer/orders/' in request.path or '/accounts/login' in request.path %}active{% endif %}">
+            <i class="bi bi-person-circle" aria-hidden="true"></i>
+            <span>{% if user.is_authenticated %}Orders{% else %}Account{% endif %}</span>
+        </a>
+    </nav>
+
+    <!-- Modals Block -->
+    {% block modals %}{% endblock %}
+
+    <!-- Core Scripts -->
+    <script src="{% static 'js/core/api.js' %}"></script>
+    <script src="{% static 'js/core/main.js' %}"></script>
+    <script src="{% static 'js/core/modal.js' %}"></script>
+
+    <!-- Storefront Client Scripts -->
+    <script>
+        (function() {
+            // Cart badge synchronizer across desktop, header, drawer, and bottom nav
+            window.updateCustomerCartBadge = function(count) {
+                var badges = [
+                    document.getElementById('customerCartBadge'),
+                    document.getElementById('topbarCartBadge'),
+                    document.getElementById('mobileCartBadge'),
+                    document.getElementById('cartItemCount')
+                ];
+                if (typeof count === 'number') {
+                    badges.forEach(function(b) {
+                        if (b) {
+                            b.textContent = String(count);
+                            b.classList.toggle('has-items', count > 0);
+                        }
+                    });
+                    return;
+                }
+                if (window.apiRequest) {
+                    window.apiRequest('/customer/cart/?format=json').then(function(res) {
+                        if (res && res.success && res.data) {
+                            var total = res.data.item_count || 0;
+                            badges.forEach(function(b) {
+                                if (b) {
+                                    b.textContent = String(total);
+                                    b.classList.toggle('has-items', total > 0);
+                                }
+                            });
+                        }
+                    }).catch(function() {});
+                }
+            };
+
+            // Mobile Off-canvas Drawer controls
+            var toggleBtn = document.getElementById('customerMobileMenuToggle');
+            var closeBtn = document.getElementById('customerMobileDrawerClose');
+            var drawer = document.getElementById('customerMobileDrawer');
+            var backdrop = document.getElementById('customerDrawerBackdrop');
+            var drawerPreviousFocus = null;
+            var drawerPreviousOverflow = '';
+
+            function openDrawer() {
+                if (drawer && backdrop) {
+                    drawerPreviousFocus = document.activeElement;
+                    drawerPreviousOverflow = document.body.style.overflow;
+                    drawer.classList.add('open');
+                    backdrop.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+                    drawer.setAttribute('aria-hidden', 'false');
+                    drawer.removeAttribute('inert');
+                    closeBtn && closeBtn.focus();
+                }
+            }
+
+            function closeDrawer() {
+                if (drawer && backdrop) {
+                    drawer.classList.remove('open');
+                    backdrop.classList.remove('show');
+                    document.body.style.overflow = drawerPreviousOverflow;
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                    drawer.setAttribute('aria-hidden', 'true');
+                    drawer.setAttribute('inert', '');
+                    if (drawerPreviousFocus && typeof drawerPreviousFocus.focus === 'function') drawerPreviousFocus.focus();
+                }
+            }
+
+            document.addEventListener('keydown', function(event) {
+                if (!drawer || !drawer.classList.contains('open')) return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeDrawer();
+                    return;
+                }
+                if (event.key !== 'Tab') return;
+                var focusable = Array.from(drawer.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+                    .filter(function(element) { return element.getAttribute('aria-hidden') !== 'true'; });
+                if (!focusable.length) {
+                    event.preventDefault();
+                    closeBtn && closeBtn.focus();
+                    return;
+                }
+                var first = focusable[0];
+                var last = focusable[focusable.length - 1];
+                if (event.shiftKey && (document.activeElement === first || !drawer.contains(document.activeElement))) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && (document.activeElement === last || !drawer.contains(document.activeElement))) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            });
+
+            if (toggleBtn) toggleBtn.addEventListener('click', openDrawer);
+            if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+            if (backdrop) backdrop.addEventListener('click', closeDrawer);
+
+            // Account Dropdown toggle
+            var accountTrigger = document.getElementById('customerAccountTrigger');
+            var accountDropdown = document.getElementById('customerAccountDropdown');
+
+            if (accountTrigger && accountDropdown) {
+                accountTrigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var isOpen = accountDropdown.classList.toggle('show');
+                    accountTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!accountDropdown.contains(e.target)) {
+                        accountDropdown.classList.remove('show');
+                        accountTrigger.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            // Sync cart quantity on initial load
+            document.addEventListener('DOMContentLoaded', function() {
+                window.updateCustomerCartBadge();
+            });
+        })();
+    </script>
+
+    <!-- Page Specific JavaScript -->
+    {% block extra_js %}
+        {% block page_js %}{% endblock %}
+        {% block customer_js %}{% endblock %}
+    {% endblock %}
+
+</body>
+
+</html>

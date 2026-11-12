@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.activity_logs.models import ActivityLog
 from apps.credits.models import CreditAccount, CreditTransaction
 from apps.expenses.models import Expense
 from apps.inventory.models import InventoryItem
@@ -20,6 +21,7 @@ from apps.reports.services import (
     sales_report,
 )
 from apps.sales.models import Sale, SaleItem
+from django.urls import reverse
 
 
 class ReportsServiceTests(TestCase):
@@ -151,6 +153,7 @@ class ReportsServiceTests(TestCase):
             vendor='City Property Ltd',
             payment_method=Expense.PaymentMethod.BANK_TRANSFER,
             payment_reference='BANK-1001',
+            status=Expense.Status.APPROVED,
             recorded_by=self.manager,
         )
         self.expense_utilities = Expense.objects.create(
@@ -162,6 +165,7 @@ class ReportsServiceTests(TestCase):
             vendor='Metro Power',
             payment_method=Expense.PaymentMethod.CARD,
             payment_reference='CARD-1002',
+            status=Expense.Status.APPROVED,
             recorded_by=self.manager,
         )
 
@@ -198,6 +202,18 @@ class ReportsServiceTests(TestCase):
         period = get_date_range(period='today')
         self.assertEqual(period['start_date'], self.today)
         self.assertEqual(period['end_date'], self.today)
+
+        quarter = get_date_range(period='this_quarter')
+        quarter_start_month = ((timezone.localdate().month - 1) // 3) * 3 + 1
+        self.assertEqual(quarter['start_date'], timezone.localdate().replace(month=quarter_start_month, day=1))
+        self.assertEqual(quarter['end_date'].month, quarter_start_month + 2)
+
+    def test_quarter_growth_report_uses_previous_calendar_quarter(self):
+        result = growth_report(period='this_quarter')
+        current_start = result['start_date']
+        self.assertEqual(current_start.month, ((timezone.localdate().month - 1) // 3) * 3 + 1)
+        self.assertEqual(result['previous_end_date'] + timedelta(days=1), current_start)
+        self.assertEqual(result['previous_start_date'].month, ((current_start.month - 4) % 12) // 3 * 3 + 1)
 
     def test_sales_total_and_count(self):
         result = sales_report(period='today')
@@ -316,5 +332,492 @@ class ReportsServiceTests(TestCase):
         self.assertEqual(result['average_sale'], Decimal('250.00'))
         self.assertEqual(result['total_sales'], Decimal('500.00'))
 
+    def test_unapproved_expenses_excluded_from_profit_and_expense_reports(self):
+        # Create a pending expense and a rejected expense
+        Expense.objects.create(
+            expense_reference='EXP-PENDING-01',
+            category=Expense.Category.MARKETING,
+            description='Pending flyer ad',
+            vendor='Marketing Co',
+            amount=Decimal('500.00'),
+            expense_date=self.today,
+            status=Expense.Status.PENDING,
+            recorded_by=self.manager,
+        )
+        Expense.objects.create(
+            expense_reference='EXP-REJECTED-01',
+            category=Expense.Category.TRANSPORT,
+            description='Rejected taxi ride',
+            vendor='City Taxi',
+            amount=Decimal('300.00'),
+            expense_date=self.today,
+            status=Expense.Status.REJECTED,
+            recorded_by=self.manager,
+        )
+        # Approved expense report should still only be 200.00 (self.expense_rent + self.expense_utilities)
+        exp_res = expense_report(period='today', status=Expense.Status.APPROVED)
+        self.assertEqual(exp_res['total_expenses'], Decimal('200.00'))
+        self.assertEqual(exp_res['expense_count'], 2)
+
+        # Profit report should only deduct approved expenses
+        profit_res = profit_report(period='today')
+        self.assertEqual(profit_res['expenses'], Decimal('200.00'))
+        self.assertEqual(profit_res['net_profit'], Decimal('40.00'))
+
     def test_django_system_checks(self):
         call_command('check')
+
+
+class ReportsHTTPViewsTests(TestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.owner = User.objects.create_user(
+            username='rep_owner',
+            email='rep_owner@example.com',
+            password='OwnerPass123!',
+            first_name='Shop',
+            last_name='Owner',
+            role='OWNER',
+        )
+        self.manager = User.objects.create_user(
+            username='rep_manager',
+            email='rep_manager@example.com',
+            password='ManagerPass123!',
+            first_name='Store',
+            last_name='Manager',
+            role='MANAGER',
+        )
+        self.cashier = User.objects.create_user(
+            username='rep_cashier',
+            email='rep_cashier@example.com',
+            password='CashierPass123!',
+            first_name='Front',
+            last_name='Cashier',
+            role='CASHIER',
+        )
+        self.staff = User.objects.create_user(
+            username='rep_staff',
+            email='rep_staff@example.com',
+            password='StaffPass123!',
+            first_name='Floor',
+            last_name='Staff',
+            role='STAFF',
+        )
+        self.customer = User.objects.create_user(
+            username='rep_customer',
+            email='rep_customer@example.com',
+            password='CustomerPass123!',
+            first_name='Client',
+            last_name='Customer',
+            role='CUSTOMER',
+        )
+
+        self.category = ProductCategory.objects.create(
+            name='Groceries',
+            slug='groceries',
+            description='Everyday groceries',
+        )
+        self.product_1 = Product.objects.create(
+            category=self.category,
+            name='Sugar 1kg',
+            slug='sugar-1kg',
+            sku='SUG-1KG',
+            selling_price=Decimal('50.00'),
+            cost_price=Decimal('30.00'),
+            reorder_level=10,
+        )
+        self.product_2 = Product.objects.create(
+            category=self.category,
+            name='Milk 1L',
+            slug='milk-1l',
+            sku='MLK-1L',
+            selling_price=Decimal('100.00'),
+            cost_price=Decimal('60.00'),
+            reorder_level=5,
+        )
+
+        InventoryItem.objects.create(product=self.product_1, quantity=50)
+        InventoryItem.objects.create(product=self.product_2, quantity=2)  # Low stock
+
+        # Completed sale: 2x Sugar (100) + 1x Milk (100) = 200.00. COGS = 2*30 + 1*60 = 120.00. Gross = 80.00
+        self.sale_1 = Sale.objects.create(
+            sale_number='S-REP-01',
+            customer=self.customer,
+            cashier=self.cashier,
+            status=Sale.SaleStatus.COMPLETED,
+            payment_method=Sale.PaymentMethod.CASH,
+            payment_status=Sale.PaymentStatus.COMPLETED,
+            subtotal=Decimal('200.00'),
+            total=Decimal('200.00'),
+            amount_received=Decimal('200.00'),
+            change_amount=Decimal('0.00'),
+        )
+        SaleItem.objects.create(
+            sale=self.sale_1,
+            product=self.product_1,
+            quantity=2,
+            unit_price=Decimal('50.00'),
+            product_name_snapshot=self.product_1.name,
+            sku_snapshot=self.product_1.sku,
+        )
+        SaleItem.objects.create(
+            sale=self.sale_1,
+            product=self.product_2,
+            quantity=1,
+            unit_price=Decimal('100.00'),
+            product_name_snapshot=self.product_2.name,
+            sku_snapshot=self.product_2.sku,
+        )
+
+        # Another completed sale: 1x Milk = 100.00. Payment method: CARD. COGS = 60. Gross = 40
+        self.sale_2 = Sale.objects.create(
+            sale_number='S-REP-02',
+            customer=self.customer,
+            cashier=self.cashier,
+            status=Sale.SaleStatus.COMPLETED,
+            payment_method=Sale.PaymentMethod.CARD,
+            payment_status=Sale.PaymentStatus.COMPLETED,
+            subtotal=Decimal('100.00'),
+            total=Decimal('100.00'),
+            amount_received=Decimal('100.00'),
+            change_amount=Decimal('0.00'),
+        )
+        SaleItem.objects.create(
+            sale=self.sale_2,
+            product=self.product_2,
+            quantity=1,
+            unit_price=Decimal('100.00'),
+            product_name_snapshot=self.product_2.name,
+            sku_snapshot=self.product_2.sku,
+        )
+
+        # Draft sale (must be excluded from reporting)
+        self.draft_sale = Sale.objects.create(
+            sale_number='S-REP-DRAFT',
+            customer=self.customer,
+            cashier=self.cashier,
+            status=Sale.SaleStatus.DRAFT,
+            payment_method=Sale.PaymentMethod.CASH,
+            payment_status=Sale.PaymentStatus.PENDING,
+            subtotal=Decimal('500.00'),
+            total=Decimal('500.00'),
+        )
+
+        # Approved Expense: 30.00
+        self.expense_appr = Expense.objects.create(
+            expense_reference='EXP-APP-01',
+            category=Expense.Category.UTILITIES,
+            description='Internet bill',
+            amount=Decimal('30.00'),
+            expense_date=self.today,
+            vendor='Speedy ISP',
+            payment_method=Expense.PaymentMethod.BANK_TRANSFER,
+            status=Expense.Status.APPROVED,
+            recorded_by=self.manager,
+        )
+
+        # Pending Expense (must be excluded from approved reports): 70.00
+        self.expense_pend = Expense.objects.create(
+            expense_reference='EXP-PND-01',
+            category=Expense.Category.MARKETING,
+            description='Ad campaign',
+            amount=Decimal('70.00'),
+            expense_date=self.today,
+            vendor='Online Ads Co',
+            payment_method=Expense.PaymentMethod.CARD,
+            status=Expense.Status.PENDING,
+            recorded_by=self.cashier,
+        )
+
+    # --------------------------------------------------------------------------
+    # RBAC Tests
+    # --------------------------------------------------------------------------
+
+    def test_rbac_owner_and_manager_allowed(self):
+        urls = [
+            reverse('reports:reports_dashboard'),
+            reverse('reports:sales_report'),
+            reverse('reports:expense_report'),
+            reverse('reports:profit_report'),
+            reverse('reports:growth_report'),
+        ]
+        for role_user in (self.owner, self.manager):
+            self.client.force_login(role_user)
+            for url in urls:
+                resp = self.client.get(url)
+                self.assertEqual(resp.status_code, 200, f'User {role_user.username} should access {url}')
+                json_resp = self.client.get(url + '?format=json')
+                self.assertEqual(json_resp.status_code, 200)
+                self.assertTrue(json_resp.json()['success'])
+
+    def test_rbac_cashier_forbidden(self):
+        self.client.force_login(self.cashier)
+        urls = [
+            reverse('reports:reports_dashboard'),
+            reverse('reports:sales_report'),
+            reverse('reports:expense_report'),
+            reverse('reports:profit_report'),
+            reverse('reports:growth_report'),
+        ]
+        for url in urls:
+            resp = self.client.get(url)
+            self.assertEqual(resp.status_code, 403)
+            self.assertFalse(resp.json()['success'])
+
+    def test_rbac_staff_forbidden(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(reverse('reports:reports_dashboard'))
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(resp.json()['success'])
+
+    def test_rbac_customer_forbidden(self):
+        self.client.force_login(self.customer)
+        resp = self.client.get(reverse('reports:sales_report'))
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(resp.json()['success'])
+
+    def test_unauthenticated_json_returns_401(self):
+        resp = self.client.get(reverse('reports:reports_dashboard') + '?format=json')
+        self.assertEqual(resp.status_code, 401)
+        self.assertFalse(resp.json()['success'])
+
+    def test_unauthenticated_html_redirects_to_login(self):
+        resp = self.client.get(reverse('reports:reports_dashboard'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/accounts/login', resp.url)
+
+    # --------------------------------------------------------------------------
+    # Main Reports Dashboard Tests
+    # --------------------------------------------------------------------------
+
+    def test_reports_dashboard_html_view(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:reports_dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'reports/reports.html')
+        self.assertIn('overview_data', resp.context)
+        overview = resp.context['overview_data']
+        self.assertEqual(overview['today_revenue'], Decimal('300.00'))
+        self.assertEqual(overview['transactions'], 2)
+        self.assertEqual(overview['low_stock_products'], 1)
+        chart_points = resp.context['revenue_chart']
+        self.assertTrue(chart_points)
+        self.assertEqual(sum((point['revenue'] for point in chart_points), Decimal('0.00')), overview['total_sales'])
+        self.assertNotContains(resp, 'style="--value: 42%"')
+
+    def test_reports_dashboard_quarter_filter_and_chart_empty_state_data(self):
+        self.client.force_login(self.manager)
+        response = self.client.get(reverse('reports:reports_dashboard') + '?period=this_quarter')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['period'], 'this_quarter')
+        self.assertTrue(response.context['revenue_chart'])
+
+    def test_reports_dashboard_json_view(self):
+        self.client.force_login(self.owner)
+        resp = self.client.get(reverse('reports:reports_dashboard'), HTTP_ACCEPT='application/json')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        overview = data['data']['overview']
+        self.assertEqual(overview['today_revenue'], '300.00')
+        self.assertEqual(overview['low_stock_products'], 1)
+        self.assertIn('sales', data['data'])
+        self.assertIn('expenses', data['data'])
+        self.assertIn('profit', data['data'])
+
+    # --------------------------------------------------------------------------
+    # Sales Report Tests
+    # --------------------------------------------------------------------------
+
+    def test_sales_report_html_and_json(self):
+        self.client.force_login(self.manager)
+        # HTML
+        resp = self.client.get(reverse('reports:sales_report'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'reports/sales_report.html')
+        self.assertIn('sales_data', resp.context)
+        self.assertEqual(resp.context['sales_data']['total_sales'], Decimal('300.00'))
+        self.assertEqual(resp.context['sales_data']['sales_count'], 2)
+
+        # JSON
+        json_resp = self.client.get(reverse('reports:sales_report') + '?format=json')
+        self.assertEqual(json_resp.status_code, 200)
+        data = json_resp.json()['data']
+        self.assertEqual(data['total_sales'], '300.00')
+        self.assertEqual(data['sales_count'], 2)
+
+    def test_sales_report_filter_by_period(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:sales_report') + '?period=today&format=json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['data']['total_sales'], '300.00')
+
+    def test_sales_report_custom_date_range(self):
+        self.client.force_login(self.manager)
+        start = str(self.today)
+        end = str(self.today)
+        resp = self.client.get(f"{reverse('reports:sales_report')}?period=custom&start_date={start}&end_date={end}&format=json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['data']['total_sales'], '300.00')
+
+    def test_sales_report_payment_method_filter(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:sales_report') + '?payment_method=CASH&format=json')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()['data']
+        self.assertIn('filtered_payment_methods', data)
+        self.assertEqual(len(data['filtered_payment_methods']), 1)
+        self.assertEqual(data['filtered_payment_methods'][0]['payment_method'], 'CASH')
+        self.assertEqual(data['filtered_payment_methods'][0]['total_sales'], '200.00')
+
+    # --------------------------------------------------------------------------
+    # Expense Report Tests
+    # --------------------------------------------------------------------------
+
+    def test_expense_report_html_and_json(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:expense_report'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'reports/expense_report.html')
+        self.assertIn('expense_data', resp.context)
+        self.assertEqual(resp.context['expense_data']['total_expenses'], Decimal('30.00'))
+
+        json_resp = self.client.get(reverse('reports:expense_report') + '?format=json')
+        self.assertEqual(json_resp.status_code, 200)
+        data = json_resp.json()['data']
+        self.assertEqual(data['total_expenses'], '30.00')
+        self.assertEqual(data['expense_count'], 1)
+
+    def test_expense_report_alias_url(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get('/reports/expense/?format=json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()['success'])
+
+    def test_expense_report_category_filter(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:expense_report') + '?category=UTILITIES&format=json')
+        self.assertEqual(resp.status_code, 200)
+        recent = resp.json()['data']['recent_expenses']
+        self.assertEqual(len(recent), 1)
+        self.assertEqual(recent[0]['category'], 'UTILITIES')
+
+    def test_expense_report_only_approved_expenses(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:expense_report') + '?period=today&format=json')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()['data']
+        # Only self.expense_appr (30.00) should be included, not self.expense_pend (70.00)
+        self.assertEqual(data['total_expenses'], '30.00')
+
+    # --------------------------------------------------------------------------
+    # Profit & Loss Report Tests
+    # --------------------------------------------------------------------------
+
+    def test_profit_report_html_and_json(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:profit_report'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'reports/profit_report.html')
+        self.assertIn('profit_data', resp.context)
+
+        json_resp = self.client.get(reverse('reports:profit_report') + '?format=json')
+        self.assertEqual(json_resp.status_code, 200)
+        self.assertTrue(json_resp.json()['success'])
+
+    def test_profit_report_calculation_accuracy(self):
+        self.client.force_login(self.manager)
+        # Revenue = 300.00 (sale_1: 200 + sale_2: 100)
+        # COGS = sale_1 (2*30 + 1*60 = 120) + sale_2 (1*60 = 60) = 180.00
+        # Gross profit = 300.00 - 180.00 = 120.00
+        # Approved expenses = 30.00
+        # Net profit = 120.00 - 30.00 = 90.00
+        # Margin = (90 / 300) * 100 = 30.00%
+        resp = self.client.get(reverse('reports:profit_report') + '?period=today&format=json')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()['data']
+        self.assertEqual(data['revenue'], '300.00')
+        self.assertEqual(data['cost_of_goods_sold'], '180.00')
+        self.assertEqual(data['gross_profit'], '120.00')
+        self.assertEqual(data['expenses'], '30.00')
+        self.assertEqual(data['net_profit'], '90.00')
+        self.assertEqual(data['profit_margin'], '30.00')
+
+    # --------------------------------------------------------------------------
+    # Growth & Trends Report Tests
+    # --------------------------------------------------------------------------
+
+    def test_growth_report_html_and_json(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:growth_report'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'reports/growth.html')
+        self.assertIn('growth_data', resp.context)
+
+        json_resp = self.client.get(reverse('reports:growth_report') + '?format=json')
+        self.assertEqual(json_resp.status_code, 200)
+        data = json_resp.json()['data']
+        self.assertEqual(data['current_period_sales'], '300.00')
+        self.assertEqual(data['current_period_expenses'], '30.00')
+        self.assertEqual(data['current_period_profit'], '90.00')
+        self.assertEqual(data['current_period_sales_count'], 2)
+
+    def test_growth_report_week_and_month_comparison(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:growth_report') + '?period=this_week&format=json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()['success'])
+
+        resp2 = self.client.get(reverse('reports:growth_report') + '?period=month&format=json')
+        self.assertEqual(resp2.status_code, 200)
+        self.assertTrue(resp2.json()['success'])
+
+    # --------------------------------------------------------------------------
+    # Validation & Edge Cases Tests
+    # --------------------------------------------------------------------------
+
+    def test_invalid_date_range_returns_400(self):
+        self.client.force_login(self.manager)
+        # Invalid format
+        resp = self.client.get(reverse('reports:sales_report') + '?start_date=invalid-date&end_date=2026-10-06&format=json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(resp.json()['success'])
+
+        # Start date after end date
+        resp2 = self.client.get(reverse('reports:sales_report') + '?start_date=2026-10-10&end_date=2026-10-01&format=json')
+        self.assertEqual(resp2.status_code, 400)
+        self.assertFalse(resp2.json()['success'])
+
+    def test_invalid_period_returns_400(self):
+        self.client.force_login(self.manager)
+        resp = self.client.get(reverse('reports:profit_report') + '?period=unsupported_period&format=json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(resp.json()['success'])
+
+    def test_disallowed_methods_return_405(self):
+        self.client.force_login(self.manager)
+        resp = self.client.post(reverse('reports:reports_dashboard'))
+        self.assertEqual(resp.status_code, 405)
+
+    # --------------------------------------------------------------------------
+    # Audit Logging Tests
+    # --------------------------------------------------------------------------
+
+    def test_views_log_activity_viewed(self):
+        self.client.force_login(self.manager)
+        count_before = ActivityLog.objects.filter(
+            actor=self.manager,
+            action_type=ActivityLog.ActionType.VIEWED,
+        ).count()
+
+        self.client.get(reverse('reports:reports_dashboard'))
+        self.client.get(reverse('reports:sales_report'))
+        self.client.get(reverse('reports:expense_report'))
+        self.client.get(reverse('reports:profit_report'))
+        self.client.get(reverse('reports:growth_report'))
+
+        count_after = ActivityLog.objects.filter(
+            actor=self.manager,
+            action_type=ActivityLog.ActionType.VIEWED,
+        ).count()
+        self.assertEqual(count_after - count_before, 5)

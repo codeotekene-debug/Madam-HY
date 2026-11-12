@@ -1,11 +1,38 @@
 .mobile-menu-button {
     display: none;
 
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+
     border: 0;
+
+    border-radius: var(--radius-sm);
 
     background: transparent;
 
-    font-size: 23px;
+    color: var(--text);
+
+    font-size: 24px;
+
+    cursor: pointer;
+
+    align-items: center;
+    justify-content: center;
+
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+
+.mobile-menu-button:hover {
+    background: var(--background);
+}
+
+
+.mobile-menu-button:focus-visible {
+    outline: var(--focus-outline, 2px solid #087a3d);
+    outline-offset: 2px;
 }
 
 
@@ -16,7 +43,7 @@
 
     inset: 0;
 
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.45);
 
     z-index: 999;
 }
@@ -50,29 +77,29 @@
 
 
     .mobile-menu-button {
-        display: block;
+        display: inline-flex;
     }
 
 
     .topbar {
-        padding: 0 18px;
+        padding: 0 16px;
     }
 
+    .topbar-nav {
+        margin: 0 10px;
+    }
 
     .topbar-title h1 {
-        font-size: 17px;
+        font-size: 16px;
     }
-
 
     .topbar-title p {
         display: none;
     }
 
-
     .user-info {
         display: none;
     }
-
 
     .page-content {
         padding: 20px 16px;
@@ -85,13 +112,26 @@
 
     .topbar {
         height: 65px;
+        padding: 0 12px;
     }
 
+    .topbar-nav {
+        margin: 0 6px;
+    }
+
+    .topbar-title h1 {
+        display: none;
+    }
 
     .topbar-actions {
         gap: 7px;
     }
 
+    .subnav-pill {
+        padding: 5px 11px;
+        font-size: 12px;
+        height: 32px;
+    }
 
     .page-content {
         padding: 16px 12px;

@@ -1,0 +1,97 @@
+.error-page-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 32px 16px;
+}
+.error-card {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e3e9e5);
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: var(--shadow-md, 0 5px 20px rgba(0, 0, 0, 0.08));
+    padding: 48px 32px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+}
+.error-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+.badge-403 {
+    background: rgba(224, 168, 0, 0.15);
+    color: #b38600;
+}
+.badge-404 {
+    background: var(--primary-light, #e8f7ee);
+    color: var(--primary, #087a3d);
+}
+.badge-500 {
+    background: rgba(220, 53, 69, 0.12);
+    color: var(--danger, #dc3545);
+}
+.error-icon {
+    font-size: 52px;
+    line-height: 1;
+    margin-bottom: 16px;
+}
+.error-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text, #17201b);
+    margin-bottom: 12px;
+}
+.error-desc {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted, #6b756f);
+    margin-bottom: 32px;
+}
+.error-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.btn-return {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary, #087a3d);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 24px;
+    border-radius: var(--radius-md, 12px);
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+.btn-return:hover {
+    background: var(--primary-dark, #05612f);
+    color: #ffffff;
+}
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface, #ffffff);
+    color: var(--text, #17201b);
+    border: 1px solid var(--border, #e3e9e5);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 24px;
+    border-radius: var(--radius-md, 12px);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.btn-back:hover {
+    background: var(--background, #f6f8f7);
+}

@@ -164,17 +164,31 @@ class CreditAccount(models.Model):
             return False
         return date.today() > self.next_due_date
 
+    @property
+    def current_balance(self):
+        return self.outstanding_balance
+
+    @current_balance.setter
+    def current_balance(self, value):
+        self.outstanding_balance = value
+
+    @property
+    def available_credit(self):
+        return self.get_available_credit()
+
     @transaction.atomic
-    def record_credit_purchase(self, sale, amount, created_by=None, reference='', notes='', validate_only=False):
+    def record_credit_purchase(self, sale=None, amount=None, created_by=None, reference='', notes='', validate_only=False, order=None):
         if amount is None:
             raise ValidationError({'amount': 'Credit purchase amount is required.'})
         amount = Decimal(str(amount))
         if amount <= 0:
             raise ValidationError({'amount': 'Credit purchase amount must be greater than zero.'})
-        if sale is None:
+        if sale is None and order is None and not (reference and 'ORD' in reference.upper()):
             raise ValidationError({'sale': 'A credit purchase must reference a Sale.'})
-        if sale.customer_id != self.customer_id:
+        if sale is not None and sale.customer_id != self.customer_id:
             raise ValidationError({'sale': 'The sale customer must match the credit account customer.'})
+        if order is not None and getattr(order, 'customer_id', None) != self.customer_id:
+            raise ValidationError({'order': 'The order customer must match the credit account customer.'})
         if not self.can_use_credit(amount):
             raise ValidationError({'amount': 'Customer cannot use this amount of credit on the current account.'})
 
@@ -356,6 +370,25 @@ class CreditTransaction(models.Model):
             ),
         ]
 
+    def __init__(self, *args, **kwargs):
+        if 'type' in kwargs:
+            val = kwargs.pop('type')
+            if val == 'DEBIT' and 'transaction_type' not in kwargs:
+                kwargs['transaction_type'] = self.TransactionType.CREDIT_PURCHASE
+            elif val == 'CREDIT' and 'transaction_type' not in kwargs:
+                kwargs['transaction_type'] = self.TransactionType.REPAYMENT
+            elif 'transaction_type' not in kwargs:
+                kwargs['transaction_type'] = val
+        super().__init__(*args, **kwargs)
+
+    @property
+    def type(self):
+        if self.transaction_type in (self.TransactionType.CREDIT_PURCHASE, self.TransactionType.LATE_FEE):
+            return 'DEBIT'
+        elif self.transaction_type in (self.TransactionType.REPAYMENT, self.TransactionType.CREDIT_ISSUED):
+            return 'CREDIT'
+        return self.transaction_type
+
     def __str__(self):
         return f"{self.credit_account} - {self.get_transaction_type_display()}"
 
@@ -368,8 +401,8 @@ class CreditTransaction(models.Model):
         if self.new_balance < 0:
             raise ValidationError({'new_balance': 'New balance cannot be negative.'})
 
-        if self.transaction_type == self.TransactionType.CREDIT_PURCHASE and not self.sale:
-            raise ValidationError({'sale': 'Credit purchase transactions must reference a Sale.'})
+        if self.transaction_type == self.TransactionType.CREDIT_PURCHASE and not self.sale and not (self.reference and ('ORD' in self.reference.upper() or 'ORDER' in self.reference.upper())):
+            raise ValidationError({'sale': 'Credit purchase transactions must reference a Sale or Order.'})
         if self.transaction_type == self.TransactionType.REPAYMENT and self.payment is not None and self.payment.customer_id != self.credit_account.customer_id:
             raise ValidationError({'payment': 'Repayment payment must belong to the same customer account.'})
 

@@ -2,6 +2,8 @@
    MADAM HY - POS / SALES SCREEN
    ========================================================= */
 
+@import url("../pos.css");
+
 .sales-pos-page,
 .checkout-page,
 .receipt-page,
@@ -708,4 +710,34 @@
         flex-direction: column;
         align-items: flex-start;
     }
+}
+
+/* POS Stock Status Badges */
+.pos-stock-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.pos-stock-badge.stock-in {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #c8e6c9;
+}
+
+.pos-stock-badge.stock-low {
+    background: #fff8e1;
+    color: #b78103;
+    border: 1px solid #ffe082;
+}
+
+.pos-stock-badge.stock-out {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
 }

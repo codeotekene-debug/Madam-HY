@@ -1,30 +1,51 @@
-{% extends "base.html" %}
-
+{% extends "customer/base.html" %}
 {% load static %}
 
 {% block title %}
-    Order Details | MADAM HY Customer
+    Order Details | MADAM HY Customer Storefront
 {% endblock %}
 
 {% block page_title %}
     Order Details
 {% endblock %}
 
-{% block page_css %}
+{% block customer_css %}
 <link rel="stylesheet" href="{% static 'css/pages/customer/order-detail.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block customer_content %}
 <div class="customer-order-detail-page">
-    <div class="page-topbar-inline">
-        <a href="/customer/orders/" class="btn btn-secondary btn-sm">Back to orders</a>
+    <div class="page-topbar-inline" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <a href="/customer/orders/" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Orders
+        </a>
+        <div  class="u-flex-gap-sm">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print Receipt
+            </button>
+            <a href="/customer/products/" class="btn btn-primary btn-sm">
+                <i class="bi bi-shop"></i> Re-Order / Shop
+            </a>
+        </div>
     </div>
 
-    <section class="order-detail-hero">
-        <div>
-            <span class="badge badge-primary" id="detailOrderStatus">Status</span>
-            <h2 id="detailOrderRef">Order #ORD-0001</h2>
-            <p id="detailOrderDate">Date placed</p>
+    <section class="order-detail-hero card" style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <span class="badge badge-primary" id="detailOrderStatus">
+                    {{ order.get_status_display|default:"PENDING" }}
+                </span>
+                <h2 id="detailOrderRef" style="margin: 8px 0 4px 0; font-size: 24px; font-weight: 850; color: #0f172a;">
+                    {{ order.order_number|default:"Order" }}
+                </h2>
+                <p id="detailOrderDate" style="margin: 0; color: #64748b; font-size: 13.5px;">
+                    Placed on {{ order.created_at|date:"M d, Y"|default:"Recently" }}
+                </p>
+            </div>
+            <div  class="text-right">
+                <span style="font-size: 13px; color: #64748b; display: block;">Total Due</span>
+                <strong style="font-size: 24px; font-weight: 850; color: #15803d;" id="detailHeroTotal">₦ {{ order.total|default:"0.00" }}</strong>
+            </div>
         </div>
     </section>
 
@@ -32,57 +53,94 @@
         <article class="card detail-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Order overview</h3>
+                    <h3>Order Overview</h3>
+                    <p>Verified purchase record</p>
                 </div>
             </div>
 
             <div class="detail-meta-grid">
                 <div class="meta-item">
-                    <span>Order reference</span>
-                    <strong id="detailReference">-</strong>
+                    <span>Order Reference</span>
+                    <strong id="detailReference">{{ order.order_number|default:"-" }}</strong>
                 </div>
                 <div class="meta-item">
-                    <span>Date</span>
-                    <strong id="detailPlacedDate">-</strong>
+                    <span>Date Placed</span>
+                    <strong id="detailPlacedDate">{{ order.created_at|date:"M d, Y - h:i A"|default:"-" }}</strong>
                 </div>
                 <div class="meta-item">
-                    <span>Total</span>
-                    <strong id="detailOrderTotal">₦ 0</strong>
+                    <span>Total Amount</span>
+                    <strong id="detailOrderTotal">₦ {{ order.total|default:"0.00" }}</strong>
                 </div>
                 <div class="meta-item">
-                    <span>Payment status</span>
-                    <strong id="detailPaymentStatus">-</strong>
+                    <span>Payment Status</span>
+                    <strong id="detailPaymentStatusTop">{{ order.get_payment_status_display|default:"PENDING" }}</strong>
                 </div>
             </div>
 
-            <div class="detail-section">
-                <h4>Delivery information</h4>
+            <div class="detail-section" style="margin-top: 20px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 750;">Delivery &amp; Recipient Information</h4>
                 <div class="info-list">
                     <div>
-                        <span>Customer</span>
-                        <strong id="detailCustomer">-</strong>
+                        <span>Customer Name</span>
+                        <strong id="detailCustomer">{{ order.customer.get_full_name|default:order.customer.username|default:"-" }}</strong>
                     </div>
                     <div>
-                        <span>Order notes</span>
-                        <strong id="detailOrderNotes">-</strong>
+                        <span>Contact Phone</span>
+                        <strong id="detailCustomerPhone">{{ order.customer_phone|default:"Provided at checkout" }}</strong>
                     </div>
                     <div>
-                        <span>Payment method</span>
-                        <strong id="detailPaymentMethod">-</strong>
+                        <span>Delivery Address</span>
+                        <strong id="detailDeliveryAddress">{{ order.delivery_address|default:"In-Store Counter Pickup" }}</strong>
                     </div>
                     <div>
-                        <span>Payment status</span>
-                        <strong id="detailPaymentStatus">-</strong>
+                        <span>Payment Channel</span>
+                        <strong id="detailPaymentMethod">{{ order.get_payment_method_display|default:"-" }}</strong>
                     </div>
-                <h4>Order items</h4>
-                <div id="detailOrderItems" class="order-items-list"></div>
+                    <div>
+                        <span>Payment Status</span>
+                        <strong id="detailPaymentStatus">{{ order.get_payment_status_display|default:"-" }}</strong>
+                    </div>
+                    <div>
+                        <span>Order Notes</span>
+                        <strong id="detailOrderNotes">{{ order.notes|default:"No notes provided" }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            {% if order.delivery %}
+            <section class="detail-section" aria-labelledby="deliveryTrackingHeading" style="margin-top:20px;">
+                <h4 id="deliveryTrackingHeading">Delivery tracking</h4>
+                <p><strong>{{ order.delivery.get_status_display }}</strong> · Tracking {{ order.delivery.tracking_number }}</p>
+                <p>{{ order.delivery.delivery_address }}</p>
+                {% if order.delivery.rider and order.delivery.status != 'DELIVERED' %}<p>Your rider: {{ order.delivery.rider.get_full_name|default:order.delivery.rider.username }}{% if order.delivery.rider.rider_profile.phone_number %} · <a href="tel:{{ order.delivery.rider.rider_profile.phone_number }}">Call rider</a>{% endif %}</p>{% endif %}
+                {% if order.delivery.status == 'DELIVERED' %}<p>Received by {{ order.delivery.pod_recipient_name|default:'recipient' }} on {{ order.delivery.delivered_at }}.</p>{% endif %}
+                <ol aria-label="Delivery progress">{% for event in order.delivery.history.all %}<li>{{ event.get_to_status_display|default:event.to_status }} · {{ event.created_at|date:'M j, H:i' }}</li>{% endfor %}</ol>
+            </section>
+            {% endif %}
+
+            <div class="detail-section" style="margin-top: 24px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 750;">Order Line Items</h4>
+                <div id="detailOrderItems" class="order-items-list">
+                    {% if order and order.items.all %}
+                        {% for item in order.items.all %}
+                        <div class="order-item-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0;">
+                            <div>
+                                <strong style="font-size: 14px; color: #0f172a;">{{ item.product_name }}</strong>
+                                <span style="font-size: 12.5px; color: #64748b; margin-left: 8px;">× {{ item.quantity }}</span>
+                            </div>
+                            <strong style="font-size: 14px; color: #0f172a;">₦ {{ item.total_price }}</strong>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
             </div>
         </article>
 
         <aside class="card detail-sidebar">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Order timeline</h3>
+                    <h3>Order Timeline</h3>
+                    <p>Current fulfillment status</p>
                 </div>
             </div>
 
@@ -92,6 +150,6 @@
 </div>
 {% endblock %}
 
-{% block page_js %}
+{% block customer_js %}
 <script src="{% static 'js/pages/customer/order-detail.js' %}"></script>
 {% endblock %}

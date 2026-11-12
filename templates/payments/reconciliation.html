@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Daily Reconciliation &amp; Audit | MADAM HY{% endblock %}
+{% block page_title %}Daily Reconciliation{% endblock %}
+
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='payments' current_tab='reconcile' %}
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions-inline u-flex-gap-sm" >
+    <a href="{% url 'payments:list' %}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>Payment Records</span>
+    </a>
+    <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline btn-sm">
+        <i class="bi bi-graph-up" aria-hidden="true"></i>
+        <span>Reports Hub</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="reconciliation-container" style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- Hero Card -->
+    <section class="card" style="padding: 24px; border-radius: 12px; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <span class="badge badge-primary" style="margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-reconcile"></use></svg>
+                    <span>Financial Auditing</span>
+                </span>
+                <h2 style="font-size: 22px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px 0;">Payment Reconciliation &amp; Discrepancy Audit</h2>
+                <p style="color: var(--muted); margin: 0; font-size: 13.5px; max-width: 650px;">
+                    Continuous audit of sales transactions and fulfillment orders against collected payments. Highlights underpayments, overpayments, and ledger discrepancies.
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; font-weight: 600; padding: 6px 12px; border-radius: 20px;">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                    <span>Manager Restricted</span>
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Reconciliation Metrics Grid -->
+    <section class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Total Audited</span>
+                <i class="bi bi-file-earmark-spreadsheet" style="color: var(--primary); font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: var(--text-heading);">
+                {{ summary.total_transactions|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">Transactions audited</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Fully Settled</span>
+                <i class="bi bi-check2-circle" style="color: #057a44; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #057a44;">
+                {{ summary.classifications.FULLY_PAID|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">100% balanced</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Partially Paid</span>
+                <i class="bi bi-hourglass-split" style="color: #b87700; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #b87700;">
+                {{ summary.classifications.PARTIALLY_PAID|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">Partial collections</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Unpaid Ledger</span>
+                <i class="bi bi-exclamation-circle" style="color: #be123c; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #be123c;">
+                {{ summary.classifications.UNPAID|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">Awaiting payment</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Discrepancies</span>
+                <i class="bi bi-shield-exclamation" style="color: #be123c; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: {% if summary.inconsistency_count > 0 %}#be123c{% else %}#057a44{% endif %};">
+                {{ summary.inconsistency_count|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">Audit findings</span>
+        </article>
+    </section>
+
+    <!-- Reconciliation Transactions Table -->
+    <section class="card" style="padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0 0 4px 0;">Audit Findings &amp; Reconciled Ledgers</h3>
+                <p style="font-size: 13px; color: var(--muted); margin: 0;">Recent sales and fulfillment order reconciliation statuses.</p>
+            </div>
+            <span class="badge badge-secondary" style="font-size: 12px;">{{ transactions|length }} Records</span>
+        </div>
+
+        {% if transactions %}
+        <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid var(--border); font-size: 12.5px; color: var(--muted);">
+                        <th style="padding: 10px 14px;">Transaction</th>
+                        <th style="padding: 10px 14px;">Total Expected</th>
+                        <th style="padding: 10px 14px;">Total Paid</th>
+                        <th style="padding: 10px 14px;">Remaining</th>
+                        <th style="padding: 10px 14px;">Classification</th>
+                        <th style="padding: 10px 14px;">Findings</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 13px;">
+                    {% for item in transactions %}
+                    <tr style="border-bottom: 1px solid var(--border-subtle, #f1f5f9);">
+                        <td style="padding: 12px 14px; font-weight: 600;">
+                            <div>{{ item.transaction_reference|default:item.transaction_id }}</div>
+                            <small style="color: var(--muted); font-size: 11px;">{{ item.transaction_type }}</small>
+                        </td>
+                        <td style="padding: 12px 14px;">₦{{ item.expected_amount }}</td>
+                        <td style="padding: 12px 14px; color: #057a44; font-weight: 600;">₦{{ item.paid_amount }}</td>
+                        <td style="padding: 12px 14px; {% if item.remaining_balance != '0.00' %}color: #be123c; font-weight: 600;{% endif %}">
+                            ₦{{ item.remaining_balance }}
+                        </td>
+                        <td style="padding: 12px 14px;">
+                            {% if item.classification == 'FULLY_PAID' %}
+                            <span class="badge" style="background: rgba(5, 122, 68, 0.12); color: #057a44; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">
+                                Fully Paid
+                            </span>
+                            {% elif item.classification == 'PARTIALLY_PAID' %}
+                            <span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #b87700; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">
+                                Partial
+                            </span>
+                            {% elif item.classification == 'UNPAID' %}
+                            <span class="badge" style="background: rgba(190, 18, 60, 0.12); color: #be123c; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">
+                                Unpaid
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: rgba(124, 58, 237, 0.12); color: #7c3aed; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 12px;">
+                                {{ item.classification }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 14px;">
+                            {% if item.inconsistency_findings %}
+                            <span style="color: #be123c; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                                <span>{{ item.inconsistency_findings|length }} Finding(s)</span>
+                            </span>
+                            {% else %}
+                            <span style="color: #057a44; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                                <span>Balanced</span>
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--muted);">
+            <i class="bi bi-check2-circle" style="font-size: 36px; opacity: 0.5; display: block; margin-bottom: 12px;" aria-hidden="true"></i>
+            <p style="margin: 0; font-size: 14px;">No reconciliation records found for the selected filter.</p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}

@@ -5,9 +5,13 @@ import json
 from django.core.exceptions import ValidationError
 from django.db.models import Count, DecimalField, F, Q, Sum
 from django.db.models.functions import Coalesce
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
+from apps.accounts.decorators import role_required
+from apps.products.models import Product
 from .models import InventoryItem, StockMovement
 from .services import adjust_inventory_stock
 
@@ -21,7 +25,28 @@ def _json_response(data=None, message='Success', success=True, status=200, error
         payload['data'] = data
     if errors is not None:
         payload['errors'] = errors
+    elif not success:
+        payload['errors'] = {}
     return JsonResponse(payload, status=status)
+
+
+def _wants_json(request):
+    format_param = (request.GET.get('format') or '').lower()
+    if format_param == 'json':
+        return True
+    if format_param == 'html':
+        return False
+    accept_header = request.headers.get('Accept', '') or request.META.get('HTTP_ACCEPT', '')
+    if 'text/html' in accept_header and 'application/json' not in accept_header:
+        return False
+    if 'application/json' in accept_header and 'text/html' not in accept_header:
+        return True
+    content_type = getattr(request, 'content_type', '') or request.META.get('CONTENT_TYPE', '')
+    if 'application/json' in content_type:
+        return True
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return True
+    return True
 
 
 def _can_view_inventory_reports(user):
@@ -170,6 +195,18 @@ def inventory_list(request):
 
     Return read-only inventory records with search, stock filters, sorting, and pagination.
     """
+    if not _wants_json(request):
+        if not request.user or not getattr(request.user, 'is_authenticated', False):
+            return redirect(f"{reverse('accounts:login')}?next=/inventory/")
+        if getattr(request.user, 'role', None) == 'CUSTOMER':
+            return redirect('/customer/dashboard/')
+        if not _can_view_inventory_reports(request.user):
+            return render(request, '403.html', {'message': 'You do not have permission to view inventory.'}, status=403)
+        return render(request, 'inventory/inventory.html', {
+            'active_module': 'inventory',
+            'active_tab': 'items',
+        })
+
     if request.method != 'GET':
         return _json_response(message='Only GET is allowed.', success=False, status=405)
 
@@ -407,6 +444,15 @@ def inventory_report_summary(request):
     if request.method != 'GET':
         return _json_response(message='Only GET is allowed.', success=False, status=405)
 
+    if not _wants_json(request):
+        if not request.user or not getattr(request.user, 'is_authenticated', False):
+            return redirect(f"{reverse('accounts:login')}?next=/inventory/reports/summary/")
+        if getattr(request.user, 'role', None) in ('OWNER', 'MANAGER'):
+            return inventory_valuation_view(request)
+        elif getattr(request.user, 'role', None) in ('CASHIER', 'STAFF'):
+            return render(request, '403.html', {'message': 'You do not have permission to view inventory valuations.'}, status=403)
+        return redirect('/customer/dashboard/')
+
     if not request.user or not getattr(request.user, 'is_authenticated', False):
         return _json_response(message='Authentication required.', success=False, status=401)
 
@@ -466,6 +512,16 @@ def inventory_report_movements(request):
     """
     if request.method != 'GET':
         return _json_response(message='Only GET is allowed.', success=False, status=405)
+
+    if not _wants_json(request):
+        if not request.user or not getattr(request.user, 'is_authenticated', False):
+            return redirect(f"{reverse('accounts:login')}?next=/inventory/reports/movements/")
+        if not _can_view_inventory_reports(request.user):
+            return render(request, '403.html', {'message': 'You do not have permission to view movement reports.'}, status=403)
+        return render(request, 'inventory/stock_history.html', {
+            'active_module': 'inventory',
+            'active_tab': 'movements',
+        })
 
     if not request.user or not getattr(request.user, 'is_authenticated', False):
         return _json_response(message='Authentication required.', success=False, status=401)
@@ -568,6 +624,16 @@ def inventory_report_low_stock(request):
     if request.method != 'GET':
         return _json_response(message='Only GET is allowed.', success=False, status=405)
 
+    if not _wants_json(request):
+        if not request.user or not getattr(request.user, 'is_authenticated', False):
+            return redirect(f"{reverse('accounts:login')}?next=/inventory/reports/low-stock/")
+        if not _can_view_inventory_reports(request.user):
+            return render(request, '403.html', {'message': 'You do not have permission to view low stock reports.'}, status=403)
+        return render(request, 'inventory/low_stock.html', {
+            'active_module': 'inventory',
+            'active_tab': 'stock_levels',
+        })
+
     if not request.user or not getattr(request.user, 'is_authenticated', False):
         return _json_response(message='Authentication required.', success=False, status=401)
 
@@ -633,3 +699,500 @@ def inventory_report_low_stock(request):
         },
         message='Low-stock report retrieved successfully.',
     )
+
+
+@role_required('OWNER', 'MANAGER', 'CASHIER', 'STAFF')
+def inventory_low_stock_view(request):
+    """
+    GET /inventory/low-stock/ (name: 'low_stock')
+    Low-stock products overview tab.
+    """
+    if not _wants_json(request):
+        return render(request, 'inventory/low_stock.html', {
+            'active_module': 'inventory',
+            'active_tab': 'stock_levels',
+        })
+    return inventory_report_low_stock(request)
+
+
+@role_required('OWNER', 'MANAGER', 'CASHIER', 'STAFF')
+def inventory_history_view(request):
+    """
+    GET /inventory/history/ (name: 'history')
+    Stock movements audit trail tab.
+    """
+    if not _wants_json(request):
+        return render(request, 'inventory/stock_history.html', {
+            'active_module': 'inventory',
+            'active_tab': 'movements',
+        })
+    return inventory_report_movements(request)
+
+
+def _serialize_products_for_intake():
+    products = Product.objects.filter(is_active=True).select_related('category').prefetch_related('inventory_item', 'images').order_by('name')
+    products_data = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'sku': p.sku,
+            'current_stock': p.current_stock,
+            'cost_price': str(p.cost_price if p.cost_price is not None else Decimal('0.00')),
+            'selling_price': str(p.selling_price if p.selling_price is not None else Decimal('0.00')),
+            'gross_profit': str(p.gross_profit),
+            'gross_margin_percentage': str(p.gross_margin_percentage),
+            'image_url': p.primary_image.image.url if p.primary_image and p.primary_image.image else None,
+        }
+        for p in products
+    ]
+    return products, products_data
+
+
+@role_required('OWNER', 'MANAGER')
+def inventory_add_stock_view(request):
+    """
+    GET/POST /inventory/adjust/ (name: 'add_stock')
+    Stock intake and adjustments tab.
+    Restricted strictly to OWNER and MANAGER roles.
+    """
+    selected_product_id = request.GET.get('product') or request.GET.get('product_id') or ''
+    can_manage_prices = request.user.is_superuser or getattr(request.user, 'role', '') in ('OWNER', 'MANAGER')
+
+    # GET requests render the HTML workspace unless format=json is explicitly requested
+    if request.method == 'GET' and request.GET.get('format') != 'json':
+        products, products_data = _serialize_products_for_intake()
+        return render(request, 'inventory/add_stock.html', {
+            'products': products,
+            'products_json': json.dumps(products_data),
+            'selected_product_id': str(selected_product_id) if selected_product_id else '',
+            'can_manage_prices': can_manage_prices,
+            'active_module': 'inventory',
+            'active_tab': 'adjustments',
+        })
+
+    if request.method == 'GET':
+        products, products_data = _serialize_products_for_intake()
+        return _json_response(
+            data={
+                'products': products_data,
+                'selected_product_id': str(selected_product_id) if selected_product_id else '',
+            },
+            message='Products retrieved for stock intake.',
+        )
+
+    # Handle POST stock intake and adjustments
+    is_json = (
+        'application/json' in getattr(request, 'content_type', '')
+        or request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        or request.GET.get('format') == 'json'
+        or 'application/json' in (request.headers.get('Accept', '') or '')
+    )
+
+    try:
+        content_type = getattr(request, 'content_type', '') or ''
+        payload = json.loads(request.body or '{}') if 'application/json' in content_type else request.POST
+    except (TypeError, ValueError, json.JSONDecodeError):
+        errors = {'body': 'Invalid JSON request format.'}
+        if is_json:
+            return JsonResponse({'success': False, 'message': 'Invalid JSON request format.', 'errors': errors}, status=400)
+        products, products_data = _serialize_products_for_intake()
+        return render(request, 'inventory/add_stock.html', {
+            'products': products,
+            'products_json': json.dumps(products_data),
+            'selected_product_id': str(selected_product_id) if selected_product_id else '',
+            'can_manage_prices': can_manage_prices,
+            'error_message': 'Invalid form submission.',
+            'form': {'errors': errors},
+            'active_module': 'inventory',
+            'active_tab': 'adjustments',
+        }, status=400)
+
+    errors = {}
+    product_id = payload.get('product_id') or payload.get('product')
+
+    if not product_id:
+        errors['product'] = 'Please select a valid product.'
+
+    product = None
+    if product_id:
+        try:
+            product = Product.objects.get(id=int(product_id))
+        except (Product.DoesNotExist, ValueError, TypeError):
+            errors['product'] = 'Selected product does not exist.'
+
+    # Normalize and validate action / audit reason strictly
+    raw_action = (payload.get('action') or payload.get('reason') or payload.get('movement_type') or 'RESTOCK').strip().upper()
+    if raw_action == 'STOCK_IN':
+        action_type = 'RESTOCK'
+    elif raw_action in ('RESTOCK', 'CORRECTION', 'DAMAGE', 'EXPIRY'):
+        action_type = raw_action
+    else:
+        errors['action'] = f"Invalid audit action '{raw_action}'. Allowed actions are Restock, Correction, Damage, and Expiry."
+        action_type = None
+
+    delta = 0
+    movement_type = StockMovement.MovementType.STOCK_IN
+    reason = ''
+    reference = ''
+    price_updated = False
+
+    inventory_item = None
+    if product:
+        inventory_item, _ = InventoryItem.objects.get_or_create(
+            product=product,
+            defaults={'quantity': 0, 'is_active': True}
+        )
+
+    # ------------------------------------------------------------------------
+    # 1. RESTOCK ACTION
+    # ------------------------------------------------------------------------
+    if action_type == 'RESTOCK':
+        raw_quantity = payload.get('quantity') or payload.get('delta')
+        if raw_quantity in (None, ''):
+            errors['quantity'] = 'Quantity received is required.'
+        else:
+            try:
+                q_val = Decimal(str(raw_quantity).strip())
+                if not q_val.is_finite() or q_val != q_val.to_integral_value() or q_val <= 0:
+                    errors['quantity'] = 'Quantity received must be a positive whole number greater than zero.'
+                else:
+                    delta = int(q_val)
+            except (ValueError, TypeError, ArithmeticError):
+                errors['quantity'] = 'Quantity must be a valid whole number.'
+
+        supplier = (payload.get('supplier') or '').strip()
+        ref = (payload.get('reference') or '').strip()
+        notes = (payload.get('notes') or '').strip()
+        ref_parts = [p for p in [supplier and f"Supplier: {supplier}", ref and f"Ref: {ref}", notes] if p]
+        reference = ' | '.join(ref_parts)
+        reason = f"Restock: {supplier}" if supplier else "Restock"
+        movement_type = StockMovement.MovementType.STOCK_IN
+
+        # Optional price updates
+        update_pricing = bool(
+            payload.get('update_pricing') or payload.get('update_prices') or
+            (payload.get('new_selling_price') not in (None, '') and payload.get('new_cost_price') not in (None, ''))
+        )
+        if update_pricing:
+            is_authorized = request.user.is_superuser or getattr(request.user, 'role', '') in ('OWNER', 'MANAGER')
+            if not is_authorized:
+                errors['update_pricing'] = 'You do not have permission to modify product prices.'
+            elif product:
+                raw_new_cost = payload.get('new_cost_price') or payload.get('unit_cost')
+                raw_new_selling = payload.get('new_selling_price')
+                price_change_reason = (payload.get('price_change_reason') or f"Restock price update: {reference or supplier}").strip()
+
+            target_cost = product.cost_price
+            if raw_new_cost not in (None, ''):
+                try:
+                    c_val = Decimal(str(raw_new_cost).strip())
+                    if not c_val.is_finite() or c_val < Decimal('0.00'):
+                        errors['new_cost_price'] = 'New cost price cannot be negative.'
+                    else:
+                        target_cost = c_val
+                except (ValueError, TypeError, ArithmeticError):
+                    errors['new_cost_price'] = 'Cost price must be a valid decimal amount.'
+
+            target_selling = product.selling_price
+            if raw_new_selling not in (None, ''):
+                try:
+                    s_val = Decimal(str(raw_new_selling).strip())
+                    if not s_val.is_finite() or s_val < Decimal('0.00'):
+                        errors['new_selling_price'] = 'New selling price cannot be negative.'
+                    else:
+                        target_selling = s_val
+                except (ValueError, TypeError, ArithmeticError):
+                    errors['new_selling_price'] = 'Selling price must be a valid decimal amount.'
+
+            if target_cost is not None and target_selling < target_cost:
+                errors['new_selling_price'] = 'Selling price cannot be lower than cost price.'
+
+            # Check if prices actually changed and apply if valid
+            if not errors and (target_selling != product.selling_price or target_cost != product.cost_price):
+                price_updated = (target_selling, target_cost, price_change_reason)
+
+        elif payload.get('unit_cost') not in (None, '') and product:
+            # Legacy simple unit_cost update without full pricing modal
+            try:
+                c_val = Decimal(str(payload['unit_cost']).strip())
+                if c_val < Decimal('0.00'):
+                    errors['unit_cost'] = 'Unit cost cannot be negative.'
+                elif product.selling_price < c_val:
+                    errors['unit_cost'] = f'Unit cost (₦{c_val:.2f}) cannot exceed current selling price (₦{product.selling_price:.2f}).'
+                else:
+                    price_updated = (product.selling_price, c_val, f"Restock unit cost update: {reference or supplier}")
+            except (ValueError, TypeError, ArithmeticError):
+                errors['unit_cost'] = 'Unit cost must be a valid decimal amount.'
+
+    # ------------------------------------------------------------------------
+    # 2. CORRECTION ACTION (Inventory Audit)
+    # ------------------------------------------------------------------------
+    elif action_type == 'CORRECTION':
+        raw_actual = payload.get('actual_quantity')
+        raw_delta = payload.get('delta') or payload.get('adjustment_quantity')
+        notes = (payload.get('notes') or payload.get('explanation') or payload.get('reason') or '').strip()
+
+        if not notes:
+            errors['notes'] = 'A meaningful correction explanation is required.'
+
+        if raw_actual not in (None, '') and inventory_item:
+            try:
+                actual_val = Decimal(str(raw_actual).strip())
+                if not actual_val.is_finite() or actual_val != actual_val.to_integral_value() or actual_val < 0:
+                    errors['actual_quantity'] = 'Verified stock count must be a non-negative whole number.'
+                else:
+                    actual_int = int(actual_val)
+                    delta = actual_int - inventory_item.quantity
+                    if delta == 0:
+                        errors['actual_quantity'] = 'Counted quantity is identical to current stock. No correction adjustment needed.'
+            except (ValueError, TypeError, ArithmeticError):
+                errors['actual_quantity'] = 'Verified count must be a valid whole number.'
+        elif raw_delta not in (None, ''):
+            try:
+                delta_val = Decimal(str(raw_delta).strip())
+                if not delta_val.is_finite() or delta_val != delta_val.to_integral_value() or delta_val == 0:
+                    errors['quantity'] = 'Adjustment quantity must be a non-zero whole number.'
+                else:
+                    delta = int(delta_val)
+                    if inventory_item and (inventory_item.quantity + delta) < 0:
+                        errors['quantity'] = f'Cannot adjust stock below zero. Current stock is {inventory_item.quantity}.'
+            except (ValueError, TypeError, ArithmeticError):
+                errors['quantity'] = 'Adjustment quantity must be a valid whole number.'
+        else:
+            errors['quantity'] = 'Either verified physical stock or adjustment quantity is required.'
+
+        movement_type = StockMovement.MovementType.CORRECTION
+        reason = f"Correction: {notes}"
+        reference = (payload.get('reference') or 'Physical Inventory Audit').strip()
+
+    # ------------------------------------------------------------------------
+    # 3. DAMAGE ACTION (Damaged / Defective Stock)
+    # ------------------------------------------------------------------------
+    elif action_type == 'DAMAGE':
+        raw_quantity = payload.get('quantity')
+        notes = (payload.get('notes') or payload.get('description') or payload.get('reason') or '').strip()
+
+        if not notes:
+            errors['notes'] = 'A description of the damage and cause is required.'
+
+        if raw_quantity in (None, ''):
+            errors['quantity'] = 'Damaged quantity is required.'
+        else:
+            try:
+                q_val = Decimal(str(raw_quantity).strip())
+                if not q_val.is_finite() or q_val != q_val.to_integral_value() or q_val <= 0:
+                    errors['quantity'] = 'Damaged quantity must be a positive whole number greater than zero.'
+                else:
+                    dmg_qty = int(q_val)
+                    if inventory_item and dmg_qty > inventory_item.quantity:
+                        errors['quantity'] = f'Damaged quantity ({dmg_qty}) cannot exceed current available stock ({inventory_item.quantity}).'
+                    else:
+                        delta = -dmg_qty
+            except (ValueError, TypeError, ArithmeticError):
+                errors['quantity'] = 'Quantity must be a valid whole number.'
+
+        movement_type = StockMovement.MovementType.DAMAGE
+        reason = f"Damage: {notes}"
+        reference = (payload.get('reference') or 'Shelf Defect / Damage Write-off').strip()
+
+    # ------------------------------------------------------------------------
+    # 4. EXPIRY ACTION (Expired Stock)
+    # ------------------------------------------------------------------------
+    elif action_type == 'EXPIRY':
+        raw_quantity = payload.get('quantity')
+        notes = (payload.get('notes') or payload.get('reason') or '').strip()
+        batch_ref = (payload.get('batch_reference') or payload.get('reference') or '').strip()
+
+        if not notes and not batch_ref:
+            errors['notes'] = 'Expiry notes or batch reference is required.'
+
+        if raw_quantity in (None, ''):
+            errors['quantity'] = 'Expired quantity is required.'
+        else:
+            try:
+                q_val = Decimal(str(raw_quantity).strip())
+                if not q_val.is_finite() or q_val != q_val.to_integral_value() or q_val <= 0:
+                    errors['quantity'] = 'Expired quantity must be a positive whole number greater than zero.'
+                else:
+                    exp_qty = int(q_val)
+                    if inventory_item and exp_qty > inventory_item.quantity:
+                        errors['quantity'] = f'Expired quantity ({exp_qty}) cannot exceed current available stock ({inventory_item.quantity}).'
+                    else:
+                        delta = -exp_qty
+            except (ValueError, TypeError, ArithmeticError):
+                errors['quantity'] = 'Quantity must be a valid whole number.'
+
+        movement_type = StockMovement.MovementType.EXPIRY
+        reason = f"Expiry: {notes}" if notes else "Expired Product"
+        reference = batch_ref or 'Expired Stock Removal'
+
+    if errors:
+        error_msg = next(iter(errors.values())) if errors else 'Invalid stock submission.'
+        if is_json:
+            return JsonResponse({'success': False, 'message': error_msg, 'errors': errors}, status=400)
+        products, products_data = _serialize_products_for_intake()
+        return render(request, 'inventory/add_stock.html', {
+            'products': products,
+            'products_json': json.dumps(products_data),
+            'selected_product_id': str(product_id) if product_id else '',
+            'can_manage_prices': can_manage_prices,
+            'error_message': error_msg,
+            'form': {'errors': errors},
+            'active_module': 'inventory',
+            'active_tab': 'adjustments',
+        }, status=400)
+
+    try:
+        from django.db import transaction
+        with transaction.atomic():
+            # If price update is requested on Restock, record price change atomically
+            if price_updated and product:
+                new_selling, new_cost, p_reason = price_updated
+                product.record_price_change(
+                    new_selling_price=new_selling,
+                    new_cost_price=new_cost,
+                    changed_by=request.user,
+                    reason=p_reason,
+                )
+
+            adjusted_item = adjust_inventory_stock(
+                inventory_item,
+                delta,
+                reason=reason,
+                reference=reference,
+                created_by=request.user,
+                movement_type=movement_type,
+            )
+
+        if action_type == 'RESTOCK':
+            msg = f"Successfully received {delta} units of {product.name}. New stock level: {adjusted_item.quantity} units."
+        elif action_type == 'CORRECTION':
+            msg = f"Successfully corrected stock for {product.name} by {delta:+d} units. New stock level: {adjusted_item.quantity} units."
+        elif action_type == 'DAMAGE':
+            msg = f"Successfully deducted {abs(delta)} damaged units of {product.name}. Remaining stock: {adjusted_item.quantity} units."
+        else: # EXPIRY
+            msg = f"Successfully removed {abs(delta)} expired units of {product.name}. Remaining stock: {adjusted_item.quantity} units."
+
+        if is_json:
+            return JsonResponse({
+                'success': True,
+                'message': msg,
+                'data': {
+                    'inventory': _serialize_inventory_item(adjusted_item),
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'delta': delta,
+                    'new_quantity': adjusted_item.quantity,
+                    'new_stock_level': adjusted_item.quantity,
+                    'action': action_type,
+                },
+            }, status=200)
+
+        products, products_data = _serialize_products_for_intake()
+        return render(request, 'inventory/add_stock.html', {
+            'products': products,
+            'products_json': json.dumps(products_data),
+            'selected_product_id': str(product.id),
+            'can_manage_prices': can_manage_prices,
+            'success_message': msg,
+            'active_module': 'inventory',
+            'active_tab': 'adjustments',
+        })
+    except ValidationError as e:
+        field_errors = e.message_dict if hasattr(e, 'message_dict') else {'quantity': e.messages}
+        err_msg = 'Validation failed.'
+        if hasattr(e, 'message'):
+            err_msg = e.message
+        elif field_errors:
+            first_val = next(iter(field_errors.values()))
+            err_msg = first_val[0] if isinstance(first_val, list) and first_val else str(first_val)
+        if is_json:
+            return JsonResponse({'success': False, 'message': err_msg, 'errors': field_errors}, status=400)
+        products, products_data = _serialize_products_for_intake()
+        return render(request, 'inventory/add_stock.html', {
+            'products': products,
+            'products_json': json.dumps(products_data),
+            'selected_product_id': str(product_id) if product_id else '',
+            'can_manage_prices': can_manage_prices,
+            'error_message': err_msg,
+            'form': {'errors': field_errors},
+            'active_module': 'inventory',
+            'active_tab': 'adjustments',
+        }, status=400)
+    except Exception as e:
+        err_msg = str(e)
+        if is_json:
+            return JsonResponse({'success': False, 'message': err_msg, 'errors': {'detail': err_msg}}, status=400)
+        products, products_data = _serialize_products_for_intake()
+        return render(request, 'inventory/add_stock.html', {
+            'products': products,
+            'products_json': json.dumps(products_data),
+            'selected_product_id': str(product_id) if product_id else '',
+            'can_manage_prices': can_manage_prices,
+            'error_message': err_msg,
+            'form': {'errors': {'detail': err_msg}},
+            'active_module': 'inventory',
+            'active_tab': 'adjustments',
+        }, status=400)
+
+
+@role_required('OWNER', 'MANAGER')
+def inventory_valuation_view(request):
+    """
+    GET /inventory/valuation/ (name: 'valuation')
+    Cost Valuations & Financial Reports tab.
+    Restricted strictly to OWNER and MANAGER roles.
+    """
+    summary_qs = InventoryItem.objects.filter(is_active=True, product__is_active=True).select_related('product', 'product__category')
+    agg = summary_qs.aggregate(
+        total_items=Count('id'),
+        total_units=Coalesce(Sum('quantity'), 0),
+        selling_value=Coalesce(
+            Sum(F('quantity') * F('product__selling_price'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            Decimal('0.00'),
+        ),
+        cost_value=Coalesce(
+            Sum(F('quantity') * Coalesce(F('product__cost_price'), Decimal('0.00')), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            Decimal('0.00'),
+        ),
+    )
+    total_items = agg['total_items'] or 0
+    total_units = agg['total_units'] or 0
+    selling_value = agg['selling_value'] or Decimal('0.00')
+    cost_value = agg['cost_value'] or Decimal('0.00')
+    potential_margin = selling_value - cost_value
+    margin_percent = round((potential_margin / selling_value * Decimal('100.0')), 1) if selling_value > 0 else Decimal('0.0')
+
+    if _wants_json(request):
+        return _json_response(
+            data={
+                'total_items': total_items,
+                'total_units': total_units,
+                'selling_value': str(selling_value),
+                'cost_value': str(cost_value),
+                'potential_margin': str(potential_margin),
+                'margin_percent': float(margin_percent),
+            },
+            message='Inventory valuation retrieved successfully.',
+        )
+
+    # Decorate items for template
+    items_list = list(summary_qs.order_by('product__name')[:100])
+    for item in items_list:
+        cost = getattr(item.product, 'cost_price', None) or Decimal('0.00')
+        item.total_cost = (item.quantity * cost)
+        item.total_retail = (item.quantity * item.product.selling_price)
+        item.potential_profit = item.total_retail - item.total_cost
+
+    context = {
+        'active_module': 'inventory',
+        'active_tab': 'valuation',
+        'total_items': total_items,
+        'total_units': total_units,
+        'selling_value': f"{selling_value:,.2f}",
+        'cost_value': f"{cost_value:,.2f}",
+        'potential_margin': f"{potential_margin:,.2f}",
+        'margin_percent': margin_percent,
+        'items': items_list,
+    }
+    return render(request, 'inventory/valuation.html', context)

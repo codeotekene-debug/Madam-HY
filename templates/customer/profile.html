@@ -1,20 +1,20 @@
-{% extends "base.html" %}
+{% extends "customer/base.html" %}
 
 {% load static %}
 
 {% block title %}
-    Profile | MADAM HY Customer
+    Profile | MADAM HY Customer Storefront
 {% endblock %}
 
 {% block page_title %}
     My Profile
 {% endblock %}
 
-{% block page_css %}
+{% block customer_css %}
 <link rel="stylesheet" href="{% static 'css/pages/customer/profile.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block customer_content %}
 <div class="customer-profile-page">
     <section class="profile-hero">
         <div>
@@ -109,6 +109,6 @@
 </div>
 {% endblock %}
 
-{% block page_js %}
+{% block customer_js %}
 <script src="{% static 'js/pages/customer/profile.js' %}"></script>
 {% endblock %}

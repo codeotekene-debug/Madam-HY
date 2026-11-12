@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}
-    Sales History | MADAM HY
+    Sales History & Transactions | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -14,110 +14,166 @@
 <link rel="stylesheet" href="{% static 'css/pages/sales/history.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="sales" active_tab="history" %}
+{% endblock %}
+
 {% block content %}
 <div class="sales-history-page">
-    <section class="sales-hero">
-        <div>
-            <span class="badge badge-primary">Reports</span>
-            <h2>Sales history</h2>
-            <p>Review recent transactions, filter by status or payment type, and open sale details for audit review.</p>
-        </div>
-    </section>
 
-    <section class="sales-summary" aria-label="Sales summary">
-        <article class="summary-card">
-            <span>Total sales</span>
+    <!-- Page Header & Hero -->
+    <header class="sales-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                    <span>Cashier Register & Ledger</span>
+                </span>
+            </div>
+            <h2>Sales History & Audit Log</h2>
+            <p>Comprehensive transaction log for counter sales, dynamic QR transfers, Moniepoint POS, and customer credit ledger settlements.</p>
+        </div>
+        <div class="hero-actions">
+            <a href="/sales/pos/" class="btn btn-primary" aria-label="Open POS terminal">
+                <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                <span>New POS Sale</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Top Statistical Summary Cards -->
+    <section class="sales-summary" aria-label="Operational sales metrics">
+        <article class="summary-card" aria-label="Total sales count">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span>Total Transactions</span>
+                <i class="bi bi-receipt-cutoff" style="color: var(--primary); font-size: 18px;" aria-hidden="true"></i>
+            </div>
             <strong id="totalSalesCount">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Cash sales</span>
+
+        <article class="summary-card" aria-label="Cash transactions count">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span>Cash Sales</span>
+                <i class="bi bi-cash-stack" style="color: var(--primary); font-size: 18px;" aria-hidden="true"></i>
+            </div>
             <strong id="cashSalesCount">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Card sales</span>
+
+        <article class="summary-card" aria-label="Card and Moniepoint transactions count">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span>Card &amp; POS</span>
+                <svg class="retail-svg icon-sm text-primary"  aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+            </div>
             <strong id="cardSalesCount">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Revenue</span>
-            <strong id="revenueTotal">₦ 0</strong>
+
+        <article class="summary-card" aria-label="Total sales revenue">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span>Gross Revenue</span>
+                <i class="bi bi-wallet2" style="color: var(--primary-dark); font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong id="revenueTotal">₦ 0.00</strong>
         </article>
     </section>
 
+    <!-- Main History Data Panel -->
     <section class="card history-panel">
         <div class="panel-header compact-header">
             <div>
-                <h3>Recent transactions</h3>
-                <p>Filter and inspect sales entries for the current operational period.</p>
+                <h3>Transaction Records</h3>
+                <p>Filter, search, and inspect completed sales entries with full audit receipt tracing.</p>
             </div>
         </div>
 
+        <!-- Filter Toolbar -->
         <div class="history-toolbar">
             <div class="toolbar-search">
                 <label class="visually-hidden" for="historySearch">Search sales</label>
-                <input id="historySearch" class="form-control" type="search" placeholder="Search by sale number, customer or cashier" />
+                <input
+                    id="historySearch"
+                    class="form-control"
+                    type="search"
+                    placeholder="Search by sale number, customer name, or cashier..."
+                    aria-label="Search sales records"
+                />
             </div>
 
             <div class="toolbar-filters">
-                <label class="visually-hidden" for="historyPaymentFilter">Filter by payment</label>
-                <select id="historyPaymentFilter" class="form-select">
-                    <option value="all">All payment types</option>
+                <label class="visually-hidden" for="historyPaymentFilter">Filter by payment method</label>
+                <select id="historyPaymentFilter" class="form-select" aria-label="Payment method filter">
+                    <option value="all">All payment channels</option>
                     <option value="CASH">Cash</option>
-                    <option value="TRANSFER">Transfer</option>
-                    <option value="CARD">Card</option>
-                    <option value="CREDIT">Credit</option>
+                    <option value="TRANSFER">Dynamic QR / Transfer</option>
+                    <option value="CARD">Moniepoint POS / Card</option>
+                    <option value="CREDIT">Customer Credit</option>
                 </select>
 
-                <label class="visually-hidden" for="historyStatusFilter">Filter by status</label>
-                <select id="historyStatusFilter" class="form-select">
+                <label class="visually-hidden" for="historyStatusFilter">Filter by transaction status</label>
+                <select id="historyStatusFilter" class="form-select" aria-label="Transaction status filter">
                     <option value="all">All statuses</option>
                     <option value="COMPLETED">Completed</option>
+                    <option value="REFUNDED">Refunded</option>
+                    <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
                     <option value="DRAFT">Draft</option>
                     <option value="CANCELLED">Cancelled</option>
                 </select>
 
                 <label class="visually-hidden" for="historyPaymentStatusFilter">Filter by payment status</label>
-                <select id="historyPaymentStatusFilter" class="form-select">
-                    <option value="all">All payment statuses</option>
-                    <option value="PENDING">Payment pending</option>
-                    <option value="COMPLETED">Payment completed</option>
-                    <option value="FAILED">Payment failed</option>
+                <select id="historyPaymentStatusFilter" class="form-select" aria-label="Payment settlement status filter">
+                    <option value="all">All settlement statuses</option>
+                    <option value="COMPLETED">Settled / Paid</option>
+                    <option value="PENDING">Pending Settlement</option>
+                    <option value="FAILED">Failed</option>
                 </select>
             </div>
 
             <div class="history-date-filters">
                 <label for="historyDateFrom">From</label>
-                <input id="historyDateFrom" class="form-control" type="date" />
+                <input id="historyDateFrom" class="form-control" type="date" aria-label="Filter from date" />
                 <label for="historyDateTo">To</label>
-                <input id="historyDateTo" class="form-control" type="date" />
-                <button type="button" class="btn btn-secondary" id="historyRetryBtn">Retry</button>
+                <input id="historyDateTo" class="form-control" type="date" aria-label="Filter to date" />
+                <button type="button" class="btn btn-secondary" id="historyRetryBtn" aria-label="Refresh sales data">
+                    <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                    <span>Refresh</span>
+                </button>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <!-- Sales Records Table -->
+        <div class="table-wrapper table-responsive">
             <table class="table sales-table">
                 <thead>
                     <tr>
-                        <th>Sale #</th>
-                        <th>Customer</th>
-                        <th>Cashier</th>
-                        <th>Date</th>
-                        <th>Payment</th>
-                        <th>Status</th>
-                        <th>Total</th>
-                        <th>Action</th>
+                        <th scope="col">Sale # / Receipt</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Cashier</th>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Payment Channel</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col"  class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody"></tbody>
             </table>
         </div>
 
+        <!-- Structured Empty State (Retail SVG Icon) -->
         <div id="historyEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
-            <h3>No sales match your filters</h3>
-            <p>Adjust the search or payment filters to review more sales records.</p>
+            <div class="empty-state-icon" aria-hidden="true">
+                <svg class="retail-svg icon-xl"><use href="#icon-retail-pos"></use></svg>
+            </div>
+            <h3>No sales records found</h3>
+            <p>Adjust your search query, change date range, or reset payment filters to inspect more transactions.</p>
         </div>
+
+        <!-- Error State Banner -->
         <div id="historyErrorState" class="sale-message" aria-live="polite"></div>
+
+        <!-- Pagination Bar -->
         <div class="pagination-bar" id="historyPagination" aria-label="Sales pagination"></div>
     </section>
+
 </div>
 {% endblock %}
 

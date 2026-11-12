@@ -26,6 +26,7 @@ class Order(models.Model):
         PENDING = 'PENDING', 'Pending'
         CONFIRMED = 'CONFIRMED', 'Confirmed'
         FAILED = 'FAILED', 'Failed'
+        PAID_BY_CREDIT = 'PAID_BY_CREDIT', 'Paid by Credit'
 
     order_number = models.CharField(
         max_length=50,
@@ -82,7 +83,21 @@ class Order(models.Model):
         max_digits=14,
         decimal_places=2,
         default=Decimal('0.00'),
-        help_text='Final order total after discount (subtotal - discount).',
+        help_text='Final order total after discount (subtotal - discount + delivery_fee).',
+    )
+    delivery_fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text='Configured delivery charge for the order.',
+    )
+    delivery_zone = models.ForeignKey(
+        'delivery.DeliveryZone',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders',
+        help_text='Selected delivery zone for pricing.',
     )
     delivery_address = models.TextField(
         blank=True,
@@ -118,11 +133,28 @@ class Order(models.Model):
 
     def clean(self):
         super().clean()
+        # Validate credit orders require a customer
+        if self.payment_method == self.PaymentMethod.CREDIT and not self.customer:
+            raise ValidationError(
+                {'customer': 'Customer is required for credit orders.'}
+            )
+        # Validate credit orders require customer role
+        if self.payment_method == self.PaymentMethod.CREDIT and self.customer:
+            if self.customer.role != 'CUSTOMER':
+                raise ValidationError(
+                    {'customer': 'Only customers (role=CUSTOMER) can use credit.'}
+                )
+            if self.total > 0 and self.status not in {self.OrderStatus.COMPLETED, self.OrderStatus.CANCELLED}:
+                from apps.credits.services import CreditService
+                CreditService.validate_credit_eligibility(self.customer, self.total)
+
         # Validate monetary fields are non-negative
         if self.subtotal < 0:
             raise ValidationError({'subtotal': 'Subtotal cannot be negative.'})
         if self.discount < 0:
             raise ValidationError({'discount': 'Discount cannot be negative.'})
+        if self.delivery_fee < 0:
+            raise ValidationError({'delivery_fee': 'Delivery fee cannot be negative.'})
         if self.total < 0:
             raise ValidationError({'total': 'Total cannot be negative.'})
 
@@ -134,14 +166,14 @@ class Order(models.Model):
         """
         Recalculate order totals from OrderItems.
 
-        Updates subtotal and total based on current items.
+        Updates subtotal and total based on current items and configured delivery fee.
         Does not persist changes; caller must save().
         """
         items = self.items.all()
         self.subtotal = sum(
             item.unit_price * item.quantity for item in items
         )
-        self.total = max(self.subtotal - self.discount, Decimal('0.00'))
+        self.total = max(self.subtotal - self.discount + self.delivery_fee, Decimal('0.00'))
         return self
 
     def transition_to(self, new_status):

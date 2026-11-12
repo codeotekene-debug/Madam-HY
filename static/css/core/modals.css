@@ -1,5 +1,5 @@
 /* =========================================================
-   MODAL
+   MODAL DIALOGS (WCAG 2.1 & RESPONSIVE COMPLIANT)
    ========================================================= */
 
 .modal-overlay {
@@ -17,7 +17,9 @@
 
     padding: 20px;
 
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(0, 0, 0, 0.55);
+
+    backdrop-filter: blur(2px);
 }
 
 
@@ -31,15 +33,35 @@
 
     max-width: 520px;
 
-    max-height: 90vh;
+    max-height: calc(100vh - 40px);
 
-    overflow-y: auto;
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
 
     background: var(--surface);
+
+    border: 1px solid var(--border);
 
     border-radius: var(--radius-md);
 
     box-shadow: var(--shadow-lg);
+
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 
@@ -55,31 +77,47 @@
     padding: 18px 20px;
 
     border-bottom: 1px solid var(--border);
+
+    flex-shrink: 0;
 }
 
 
 .modal-header h3 {
     font-size: 16px;
 
-    font-weight: 700;
+    font-weight: 750;
+
+    color: var(--text);
 }
 
 
 .modal-close {
-    width: 32px;
-    height: 32px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
 
     border: 0;
 
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
 
     background: transparent;
 
     color: var(--muted);
 
-    font-size: 20px;
+    font-size: 24px;
+
+    line-height: 1;
 
     cursor: pointer;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
 
@@ -90,8 +128,22 @@
 }
 
 
+.modal-close:focus-visible {
+    outline: var(--focus-outline, 2px solid #087a3d);
+    outline-offset: 2px;
+}
+
+
 .modal-body {
     padding: 20px;
+
+    overflow-y: auto;
+
+    -webkit-overflow-scrolling: touch;
+
+    flex: 1 1 auto;
+
+    word-break: break-word;
 }
 
 
@@ -102,9 +154,252 @@
 
     justify-content: flex-end;
 
-    gap: 9px;
+    gap: 10px;
 
-    padding: 15px 20px;
+    padding: 16px 20px;
 
     border-top: 1px solid var(--border);
+
+    flex-shrink: 0;
+
+    background: var(--surface);
+}
+
+
+/* =========================================================
+   QR PAYMENT MODAL COMPONENT (Phase 4C Dynamic Counter QR)
+   ========================================================= */
+
+.modal-qr-container {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    text-align: center;
+
+    gap: 16px;
+
+    padding: 18px;
+
+    background: var(--background);
+
+    border-radius: var(--radius-sm);
+
+    border: 1px solid var(--border);
+}
+
+
+.qr-code-wrapper {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 100%;
+
+    max-width: 220px;
+
+    margin: 0 auto;
+
+    background: #ffffff;
+
+    padding: 12px;
+
+    border-radius: var(--radius-sm);
+
+    border: 1px solid var(--border);
+
+    box-shadow: var(--shadow-sm);
+}
+
+
+.qr-code-wrapper svg,
+.qr-code-wrapper img {
+    max-width: 100%;
+
+    height: auto;
+
+    aspect-ratio: 1 / 1;
+
+    display: block;
+}
+
+
+.qr-placeholder {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    padding: 24px 12px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+.qr-details {
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+
+.qr-amount-box {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 4px;
+
+    padding: 12px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-sm);
+}
+
+
+.qr-amount-label {
+    font-size: 11px;
+
+    font-weight: 700;
+
+    color: var(--muted);
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.5px;
+}
+
+
+.qr-amount-value {
+    font-size: 22px;
+
+    font-weight: 800;
+
+    color: var(--primary);
+}
+
+
+.qr-instruction {
+    font-size: 12px;
+
+    color: var(--muted);
+
+    max-width: 300px;
+
+    margin: 0 auto;
+
+    line-height: 1.4;
+}
+
+
+.qr-status-indicator {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    font-size: 12px;
+
+    font-weight: 650;
+
+    color: var(--text);
+
+    padding: 6px 12px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: 999px;
+
+    margin: 4px auto 0;
+}
+
+
+.status-dot.pulse {
+    animation: statusPulse 1.5s infinite;
+}
+
+
+@keyframes statusPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(8, 122, 61, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(8, 122, 61, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(8, 122, 61, 0);
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE MODAL MEDIA QUERIES (Mobile & Tablet QA)
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+    .modal-overlay {
+        padding: 10px;
+    }
+
+
+    .modal {
+        max-height: calc(100vh - 20px);
+
+        border-radius: var(--radius-sm);
+    }
+
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 14px 16px;
+    }
+
+
+    .modal-footer {
+        flex-direction: column-reverse;
+
+        gap: 10px;
+    }
+
+
+    .modal-footer .btn {
+        width: 100%;
+
+        min-height: 44px;
+    }
+
+
+    .qr-code-wrapper {
+        max-width: 180px;
+
+        padding: 8px;
+    }
+
 }

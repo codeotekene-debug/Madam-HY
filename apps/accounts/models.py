@@ -4,14 +4,17 @@ from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 
 
+class Role(models.TextChoices):
+    OWNER = 'OWNER', _('Owner')
+    MANAGER = 'MANAGER', _('Manager')
+    CASHIER = 'CASHIER', _('Cashier')
+    STAFF = 'STAFF', _('Staff')
+    CUSTOMER = 'CUSTOMER', _('Customer')
+    RIDER = 'RIDER', _('Rider')
+
+
 # Role choices for the User model
-ROLE_CHOICES = [
-    ('OWNER', _('Owner')),
-    ('MANAGER', _('Manager')),
-    ('CASHIER', _('Cashier')),
-    ('STAFF', _('Staff')),
-    ('CUSTOMER', _('Customer')),
-]
+ROLE_CHOICES = Role.choices
 
 
 class User(AbstractUser):
@@ -26,6 +29,7 @@ class User(AbstractUser):
     Users can authenticate with email or username.
     """
 
+    Role = Role
     ROLE_CHOICES = ROLE_CHOICES
 
     # Authentication
@@ -64,6 +68,34 @@ class User(AbstractUser):
         _('active'),
         default=True,
         help_text=_('Inactive users cannot log in.')
+    )
+
+    # Notification & communication preferences
+    order_notifications = models.BooleanField(
+        _('order notifications'),
+        default=True,
+        help_text=_('Receive notifications about order status changes.')
+    )
+    payment_notifications = models.BooleanField(
+        _('payment notifications'),
+        default=True,
+        help_text=_('Receive reminders for credit payments.')
+    )
+    request_notifications = models.BooleanField(
+        _('request notifications'),
+        default=True,
+        help_text=_('Receive updates on your product requests.')
+    )
+    promotion_notifications = models.BooleanField(
+        _('promotion notifications'),
+        default=False,
+        help_text=_('Get notified about new products and special offers.')
+    )
+    preferences = models.JSONField(
+        _('preferences'),
+        default=dict,
+        blank=True,
+        help_text=_('User preferences including language, currency, marketing, and delivery options.')
     )
 
     # Timestamps
@@ -112,6 +144,56 @@ class User(AbstractUser):
     def is_customer(self):
         """Check if user is a customer."""
         return self.role == 'CUSTOMER'
+
+    def is_rider(self):
+        """Check if user is a delivery rider."""
+        return self.role == 'RIDER'
+
+    @property
+    def available_credit(self):
+        """Return available credit allowance for customer, or Decimal('0.00')."""
+        try:
+            from decimal import Decimal
+            account = getattr(self, 'credit_account', None)
+            if account:
+                return account.get_available_credit()
+            return Decimal('0.00')
+        except Exception:
+            from decimal import Decimal
+            return Decimal('0.00')
+
+    def get_notification_preferences(self):
+        """Return a dictionary of the user's notification preferences."""
+        return {
+            'order_notifications': bool(self.order_notifications),
+            'payment_notifications': bool(self.payment_notifications),
+            'request_notifications': bool(self.request_notifications),
+            'promotion_notifications': bool(self.promotion_notifications),
+            'orders': bool(self.order_notifications),
+            'payments': bool(self.payment_notifications),
+            'requests': bool(self.request_notifications),
+            'promotions': bool(self.promotion_notifications),
+        }
+
+    def get_preferences(self):
+        """Return structured preferences matching settings UI and API."""
+        extra_prefs = self.preferences if isinstance(self.preferences, dict) else {}
+        return {
+            'notifications': {
+                'orders': bool(self.order_notifications),
+                'promotions': bool(self.promotion_notifications),
+                'requests': bool(self.request_notifications),
+                'payments': bool(self.payment_notifications),
+            },
+            'preferences': {
+                'language': str(extra_prefs.get('language', 'en')),
+                'currency': str(extra_prefs.get('currency', 'NGN')),
+                'marketing': bool(extra_prefs.get('marketing', False)),
+            },
+            'delivery': {
+                'preferredMethod': str(extra_prefs.get('preferred_delivery', 'Delivery')),
+            },
+        }
 
 
 class CustomerProfile(models.Model):

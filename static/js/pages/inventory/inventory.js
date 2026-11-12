@@ -130,24 +130,79 @@ async function loadInventoryDetail(inventoryId) {
 }
 
 async function submitInventoryAdjustment(event) {
-    event.preventDefault();
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     const quantityInput = document.getElementById("inventoryAdjustmentQuantity");
     const reasonInput = document.getElementById("inventoryAdjustmentReason");
     const referenceInput = document.getElementById("inventoryAdjustmentReference");
     const submitButton = document.getElementById("inventoryAdjustmentSubmit");
+    const errorBox = document.getElementById("stock-form-error")
+        || document.querySelector(".alert-danger")
+        || document.getElementById("error-message");
+    const messageElement = document.getElementById("inventoryAdjustmentMessage");
+
+    function displayError(msg, errors = null) {
+        if (messageElement) {
+            messageElement.textContent = "";
+            messageElement.className = "inventory-adjustment-message";
+        }
+        if (errorBox) {
+            let html = `<strong>${escapeHtml(msg || "Stock adjustment failed.")}</strong>`;
+            if (errors && typeof errors === "object") {
+                const items = [];
+                for (const [k, v] of Object.entries(errors)) {
+                    const text = Array.isArray(v) ? v.join(", ") : String(v);
+                    items.push(`<li><strong>${escapeHtml(k)}:</strong> ${escapeHtml(text)}</li>`);
+                }
+                if (items.length) {
+                    html += `<ul style="margin: 4px 0 0 16px; padding: 0;">${items.join("")}</ul>`;
+                }
+            }
+            errorBox.innerHTML = html;
+            errorBox.classList.remove("d-none", "hidden");
+            errorBox.removeAttribute("hidden");
+            errorBox.style.display = "block";
+            errorBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } else if (messageElement) {
+            messageElement.textContent = msg;
+            messageElement.className = "inventory-adjustment-message is-error";
+        }
+    }
+
+    function clearErrors() {
+        if (errorBox) {
+            errorBox.classList.add("d-none", "hidden");
+            errorBox.hidden = true;
+            errorBox.style.display = "none";
+            errorBox.innerHTML = "";
+        }
+        if (messageElement) {
+            messageElement.textContent = "";
+            messageElement.className = "inventory-adjustment-message";
+        }
+    }
+
+    clearErrors();
+
     const quantity = Number(quantityInput?.value);
     const reason = reasonInput?.value.trim() || "";
     const reference = referenceInput?.value.trim() || "";
     const type = document.querySelector("input[name='adjustmentType']:checked")?.value;
 
-    showAdjustmentMessage("");
     if (!Number.isInteger(quantity) || quantity <= 0 || !reason) {
-        showAdjustmentMessage("Enter a whole quantity and reason.", true);
+        displayError("Enter a valid whole quantity and audit reason.", {
+            ...(!Number.isInteger(quantity) || quantity <= 0 ? { quantity: "Quantity must be a positive whole number." } : {}),
+            ...(!reason ? { reason: "Audit reason is required." } : {}),
+        });
         return;
     }
     const delta = type === "out" ? -quantity : quantity;
     if (inventoryState.selectedQuantity + delta < 0) {
-        showAdjustmentMessage("Stock Out cannot reduce stock below zero.", true);
+        displayError("Stock Out cannot reduce stock below zero.", {
+            quantity: `Cannot reduce stock below zero. Current stock is ${inventoryState.selectedQuantity}.`,
+        });
         return;
     }
 
@@ -155,27 +210,36 @@ async function submitInventoryAdjustment(event) {
         submitButton.disabled = true;
         submitButton.textContent = "Saving...";
     }
-    const response = await apiRequest(`/inventory/${inventoryState.selectedInventoryId}/adjust/`, {
-        method: "POST",
-        body: { delta, reason, reference },
-    });
-    if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = "Confirm adjustment";
-    }
 
-    if (!response.success) {
-        showAdjustmentMessage(response.message || "Stock adjustment failed.", true);
-        return;
-    }
+    try {
+        const response = await apiRequest(`/inventory/${inventoryState.selectedInventoryId}/adjust/`, {
+            method: "POST",
+            body: { delta, reason, reference },
+        });
 
-    await Promise.all([
-        loadInventoryDetail(inventoryState.selectedInventoryId),
-        loadInventoryMovements(inventoryState.selectedInventoryId),
-        loadInventory(),
-    ]);
-    resetAdjustmentForm();
-    showAdjustmentMessage(response.message || "Stock adjusted successfully.");
+        if (!response || !response.success || response.status >= 400) {
+            displayError(response?.message || "Stock adjustment failed.", response?.errors);
+            return;
+        }
+
+        await Promise.all([
+            loadInventoryDetail(inventoryState.selectedInventoryId),
+            loadInventoryMovements(inventoryState.selectedInventoryId),
+            loadInventory(),
+        ]);
+        resetAdjustmentForm();
+        if (messageElement) {
+            messageElement.textContent = response.message || "Stock adjusted successfully.";
+            messageElement.className = "inventory-adjustment-message is-success";
+        }
+    } catch (err) {
+        displayError(err.message || "Network error while adjusting stock.");
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = "Confirm Adjustment";
+        }
+    }
 }
 
 function showAdjustmentPanel() {

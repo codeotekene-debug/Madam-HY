@@ -1,5 +1,5 @@
 /* =========================================================
-   FORM ELEMENTS
+   FORM ELEMENTS (WCAG 2.1 COMPLIANT)
    ========================================================= */
 
 .form-group {
@@ -14,14 +14,14 @@
 
     color: var(--text);
 
-    font-size: 12px;
+    font-size: 13px;
 
     font-weight: 650;
 }
 
 
 .form-label .required {
-    color: var(--danger);
+    color: var(--danger-dark, #b02a37);
 }
 
 
@@ -30,9 +30,9 @@
 .form-textarea {
     width: 100%;
 
-    min-height: 42px;
+    min-height: 44px;
 
-    padding: 9px 12px;
+    padding: 10px 14px;
 
     border: 1px solid var(--border);
 
@@ -44,7 +44,7 @@
 
     font-family: inherit;
 
-    font-size: 13px;
+    font-size: 14px;
 
     outline: none;
 
@@ -64,6 +64,14 @@
 }
 
 
+.form-control:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible {
+    outline: var(--focus-outline, 2px solid #087a3d);
+    outline-offset: 1px;
+}
+
+
 .form-textarea {
     min-height: 110px;
 
@@ -78,7 +86,7 @@
 
     color: var(--muted);
 
-    font-size: 10px;
+    font-size: 12px;
 }
 
 
@@ -87,7 +95,9 @@
 
     margin-top: 5px;
 
-    color: var(--danger);
+    color: var(--danger-dark, #b02a37);
 
-    font-size: 10px;
+    font-size: 12px;
+
+    font-weight: 600;
 }

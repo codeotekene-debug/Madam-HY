@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Audit Log #{{ log.id }} | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Audit Log Inspection
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/activity_logs/activity_logs.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="activity-logs-page">
+    <div style="margin-bottom: 12px;">
+        <a href="{% url 'activity_logs:list' %}" style="display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-size: 13px; font-weight: 600; text-decoration: none;">
+            ← Back to Audit Logs
+        </a>
+    </div>
+
+    <div class="detail-grid">
+        <!-- Main Audit Entry Details -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div>
+                    <span class="action-badge {{ log.action_type|lower }}" style="margin-bottom: 8px;">
+                        {{ log.get_action_type_display }}
+                    </span>
+                    <h3 class="detail-title">{{ log.action_label }}</h3>
+                </div>
+                <div style="text-align: right; color: var(--muted); font-size: 12px;">
+                    <div>Log ID: #{{ log.id }}</div>
+                    <div>{{ log.created_at|date:"M d, Y H:i:s" }}</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px;">Event Description</h4>
+                <div style="font-size: 14px; color: #334155; line-height: 1.6; background: #f8fafc; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    {{ log.description }}
+                </div>
+            </div>
+
+            {% if changes_diff %}
+            <div style="margin-bottom: 24px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px;">State Changes & Diffs</h4>
+                <table class="diff-table">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Previous State (Before)</th>
+                            <th>New State (After)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field, change in changes_diff.items %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ field }}</td>
+                            <td class="diff-old">{{ change.old|default:"None" }}</td>
+                            <td class="diff-new">{{ change.new|default:"None" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <div>
+                <h4 style="font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px;">Structured Metadata Payload</h4>
+                <pre class="json-viewer">{{ metadata_json }}</pre>
+            </div>
+        </div>
+
+        <!-- Telemetry & Actor Attribution Sidebar -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="detail-card">
+                <h4 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px;">Actor Attribution</h4>
+                
+                {% if log.actor %}
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div class="user-avatar" style="width: 44px; height: 44px; font-size: 16px;">
+                        {{ log.actor.first_name|first|default:log.actor.username|first|upper }}
+                    </div>
+                    <div>
+                        <strong style="display: block; font-size: 14px;">{{ log.actor.get_full_name|default:log.actor.username }}</strong>
+                        <span  class="u-text-muted-sm">{{ log.actor.email }}</span>
+                    </div>
+                </div>
+
+                <div class="detail-meta-list">
+                    <div class="meta-row">
+                        <span>Role</span>
+                        <span class="badge badge-primary">{{ log.actor.role }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span>User ID</span>
+                        <span>#{{ log.actor.id }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <div style="padding: 12px; background: #f8fafc; border-radius: var(--radius-sm); color: var(--muted); font-size: 13px;">
+                    System automated action (No human actor assigned)
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="detail-card">
+                <h4 style="font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px;">Client Telemetry</h4>
+                <div class="detail-meta-list">
+                    <div class="meta-row">
+                        <span>IP Address</span>
+                        <span style="font-family: monospace;">{{ log.ip_address|default:"Not captured" }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span>Target Entity</span>
+                        <span>{{ log.content_type.model|title|default:"None" }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span>Entity ID</span>
+                        <span>{{ log.object_id|default:"None" }}</span>
+                    </div>
+                    <div  class="u-mt-10">
+                        <span style="font-size: 12px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 4px;">User-Agent:</span>
+                        <div style="font-size: 11px; color: #475569; word-break: break-all; background: #f8fafc; padding: 8px 10px; border-radius: 4px; border: 1px solid var(--border);">
+                            {{ log.user_agent|default:"Not captured" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-card" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <span style="font-size: 20px;">🔒</span>
+                    <div>
+                        <strong style="display: block; font-size: 13px; color: #166534;">Immutable Audit Record</strong>
+                        <p style="font-size: 12px; color: #15803d; margin-top: 4px; line-height: 1.4;">
+                            This log is strictly preserved for operational security and regulatory compliance. Audit records cannot be modified or deleted.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

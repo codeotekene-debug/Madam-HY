@@ -8,6 +8,77 @@
    BUTTONS
    ========================================================= */
 
+.text-muted {
+    color: var(--muted) !important;
+}
+
+.text-primary {
+    color: var(--primary) !important;
+}
+
+.text-primary-dark {
+    color: var(--primary-dark) !important;
+}
+
+.text-warning-dark {
+    color: var(--warning-dark, #b87700) !important;
+}
+
+.text-danger {
+    color: var(--danger, #dc2626) !important;
+}
+
+.text-body {
+    color: var(--text) !important;
+}
+
+.u-flex-between {
+    display: flex !important;
+    justify-content: space-between !important;
+}
+
+.u-flex-between-muted {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    color: var(--muted) !important;
+    font-size: 13px !important;
+}
+
+.u-flex-gap-sm {
+    display: flex !important;
+    gap: 8px !important;
+}
+
+.u-mt-10 {
+    margin-top: 10px !important;
+}
+
+.u-text-muted-sm {
+    color: var(--muted) !important;
+    font-size: 12px !important;
+}
+
+.u-muted-block {
+    display: block !important;
+    color: var(--muted) !important;
+    font-size: 11px !important;
+}
+
+.u-stacked-surface {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 20px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+}
+
+.u-warning-surface {
+    background: #fffbeb !important;
+    color: var(--warning-dark, #b87700) !important;
+}
+
 .btn {
     display: inline-flex;
 
@@ -48,6 +119,12 @@
 
 .btn:active {
     transform: translateY(0);
+}
+
+
+.btn:focus-visible {
+    outline: var(--focus-outline, 2px solid #087a3d);
+    outline-offset: var(--focus-offset, 2px);
 }
 
 
@@ -107,6 +184,13 @@
 }
 
 
+.btn-danger:hover {
+    background: var(--danger-dark);
+
+    border-color: var(--danger-dark);
+}
+
+
 /* Warning */
 
 .btn-warning {
@@ -118,6 +202,13 @@
 }
 
 
+.btn-warning:hover {
+    background: var(--warning-dark);
+
+    border-color: var(--warning-dark);
+}
+
+
 /* Success */
 
 .btn-success {
@@ -126,6 +217,13 @@
     color: #ffffff;
 
     border-color: var(--success);
+}
+
+
+.btn-success:hover {
+    background: var(--success-dark);
+
+    border-color: var(--success-dark);
 }
 
 
@@ -155,6 +253,16 @@
     font-size: 11px;
 }
 
+@media (max-width: 700px) {
+    .btn-sm,
+    .btn-xs,
+    .btn-icon,
+    .btn-icon-sm {
+        min-width: var(--touch-target-min, 44px);
+        min-height: var(--touch-target-min, 44px);
+    }
+}
+
 
 /* Large */
 
@@ -177,8 +285,10 @@
 /* Icon button */
 
 .btn-icon {
-    width: 40px;
-    height: 40px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
 
     padding: 0;
 
@@ -271,35 +381,52 @@
 .badge-primary {
     background: var(--primary-light);
 
-    color: var(--primary);
+    color: var(--primary-dark);
 }
 
 
 .badge-success {
-    background: #e8f7ee;
+    background: var(--success-light);
 
-    color: var(--success);
+    color: var(--success-dark);
+
+    border: 1px solid var(--success-border);
 }
 
 
 .badge-warning {
-    background: #fff7df;
+    background: var(--warning-light);
 
-    color: var(--warning);
+    color: var(--warning-dark);
+
+    border: 1px solid var(--warning-border);
 }
 
 
 .badge-danger {
-    background: #fff0f0;
+    background: var(--danger-light);
 
-    color: var(--danger);
+    color: var(--danger-dark);
+
+    border: 1px solid var(--danger-border);
 }
 
 
 .badge-neutral {
     background: var(--background);
 
-    color: var(--muted);
+    color: var(--text);
+
+    border: 1px solid var(--border);
+}
+
+
+.badge-info {
+    background: var(--info-light);
+
+    color: var(--info-dark);
+
+    border: 1px solid var(--info-border);
 }
 
 
@@ -326,38 +453,39 @@
 
 
 .alert-success {
-    background: #eaf8ef;
+    background: var(--success-light);
 
-    border-color: #c9ead5;
+    border-color: var(--success-border);
 
-    color: #146c3a;
+    color: var(--success-dark);
 }
 
 
-.alert-error {
-    background: #fff0f0;
+.alert-error,
+.alert-danger {
+    background: var(--danger-light);
 
-    border-color: #f3cccc;
+    border-color: var(--danger-border);
 
-    color: #a72d2d;
+    color: var(--danger-dark);
 }
 
 
 .alert-warning {
-    background: #fff8e3;
+    background: var(--warning-light);
 
-    border-color: #f0dfa5;
+    border-color: var(--warning-border);
 
-    color: #8b6700;
+    color: var(--warning-dark);
 }
 
 
 .alert-info {
-    background: #edf7f2;
+    background: var(--info-light);
 
-    border-color: #cce8da;
+    border-color: var(--info-border);
 
-    color: #236b4b;
+    color: var(--info-dark);
 }
 
 
@@ -717,10 +845,10 @@
    RESPONSIVE COMPONENT ADJUSTMENTS
    ========================================================= */
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
 
     .card {
-        padding: 15px;
+        padding: 16px;
     }
 
 
@@ -729,40 +857,81 @@
     }
 
 
+    /* Ensure touch targets meet WCAG 2.5.5 minimum 44x44px */
     .btn {
-        min-height: 38px;
+        min-height: 44px;
+        min-width: 44px;
 
-        padding: 8px 13px;
+        padding: 10px 16px;
+
+        font-size: 13px;
+    }
+
+
+    .btn-sm {
+        min-height: 44px;
+        min-width: 44px;
+
+        padding: 10px 12px;
 
         font-size: 12px;
     }
 
 
+    .btn-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .btn-xs,
+    .btn-icon-sm {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+
+    .pagination-item {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+
+    .dropdown-item {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+
     .modal {
-        max-height: 94vh;
+        max-height: calc(100vh - 24px);
     }
 
 
     .modal-header,
     .modal-body,
     .modal-footer {
-        padding: 15px;
+        padding: 16px;
     }
 
 
     .modal-footer {
         flex-wrap: wrap;
+        gap: 10px;
     }
 
 
     .modal-footer .btn {
-        flex: 1;
+        flex: 1 1 100%;
+        width: 100%;
     }
 
 }
 
 
-@media (max-width: 400px) {
+@media (max-width: 480px) {
 
     .btn-lg {
         width: 100%;
@@ -773,4 +942,202 @@
         width: 100%;
     }
 
+}
+
+
+/* =========================================================
+   STANDARDIZED ICON SYSTEM (Phase 1)
+   Supports Bootstrap Icons (font) and Custom Retail SVGs
+   ========================================================= */
+
+.icon,
+.nav-icon i,
+.retail-svg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.retail-svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Sizing rules */
+.icon-xs {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+}
+
+.icon-sm {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.icon-md {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+
+.icon-lg {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+}
+
+.icon-xl {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+/* =========================================================
+   MADAM HY BRAND EMBLEM SVG
+   ========================================================= */
+
+.brand-emblem-svg {
+    object-fit: contain;
+    vertical-align: middle;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.brand-emblem-svg.navbar-brand-emblem {
+    width: 32px;
+    height: 32px;
+}
+
+.brand-emblem-svg.sidebar-brand-emblem {
+    width: 34px;
+    height: 34px;
+}
+
+.brand-emblem-svg.auth-header-emblem {
+    width: 48px;
+    height: 48px;
+}
+
+.brand-emblem-svg.receipt-emblem-svg {
+    width: 36px;
+    height: 36px;
+}
+
+.brand-emblem-svg.storefront-hero-emblem {
+    width: 48px;
+    height: 48px;
+}
+
+.brand-logo:has(.brand-emblem-svg),
+.brand-logo.has-emblem,
+.auth-logo:has(.brand-emblem-svg),
+.auth-logo.has-emblem {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+/* =========================================================
+   MODULE SUB-NAVIGATION PILL TABS (Header Mounted)
+   ========================================================= */
+
+.module-subnav-container {
+    margin: 0;
+    padding: 0;
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+}
+
+.module-subnav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 2px;
+    scrollbar-width: none;
+}
+
+.module-subnav::-webkit-scrollbar {
+    display: none;
+}
+
+.subnav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted, #64748b);
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    height: 34px;
+    line-height: 1.2;
+}
+
+.subnav-pill i,
+.subnav-pill svg {
+    font-size: 14px;
+    color: inherit;
+    flex-shrink: 0;
+}
+
+.subnav-pill:hover {
+    color: #15803d;
+    border-color: rgba(21, 128, 61, 0.35);
+    background: var(--primary-light, #f0fdf4);
+    transform: translateY(-1px);
+}
+
+.subnav-pill.active {
+    color: #ffffff !important;
+    background: #15803d !important;
+    border-color: #15803d !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(21, 128, 61, 0.25);
+}
+
+.subnav-pill.active i,
+.subnav-pill.active svg {
+    color: #ffffff !important;
+}
+
+.subnav-pill.active:hover {
+    background: #166534 !important;
+    border-color: #166534 !important;
+}
+
+.subnav-pill:focus-visible {
+    outline: 2px solid #15803d;
+    outline-offset: 2px;
+}
+
+/* Utility classes for dynamic visibility & spacing */
+.d-none {
+    display: none !important;
+}
+
+.my-2 {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
 }

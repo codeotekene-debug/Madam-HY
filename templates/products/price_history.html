@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Price History | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Price History
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/products/products.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/products/price-history-page.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="products" active_tab="price_history" %}
+{% endblock %}
+
+{% block content %}
+<div class="products-page">
+
+    <!-- Page Header & Hero -->
+    <section class="page-hero">
+        <div>
+            <div class="hero-badge" style="margin-bottom: 6px;">
+                <span class="badge badge-primary">
+                    <i class="bi bi-tag" aria-hidden="true"></i>
+                    <span>Audit Trail</span>
+                </span>
+            </div>
+            <h2>Price History &amp; Revision Log</h2>
+            <p>Track historical price adjustments, supplier cost price fluctuations, and audit reason annotations.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="{% url 'products:list' %}" class="btn btn-secondary" aria-label="Back to Product Catalog">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span>Product Catalog</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Top Statistical Summary Cards -->
+    <section class="products-summary" aria-label="Price history summary">
+        <article class="summary-card">
+            <span>Total Revisions</span>
+            <strong>{{ total_changes|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Price Increases</span>
+            <strong style="color: var(--warning-dark, #855400);">{{ price_increases|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Price Reductions</span>
+            <strong  class="text-primary">{{ price_reductions|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card">
+            <span>Active Products</span>
+            <strong>{{ active_products_count|default:"0" }}</strong>
+        </article>
+    </section>
+
+    <!-- Price History Ledger Table -->
+    <section class="card history-panel" style="margin-top: 24px;">
+        <div class="panel-header compact-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border);">
+            <div>
+                <h3>Price Adjustment Records</h3>
+                <p>Immutable audit trail of retail price and wholesale cost updates.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper table-responsive">
+            <table class="table sales-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Product &amp; SKU</th>
+                        <th scope="col"  class="text-right">Previous Price</th>
+                        <th scope="col"  class="text-right">New Price</th>
+                        <th scope="col">Reason</th>
+                        <th scope="col">Authorized By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in history_records %}
+                    <tr>
+                        <td class="font-mono" style="font-size: 13px;">{{ h.changed_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <strong>{{ h.product.name }}</strong>
+                            <div class="font-mono" style="font-size: 12px; color: var(--text-muted);">{{ h.product.sku }}</div>
+                        </td>
+                        <td  class="font-mono text-right">₦ {{ h.previous_price }}</td>
+                        <td  class="font-mono {% if h.new_price  class="text-right"> h.previous_price %}price-change-up{% else %}price-change-down{% endif %}">
+                            ₦ {{ h.new_price }}
+                        </td>
+                        <td>{{ h.reason|default:"Price update" }}</td>
+                        <td>{{ h.changed_by.get_full_name|default:h.changed_by.username|default:"System" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                            No price history revisions recorded yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

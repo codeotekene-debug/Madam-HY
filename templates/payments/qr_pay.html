@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Settle Payment | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Payment Checkout
+{% endblock %}
+
+{% block content %}
+<div class="qr-pay-page" style="max-width: 500px; margin: 30px auto; padding: 0 16px;">
+    <div class="card payment-checkout-card" style="padding: 28px; text-align: center; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); background: var(--surface);">
+        <!-- Header -->
+        <div style="margin-bottom: 20px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-light); color: var(--primary); margin-bottom: 12px;">
+                <svg class="retail-svg icon-lg" aria-hidden="true"><use href="#icon-retail-qr"></use></svg>
+            </div>
+            <h2 style="font-size: 20px; font-weight: 750; margin: 0 0 6px 0; color: var(--text-heading);">Instant Payment Checkout</h2>
+            <p style="color: var(--muted); font-size: 13px; margin: 0;">Scan QR code or transfer directly to complete your purchase</p>
+        </div>
+
+        <!-- Amount & Ref Box -->
+        <div style="background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+            <span style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 4px;">Total Amount Due</span>
+            <strong style="font-size: 26px; font-weight: 800; color: var(--primary); display: block;">₦ {{ amount|floatformat:2 }}</strong>
+            <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--muted);">
+                <span>Ref:</span>
+                <strong style="font-family: monospace; color: var(--text);">{{ reference }}</strong>
+            </div>
+        </div>
+
+        <!-- QR Code Image -->
+        <div class="qr-code-wrapper" style="margin: 0 auto 16px auto; max-width: 240px; padding: 12px; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+            <img src="{{ qr_code_data }}" alt="Payment QR Code" id="customerQrImg" style="width: 100%; height: auto; display: block;" />
+        </div>
+
+        <!-- Live Status Indicator -->
+        <div id="qrPayStatusIndicator" class="qr-status-indicator" role="status" aria-live="polite" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin-bottom: 20px;">
+            <span class="status-dot pulse" aria-hidden="true"></span>
+            <span id="qrPayStatusText">Awaiting your bank transfer...</span>
+        </div>
+
+        <!-- Bank Transfer Details Fallback Display -->
+        <div class="qr-fallback-details" style="background: var(--background); border: 1px dashed var(--border); border-radius: var(--radius-md); padding: 14px 16px; text-align: left; font-size: 13px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                <span style="font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-bank" aria-hidden="true"></i> Bank Transfer Account
+                </span>
+                <span class="badge badge-warning" style="font-family: monospace; font-size: 11px;">
+                    <i class="bi bi-clock-history" aria-hidden="true"></i> <span id="payTimer">14:59</span>
+                </span>
+            </div>
+
+            <div style="display: grid; gap: 8px;">
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Bank Name:</span>
+                    <strong  class="text-body">{{ bank_name }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span  class="text-muted">Account Number:</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <strong id="destAccountNumber" style="font-family: monospace; font-size: 15px; letter-spacing: 1px; color: var(--text);">{{ account_number }}</strong>
+                        <button type="button" class="btn btn-secondary btn-xs" id="copyAccBtn" title="Copy account number" style="padding: 2px 8px; font-size: 11px;">
+                            <i class="bi bi-clipboard" aria-hidden="true"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Amount:</span>
+                    <strong style="color: var(--primary); font-weight: 750;">₦ {{ amount|floatformat:2 }}</strong>
+                </div>
+            </div>
+
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11.5px;">
+                <span style="color: var(--muted); display: block; margin-bottom: 4px;">Payment Link:</span>
+                <a href="{{ payment_url }}" style="color: var(--primary); word-break: break-all; text-decoration: underline;">
+                    {{ payment_url }}
+                </a>
+            </div>
+        </div>
+
+        <!-- Pay via Card / Paystack Button -->
+        {% if checkout_url %}
+        <div style="margin-bottom: 12px;">
+            <a href="{{ checkout_url }}" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; font-weight: 650;" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-credit-card" aria-hidden="true"></i>
+                <span>Pay Online with Card / USSD</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <div style="font-size: 11px; color: var(--muted); margin-top: 12px;">
+            Protected by 256-bit SSL encryption. Your payment will be verified instantly.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reference = '{{ reference }}';
+    const statusTextEl = document.getElementById('qrPayStatusText');
+    const timerEl = document.getElementById('payTimer');
+    const copyAccBtn = document.getElementById('copyAccBtn');
+    const accNumEl = document.getElementById('destAccountNumber');
+
+    // Copy Account Number
+    if (copyAccBtn && accNumEl) {
+        copyAccBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(accNumEl.textContent.trim()).then(function() {
+                copyAccBtn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+                setTimeout(function() {
+                    copyAccBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+                }, 2000);
+            });
+        });
+    }
+
+    // Expiry Timer (15 minutes default)
+    let remainingSeconds = 900;
+    const countdown = setInterval(function() {
+        remainingSeconds--;
+        if (remainingSeconds <= 0) {
+            clearInterval(countdown);
+            if (timerEl) timerEl.textContent = 'Expired';
+            if (statusTextEl) statusTextEl.textContent = 'QR payment has expired. Please refresh or create a new checkout.';
+            return;
+        }
+        const mins = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        if (timerEl) {
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+
+    // Live Status Polling
+    let pollInterval = setInterval(async function() {
+        if (!reference) return;
+        try {
+            const resp = await fetch(`/payments/qr/${encodeURIComponent(reference)}/status/`);
+            if (!resp.ok) return;
+            const res = await resp.json();
+            const data = res.data || {};
+            if (data.status === 'COMPLETED' || data.is_completed || data.is_verified) {
+                clearInterval(pollInterval);
+                clearInterval(countdown);
+                if (statusTextEl) statusTextEl.innerHTML = '<strong style="color: var(--success-dark);">Payment Confirmed! Redirecting...</strong>';
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1500);
+            }
+        } catch (err) {
+            // silent retry
+        }
+    }, 3500);
+});
+</script>
+{% endblock %}

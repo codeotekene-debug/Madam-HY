@@ -1,0 +1,170 @@
+{% if request.user.is_authenticated and request.user.role != 'CUSTOMER' or user.is_authenticated and user.role != 'CUSTOMER' %}
+<nav class="module-subnav-container header-subnav-container" aria-label="Module navigation">
+    <div class="module-subnav header-subnav">
+        {% if module == 'inventory' or active_module == 'inventory' %}
+            <a href="{% url 'inventory:list' %}" class="subnav-pill {% if active_tab == 'items' or active_tab == 'overview' or current_tab == 'items' or current_tab == 'overview' %}active{% endif %}" aria-current="{% if active_tab == 'items' or active_tab == 'overview' or current_tab == 'items' or current_tab == 'overview' %}page{% endif %}" id="subnav-inventory-items">
+                <i class="bi bi-boxes" aria-hidden="true"></i>
+                <span>Items Overview</span>
+            </a>
+            <a href="{% url 'inventory:low_stock' %}" class="subnav-pill {% if active_tab == 'stock_levels' or active_tab == 'low_stock' or current_tab == 'stock_levels' or current_tab == 'low_stock' %}active{% endif %}" aria-current="{% if active_tab == 'stock_levels' or active_tab == 'low_stock' or current_tab == 'stock_levels' or current_tab == 'low_stock' %}page{% endif %}" id="subnav-inventory-levels">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <span>Stock Levels</span>
+            </a>
+            <a href="{% url 'inventory:history' %}" class="subnav-pill {% if active_tab == 'movements' or active_tab == 'history' or current_tab == 'movements' or current_tab == 'history' %}active{% endif %}" aria-current="{% if active_tab == 'movements' or active_tab == 'history' or current_tab == 'movements' or current_tab == 'history' %}page{% endif %}" id="subnav-inventory-movements">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <span>Stock Movements</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'inventory:add_stock' %}" class="subnav-pill {% if active_tab == 'adjustments' or active_tab == 'add_stock' or current_tab == 'adjustments' or current_tab == 'add_stock' %}active{% endif %}" aria-current="{% if active_tab == 'adjustments' or active_tab == 'add_stock' or current_tab == 'adjustments' or current_tab == 'add_stock' %}page{% endif %}" id="subnav-inventory-adjustments">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>Adjustments</span>
+            </a>
+            <a href="{% url 'inventory:valuation' %}" class="subnav-pill {% if active_tab == 'valuation' or current_tab == 'valuation' %}active{% endif %}" aria-current="{% if active_tab == 'valuation' or current_tab == 'valuation' %}page{% endif %}" id="subnav-inventory-valuation">
+                <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                <span>Valuation Reports</span>
+            </a>
+            {% endif %}
+        {% elif module == 'sales' or active_module == 'sales' %}
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or request.user.role == 'CASHIER' or user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'CASHIER' %}
+            <a href="{% url 'sales:pos' %}" class="subnav-pill {% if active_tab == 'pos' or current_tab == 'pos' %}active{% endif %}" aria-current="{% if active_tab == 'pos' or current_tab == 'pos' %}page{% endif %}" id="subnav-sales-pos">
+                <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                <span>POS Terminal</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'sales:history' %}" class="subnav-pill {% if active_tab == 'history' or current_tab == 'history' %}active{% endif %}" aria-current="{% if active_tab == 'history' or current_tab == 'history' %}page{% endif %}" id="subnav-sales-history">
+                <i class="bi bi-receipt" aria-hidden="true"></i>
+                <span>Sales History</span>
+            </a>
+            <a href="{% url 'sales:summary' %}" class="subnav-pill {% if active_tab == 'summary' or active_tab == 'dashboard' or current_tab == 'summary' or current_tab == 'dashboard' %}active{% endif %}" aria-current="{% if active_tab == 'summary' or active_tab == 'dashboard' or current_tab == 'summary' or current_tab == 'dashboard' %}page{% endif %}" id="subnav-sales-summary">
+                <i class="bi bi-graph-up" aria-hidden="true"></i>
+                <span>Daily Summary</span>
+            </a>
+        {% elif module == 'products' or active_module == 'products' %}
+            <a href="{% url 'products:list' %}" class="subnav-pill {% if active_tab == 'catalog' or active_tab == 'products' or current_tab == 'catalog' or current_tab == 'products' %}active{% endif %}" aria-current="{% if active_tab == 'catalog' or active_tab == 'products' or current_tab == 'catalog' or current_tab == 'products' %}page{% endif %}" id="subnav-products-catalog">
+                <i class="bi bi-grid" aria-hidden="true"></i>
+                <span>Catalog</span>
+            </a>
+            <a href="{% url 'products:categories' %}" class="subnav-pill {% if active_tab == 'categories' or current_tab == 'categories' %}active{% endif %}" aria-current="{% if active_tab == 'categories' or current_tab == 'categories' %}page{% endif %}" id="subnav-products-categories">
+                <i class="bi bi-tags" aria-hidden="true"></i>
+                <span>Categories</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'products:price_history' %}" class="subnav-pill {% if active_tab == 'price_history' or current_tab == 'price_history' %}active{% endif %}" aria-current="{% if active_tab == 'price_history' or current_tab == 'price_history' %}page{% endif %}" id="subnav-products-price-history">
+                <i class="bi bi-tag" aria-hidden="true"></i>
+                <span>Price History</span>
+            </a>
+            <a href="{% url 'products:create' %}" class="subnav-pill {% if active_tab == 'create' or active_tab == 'add' or current_tab == 'create' or current_tab == 'add' %}active{% endif %}" aria-current="{% if active_tab == 'create' or active_tab == 'add' or current_tab == 'create' or current_tab == 'add' %}page{% endif %}" id="subnav-products-add">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>Add Product</span>
+            </a>
+            {% endif %}
+        {% elif module == 'orders' or active_module == 'orders' %}
+            <a href="{% url 'orders:list' %}" class="subnav-pill {% if active_tab == 'all' or active_tab == 'orders' or active_tab == 'list' or current_tab == 'all' or current_tab == 'orders' or current_tab == 'list' %}active{% endif %}" aria-current="{% if active_tab == 'all' or active_tab == 'orders' or active_tab == 'list' or current_tab == 'all' or current_tab == 'orders' or current_tab == 'list' %}page{% endif %}" id="subnav-orders-all">
+                <i class="bi bi-bag-check" aria-hidden="true"></i>
+                <span>All Orders</span>
+            </a>
+            <a href="{% url 'orders:list' %}?status=PENDING" class="subnav-pill {% if active_tab == 'pending' or current_tab == 'pending' %}active{% endif %}" aria-current="{% if active_tab == 'pending' or current_tab == 'pending' %}page{% endif %}" id="subnav-orders-pending">
+                <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+                <span>Pending Orders</span>
+            </a>
+            <a href="{% url 'orders:list' %}?status=FULFILLED" class="subnav-pill {% if active_tab == 'completed' or active_tab == 'fulfilled' or current_tab == 'completed' or current_tab == 'fulfilled' %}active{% endif %}" aria-current="{% if active_tab == 'completed' or active_tab == 'fulfilled' or current_tab == 'completed' or current_tab == 'fulfilled' %}page{% endif %}" id="subnav-orders-completed">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                <span>Completed Orders</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'orders:summary' %}" class="subnav-pill {% if active_tab == 'summary' or active_tab == 'analytics' or current_tab == 'summary' or current_tab == 'analytics' %}active{% endif %}" aria-current="{% if active_tab == 'summary' or active_tab == 'analytics' or current_tab == 'summary' or current_tab == 'analytics' %}page{% endif %}" id="subnav-orders-analytics">
+                <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                <span>Order Analytics</span>
+            </a>
+            {% endif %}
+        {% elif module == 'payments' or active_module == 'payments' %}
+            <a href="{% url 'payments:list' %}" class="subnav-pill {% if active_tab == 'records' or active_tab == 'payments' or active_tab == 'list' or current_tab == 'records' or current_tab == 'payments' or current_tab == 'list' %}active{% endif %}" aria-current="{% if active_tab == 'records' or active_tab == 'payments' or active_tab == 'list' or current_tab == 'records' or current_tab == 'payments' or current_tab == 'list' %}page{% endif %}" id="subnav-payments-records">
+                <i class="bi bi-receipt" aria-hidden="true"></i>
+                <span>Payment Records</span>
+            </a>
+            <a href="{% url 'payments:list' %}?view=methods" class="subnav-pill {% if active_tab == 'methods' or current_tab == 'methods' %}active{% endif %}" aria-current="{% if active_tab == 'methods' or current_tab == 'methods' %}page{% endif %}" id="subnav-payments-methods">
+                <i class="bi bi-wallet" aria-hidden="true"></i>
+                <span>Payment Methods</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'payments:reconcile_overview' %}" class="subnav-pill {% if active_tab == 'reconcile' or active_tab == 'reconciliation' or current_tab == 'reconcile' or current_tab == 'reconciliation' %}active{% endif %}" aria-current="{% if active_tab == 'reconcile' or active_tab == 'reconciliation' or current_tab == 'reconcile' or current_tab == 'reconciliation' %}page{% endif %}" id="subnav-payments-reconcile">
+                <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-reconcile"></use></svg>
+                <span>Daily Reconciliation</span>
+            </a>
+            {% endif %}
+        {% elif module == 'credits' or active_module == 'credits' %}
+            <a href="{% url 'credits:credit_account_list' %}" class="subnav-pill {% if active_tab == 'accounts' or active_tab == 'list' or current_tab == 'accounts' or current_tab == 'list' %}active{% endif %}" aria-current="{% if active_tab == 'accounts' or active_tab == 'list' or current_tab == 'accounts' or current_tab == 'list' %}page{% endif %}" id="subnav-credits-accounts">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                <span>Credit Accounts</span>
+            </a>
+            <a href="{% url 'credits:credit_transactions' %}" class="subnav-pill {% if active_tab == 'transactions' or current_tab == 'transactions' %}active{% endif %}" aria-current="{% if active_tab == 'transactions' or current_tab == 'transactions' %}page{% endif %}" id="subnav-credits-transactions">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <span>Transactions</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or request.user.role == 'CASHIER' or user.role == 'OWNER' or user.role == 'MANAGER' or user.role == 'CASHIER' %}
+            <a href="{% url 'credits:credit_payment' %}" class="subnav-pill {% if active_tab == 'settle' or active_tab == 'payment' or current_tab == 'settle' or current_tab == 'payment' %}active{% endif %}" aria-current="{% if active_tab == 'settle' or active_tab == 'payment' or current_tab == 'settle' or current_tab == 'payment' %}page{% endif %}" id="subnav-credits-settle">
+                <i class="bi bi-credit-card" aria-hidden="true"></i>
+                <span>Settle Credit</span>
+            </a>
+            {% endif %}
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'credits:credit_report' %}" class="subnav-pill {% if active_tab == 'reports' or active_tab == 'aging' or current_tab == 'reports' or current_tab == 'aging' %}active{% endif %}" aria-current="{% if active_tab == 'reports' or active_tab == 'aging' or current_tab == 'reports' or current_tab == 'aging' %}page{% endif %}" id="subnav-credits-reports">
+                <i class="bi bi-bar-chart" aria-hidden="true"></i>
+                <span>Aging &amp; Reports</span>
+            </a>
+            {% endif %}
+        {% elif module == 'expenses' or active_module == 'expenses' %}
+            <a href="{% url 'expenses:expense_list' %}" class="subnav-pill {% if active_tab == 'list' or active_tab == 'expenses' or current_tab == 'list' or current_tab == 'expenses' %}active{% endif %}" aria-current="{% if active_tab == 'list' or active_tab == 'expenses' or current_tab == 'list' or current_tab == 'expenses' %}page{% endif %}" id="subnav-expenses-list">
+                <i class="bi bi-wallet2" aria-hidden="true"></i>
+                <span>All Expenses</span>
+            </a>
+            <a href="{% url 'expenses:expense_create' %}" class="subnav-pill {% if active_tab == 'create' or active_tab == 'add' or current_tab == 'create' or current_tab == 'add' %}active{% endif %}" aria-current="{% if active_tab == 'create' or active_tab == 'add' or current_tab == 'create' or current_tab == 'add' %}page{% endif %}" id="subnav-expenses-create">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>Add Expense</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'expenses:category_list' %}" class="subnav-pill {% if active_tab == 'categories' or current_tab == 'categories' %}active{% endif %}" aria-current="{% if active_tab == 'categories' or current_tab == 'categories' %}page{% endif %}" id="subnav-expenses-categories">
+                <i class="bi bi-tags" aria-hidden="true"></i>
+                <span>Categories</span>
+            </a>
+            <a href="{% url 'expenses:expense_summary' %}" class="subnav-pill {% if active_tab == 'summary' or current_tab == 'summary' %}active{% endif %}" aria-current="{% if active_tab == 'summary' or current_tab == 'summary' %}page{% endif %}" id="subnav-expenses-summary">
+                <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                <span>Expense Summary</span>
+            </a>
+            {% endif %}
+        {% elif module == 'requests' or active_module == 'requests' %}
+            <a href="{% url 'requests:request_list' %}" class="subnav-pill {% if active_tab == 'all' or active_tab == 'requests' or active_tab == 'list' or current_tab == 'all' or current_tab == 'requests' or current_tab == 'list' %}active{% endif %}" aria-current="{% if active_tab == 'all' or active_tab == 'requests' or active_tab == 'list' or current_tab == 'all' or current_tab == 'requests' or current_tab == 'list' %}page{% endif %}" id="subnav-requests-all">
+                <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+                <span>All Requests</span>
+            </a>
+            <a href="{% url 'requests:request_create' %}" class="subnav-pill {% if active_tab == 'create' or active_tab == 'add' or current_tab == 'create' or current_tab == 'add' %}active{% endif %}" aria-current="{% if active_tab == 'create' or active_tab == 'add' or current_tab == 'create' or current_tab == 'add' %}page{% endif %}" id="subnav-requests-create">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>Create Request</span>
+            </a>
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' or user.role == 'OWNER' or user.role == 'MANAGER' %}
+            <a href="{% url 'requests:request_list' %}?status=PENDING" class="subnav-pill {% if active_tab == 'pending' or active_tab == 'approvals' or current_tab == 'pending' or current_tab == 'approvals' %}active{% endif %}" aria-current="{% if active_tab == 'pending' or active_tab == 'approvals' or current_tab == 'pending' or current_tab == 'approvals' %}page{% endif %}" id="subnav-requests-pending">
+                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                <span>Pending Approvals</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'requests:request_list' %}?status=RESOLVED" class="subnav-pill {% if active_tab == 'history' or active_tab == 'resolved' or current_tab == 'history' or current_tab == 'resolved' %}active{% endif %}" aria-current="{% if active_tab == 'history' or active_tab == 'resolved' or current_tab == 'history' or current_tab == 'resolved' %}page{% endif %}" id="subnav-requests-history">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <span>Request History</span>
+            </a>
+        {% elif module == 'notifications' or active_module == 'notifications' %}
+            <a href="{% url 'notifications:inbox' %}" class="subnav-pill {% if active_tab == 'all' or active_tab == 'inbox' or active_tab == 'notifications' or current_tab == 'all' or current_tab == 'inbox' or current_tab == 'notifications' %}active{% endif %}" aria-current="{% if active_tab == 'all' or active_tab == 'inbox' or active_tab == 'notifications' or current_tab == 'all' or current_tab == 'inbox' or current_tab == 'notifications' %}page{% endif %}" id="subnav-notifications-all">
+                <i class="bi bi-bell" aria-hidden="true"></i>
+                <span>All Notifications</span>
+            </a>
+            <a href="{% url 'notifications:inbox' %}?is_read=false" class="subnav-pill {% if active_tab == 'unread' or current_tab == 'unread' %}active{% endif %}" aria-current="{% if active_tab == 'unread' or current_tab == 'unread' %}page{% endif %}" id="subnav-notifications-unread">
+                <i class="bi bi-bell-fill" aria-hidden="true"></i>
+                <span>Unread Alerts</span>
+            </a>
+            <a href="{% if user.role == 'CUSTOMER' or request.user.role == 'CUSTOMER' %}/customer/settings/{% else %}/accounts/profile/{% endif %}" class="subnav-pill {% if active_tab == 'settings' or current_tab == 'settings' %}active{% endif %}" aria-current="{% if active_tab == 'settings' or current_tab == 'settings' %}page{% endif %}" id="subnav-notifications-settings">
+                <i class="bi bi-gear" aria-hidden="true"></i>
+                <span>Notification Settings</span>
+            </a>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}

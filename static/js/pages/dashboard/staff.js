@@ -5,12 +5,13 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     setStaffDate();
+    hydrateStaffData();
     renderStaffDashboard();
     setupTaskFilter();
     setupStaffActions();
 });
 
-const staffDashboardData = {
+let staffDashboardData = {
     metrics: {
         openTasks: 8,
         ordersToPrepare: 5,
@@ -70,6 +71,31 @@ function setStaffDate() {
             day: "numeric",
             month: "short"
         });
+}
+
+function hydrateStaffData() {
+    const dataScript = document.getElementById("staff-dashboard-data");
+    if (!dataScript || !dataScript.textContent) return;
+
+    try {
+        const parsed = JSON.parse(dataScript.textContent);
+        if (parsed && typeof parsed === "object") {
+            if (parsed.metrics) {
+                Object.assign(staffDashboardData.metrics, parsed.metrics);
+            }
+            if (Array.isArray(parsed.tasks)) {
+                staffDashboardData.tasks = parsed.tasks;
+            }
+            if (Array.isArray(parsed.orders)) {
+                staffDashboardData.orders = parsed.orders;
+            }
+            if (Array.isArray(parsed.notes)) {
+                staffDashboardData.notes = parsed.notes;
+            }
+        }
+    } catch (err) {
+        console.warn("Failed to parse embedded staff dashboard data:", err);
+    }
 }
 
 function renderStaffDashboard(filter = "all") {

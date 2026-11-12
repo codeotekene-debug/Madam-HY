@@ -207,7 +207,16 @@ class Sale(models.Model):
                     f'Product {item.product.name} does not have inventory tracking.'
                 )
             inventory = item.product.inventory_item
+            if inventory.quantity < item.quantity:
+                raise ValidationError(
+                    f'Insufficient stock for product {item.product.name}. Available: {inventory.quantity}, requested: {item.quantity}.'
+                )
             inventory_operations.append((inventory, item))
+
+        # For credit sales, validate credit eligibility before inventory deductions.
+        if self.payment_method == self.PaymentMethod.CREDIT:
+            from apps.credits.services import CreditService
+            CreditService.validate_credit_eligibility(self.customer, self.total)
 
         # Execute all inventory deductions atomically through the locked service path.
         for inventory, item in inventory_operations:
@@ -220,10 +229,19 @@ class Sale(models.Model):
                 movement_type='STOCK_OUT',
             )
 
+        # For credit sales, atomically record the credit purchase in the credit ledger.
+        if self.payment_method == self.PaymentMethod.CREDIT:
+            from apps.credits.services import CreditService
+            CreditService.process_credit_sale(self, created_by=self.cashier)
+            if self.amount_received is None:
+                self.amount_received = Decimal('0.00')
+            if self.change_amount is None:
+                self.change_amount = Decimal('0.00')
+
         # Mark sale as completed
         self.status = self.SaleStatus.COMPLETED
         self.payment_status = self.PaymentStatus.COMPLETED
-        self.save(update_fields=['status', 'payment_status', 'updated_at'])
+        self.save(update_fields=['status', 'payment_status', 'amount_received', 'change_amount', 'updated_at'])
 
     @transaction.atomic
     def cancel_sale(self):

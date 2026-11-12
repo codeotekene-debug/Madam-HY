@@ -1,0 +1,144 @@
+{% extends "customer/base.html" %}
+{% load static %}
+
+{% block title %}
+    Order Confirmed | MADAM HY Customer Storefront
+{% endblock %}
+
+{% block page_title %}
+    Order Confirmed
+{% endblock %}
+
+{% block customer_css %}
+<link rel="stylesheet" href="{% static 'css/pages/customer/order-detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/customer/order-success.css' %}">
+{% endblock %}
+
+{% block customer_content %}
+<div class="customer-order-success-page customer-order-detail-page">
+
+    <!-- Celebration Banner -->
+    <header class="order-detail-hero" style="text-align: center; padding: 36px 20px;">
+        <div style="width: 64px; height: 64px; border-radius: 9999px; background: #dcfce7; color: #15803d; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(21, 128, 61, 0.2);">
+            <i class="bi bi-check-lg"></i>
+        </div>
+        <h2 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 850; color: #0f172a;">Order Placed Successfully!</h2>
+        <p style="margin: 0; color: #475569; font-size: 14.5px;">
+            Thank you for shopping at MADAM HY. Your order <strong>{{ order.order_number }}</strong> has been confirmed.
+        </p>
+    </header>
+
+    <section class="detail-layout">
+
+        <!-- Left: Order Invoice / Receipt Card -->
+        <article class="card detail-panel" id="orderReceiptPanel">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Order Receipt &amp; Summary</h3>
+                    <p>Reference: <strong>{{ order.order_number }}</strong></p>
+                </div>
+                <div class="header-badges">
+                    <span class="badge badge-primary">{{ order.get_status_display }}</span>
+                    <span class="badge" style="background: #f1f5f9; color: #334155;">Payment: {{ order.get_payment_status_display }}</span>
+                </div>
+            </div>
+
+            <div class="detail-meta-grid">
+                <div class="meta-item">
+                    <span>Order Date</span>
+                    <strong>{{ order.created_at|date:"M d, Y - h:i A" }}</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Payment Method</span>
+                    <strong>{{ order.get_payment_method_display }}</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Fulfillment</span>
+                    <strong>Doorstep Delivery / Pickup</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Total Amount</span>
+                    <strong style="color: #15803d; font-size: 18px;">₦ {{ order.total }}</strong>
+                </div>
+            </div>
+
+            <!-- Items Breakdown -->
+            <div class="detail-section" style="margin-top: 20px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 750;">Purchased Items</h4>
+                <div class="order-items-list">
+                    {% for item in order.items.all %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0;">
+                        <div>
+                            <strong style="font-size: 14px; color: #0f172a;">{{ item.product_name }}</strong>
+                            <span style="font-size: 12.5px; color: #64748b; margin-left: 8px;">× {{ item.quantity }} @ ₦{{ item.unit_price }}</span>
+                        </div>
+                        <strong style="font-size: 14px; color: #0f172a;">₦ {{ item.total_price }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Delivery & Recipient Information -->
+            <div class="detail-section" style="margin-top: 20px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 750;">Delivery Destination &amp; Recipient</h4>
+                <div class="info-list">
+                    <div>
+                        <span>Recipient Name</span>
+                        <strong>{{ order.customer.get_full_name|default:order.customer.username }}</strong>
+                    </div>
+                    <div>
+                        <span>Contact Phone</span>
+                        <strong>{{ order.customer_phone|default:"Provided at checkout" }}</strong>
+                    </div>
+                    <div>
+                        <span>Destination Address</span>
+                        <strong>{{ order.delivery_address|default:"In-Store Counter Pickup" }}</strong>
+                    </div>
+                    {% if order.notes %}
+                    <div>
+                        <span>Order Notes</span>
+                        <strong>{{ order.notes }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </article>
+
+        <!-- Right: Actions & Guarantees -->
+        <aside class="card detail-sidebar btn-print-hide">
+            <div class="panel-header compact-header">
+                <div>
+                    <h3>Next Steps</h3>
+                    <p>Track delivery or print digital proof of purchase</p>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+                <button type="button" class="btn btn-secondary btn-block" onclick="window.print()">
+                    <i class="bi bi-printer" aria-hidden="true"></i>
+                    <span>Print Digital Receipt</span>
+                </button>
+                <a href="/customer/orders/{{ order.id }}/" class="btn btn-primary btn-block">
+                    <i class="bi bi-clock-history" aria-hidden="true"></i>
+                    <span>View Order Timeline</span>
+                </a>
+                <a href="/customer/products/" class="btn btn-secondary btn-block">
+                    <i class="bi bi-shop" aria-hidden="true"></i>
+                    <span>Continue Shopping</span>
+                </a>
+            </div>
+
+            <!-- Trust card -->
+            <div class="madamhy-advantage-card" style="margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <strong style="display: block; font-size: 13px; color: #0f172a; margin-bottom: 6px;">Need Assistance?</strong>
+                <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.4;">
+                    Our customer care team is available 24/7 on WhatsApp or phone at <strong>+234 800 MADAM HY</strong>.
+                </p>
+            </div>
+        </aside>
+
+    </section>
+
+</div>
+{% endblock %}

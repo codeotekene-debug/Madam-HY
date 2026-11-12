@@ -1,130 +1,246 @@
-{% extends "base.html" %}
-
+{% extends "customer/base.html" %}
 {% load static %}
 
 {% block title %}
-    Checkout | MADAM HY Customer
+    Secure Checkout | MADAM HY Customer
 {% endblock %}
 
 {% block page_title %}
     Checkout
 {% endblock %}
 
-{% block page_css %}
+{% block customer_css %}
 <link rel="stylesheet" href="{% static 'css/pages/customer/checkout.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block customer_content %}
 <div class="customer-checkout-page">
-    <section class="checkout-hero">
-        <div>
-            <h2>Complete your order</h2>
-            <p>Enter your details and choose payment method</p>
-        </div>
-    </section>
 
+    <!-- Checkout Hero Header -->
+    <header class="checkout-hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                    <span>Secure Checkout</span>
+                </span>
+            </div>
+            <h2>Complete Your Order</h2>
+            <p>Provide your delivery information and select your preferred payment method.</p>
+        </div>
+
+        <div class="checkout-hero-actions">
+            <a href="/customer/cart/" class="btn btn-secondary" aria-label="Return to cart">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span>Return to Cart</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- 2-Column Checkout Layout -->
     <section class="checkout-layout">
+
+        <!-- Left Column: Delivery & Payment Details Form -->
         <article class="card checkout-form-panel">
             <form id="checkoutForm" class="checkout-form" novalidate>
+                {% csrf_token %}
+
+                <!-- Section 1: Contact Information -->
                 <div class="form-section">
-                    <h3>Contact information</h3>
+                    <div class="section-title-wrap">
+                        <span class="section-step-badge">1</span>
+                        <div>
+                            <h3>Contact Information</h3>
+                            <p>We'll use these details for your receipt and order status updates.</p>
+                        </div>
+                    </div>
+
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="checkoutName" class="form-label">Full name</label>
-                            <input id="checkoutName" class="form-control" type="text" placeholder="Your full name" required />
+                            <label for="checkoutName" class="form-label">Full Name <span class="required">*</span></label>
+                            <input id="checkoutName" class="form-control" type="text" placeholder="e.g. Adebayo Ogunlesi" required />
                         </div>
                         <div class="form-group">
-                            <label for="checkoutEmail" class="form-label">Email</label>
-                            <input id="checkoutEmail" class="form-control" type="email" placeholder="your@email.com" required />
+                            <label for="checkoutEmail" class="form-label">Email Address <span class="required">*</span></label>
+                            <input id="checkoutEmail" class="form-control" type="email" placeholder="e.g. adebayo@example.com" required />
                         </div>
-                        <div class="form-group">
-                            <label for="checkoutPhone" class="form-label">Phone</label>
-                            <input id="checkoutPhone" class="form-control" type="tel" placeholder="Your phone number" required />
+                        <div class="form-group full-width">
+                            <label for="checkoutPhone" class="form-label">Phone Number <span class="required">*</span></label>
+                            <input id="checkoutPhone" class="form-control" type="tel" placeholder="e.g. +234 801 234 5678" required />
                         </div>
                     </div>
                 </div>
 
+                <!-- Section 2: Delivery Details -->
                 <div class="form-section">
-                    <h3>Delivery details</h3>
-                    <div class="form-grid">
-                        <div class="form-group full-width">
-                            <label for="checkoutAddress" class="form-label">Delivery address</label>
-                            <textarea id="checkoutAddress" class="form-control textarea-control" rows="3" placeholder="Your delivery address" required></textarea>
+                    <div class="section-title-wrap">
+                        <span class="section-step-badge">2</span>
+                        <div>
+                            <h3>Delivery Details</h3>
+                            <p>Choose fulfillment method and provide your destination address.</p>
                         </div>
+                    </div>
+
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label for="checkoutDeliveryType" class="form-label">Delivery method</label>
+                            <label for="checkoutDeliveryType" class="form-label">Fulfillment Method <span class="required">*</span></label>
                             <select id="checkoutDeliveryType" class="form-select" required>
-                                <option value="">Select delivery method</option>
-                                <option value="Delivery">Home delivery</option>
-                                <option value="Pickup">Pickup at shop</option>
+                                <option value="Delivery">Direct Doorstep Delivery</option>
+                                <option value="Pickup">In-Store Counter Pickup</option>
                             </select>
                         </div>
+                        <div class="form-group" id="checkoutZoneGroup">
+                            <label for="checkoutDeliveryZone" class="form-label">Delivery area <span class="required">*</span></label>
+                            <select id="checkoutDeliveryZone" class="form-select" required>
+                                <option value="">Choose your area</option>
+                                {% for zone in delivery_zones %}<option value="{{ zone.id }}" data-fee="{{ zone.fee }}">{{ zone.name }} · ₦{{ zone.fee }} · {{ zone.estimated_delivery_time }}</option>{% endfor %}
+                            </select>
+                            <small class="form-hint">Delivery fee is set by the selected service area.</small>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="checkoutAddress" id="checkoutAddressLabel" class="form-label">Delivery address <span class="required">*</span></label>
+                            <textarea id="checkoutAddress" class="form-control textarea-control" rows="3" placeholder="Enter your street address and a nearby landmark..." required></textarea>
+                            <small id="checkoutAddressHint" class="form-hint">A delivery address is required for doorstep delivery.</small>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Section 3: Payment Method Selection -->
                 <div class="form-section">
-                    <h3>Payment method</h3>
-                    <div class="payment-options">
-                        <label class="payment-option">
-                            <input type="radio" name="paymentMethod" value="CASH" checked />
-                            <span>Cash on delivery</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="paymentMethod" value="TRANSFER" />
-                            <span>Bank transfer</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="paymentMethod" value="CARD" />
-                            <span>Card payment</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="paymentMethod" value="CREDIT" />
-                            <span>Use available credit</span>
-                        </label>
+                    <div class="section-title-wrap">
+                        <span class="section-step-badge">3</span>
+                        <div>
+                            <h3>Payment Settlement Channel</h3>
+                            <p>Select your verified payment rail.</p>
+                        </div>
+                    </div>
+
+                    <div class="payment-options" id="paymentMethodContainer" data-field="paymentMethod">
+                        <div class="payment-method-card payment-option active" id="payMethodCardPaystack">
+                            <input type="radio" id="payMethodPaystack" name="payment_method" value="paystack" checked />
+                            <div class="payment-icon-box" style="background: rgba(14, 165, 233, 0.1); color: #0284c7;">
+                                <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+                            </div>
+                            <label for="payMethodPaystack" class="payment-option-text">
+                                <strong>Pay Online with Paystack</strong>
+                                <small>Continue to Paystack to see the payment options available to you.</small>
+                            </label>
+                            <span class="recommended-tag">Recommended</span>
+                        </div>
+
+                        {% if allow_cod %}
+                        <div class="payment-method-card payment-option" id="payMethodCardCOD">
+                            <input type="radio" id="payMethodCOD" name="payment_method" value="cod">
+                            <div class="payment-icon-box" style="background: rgba(21, 128, 61, 0.1); color: #15803d;">
+                                <i class="bi bi-cash-stack" aria-hidden="true"></i>
+                            </div>
+                            <label for="payMethodCOD" class="payment-option-text">
+                                <strong>Pay on Delivery</strong>
+                                <small>Pay when your order is delivered, if every item in your cart is eligible.</small>
+                            </label>
+                        </div>
+                        {% else %}
+                        <div class="payment-method-card payment-option disabled" style="opacity: 0.6; cursor: not-allowed;" id="payMethodCardCOD">
+                            <input type="radio" id="payMethodCOD" name="payment_method" value="cod" disabled>
+                            <div class="payment-icon-box" style="background: rgba(100, 116, 139, 0.1); color: #64748b;">
+                                <i class="bi bi-cash-stack" aria-hidden="true"></i>
+                            </div>
+                            <label for="payMethodCOD" class="payment-option-text">
+                                <strong>Pay on Delivery (Unavailable)</strong>
+                                <small class="text-danger">Some items in your cart require online payment.</small>
+                            </label>
+                        </div>
+                        {% endif %}
+
+                        <!-- Store Credit Payment Option -->
+                        {% if credit.has_account %}
+                        <div class="payment-method-card payment-option {% if not credit.can_use_credit %}disabled{% endif %}" id="payMethodCardCredit" {% if not credit.can_use_credit %}style="opacity: 0.65; cursor: not-allowed;" title="Cart total exceeds available credit"{% endif %}>
+                            <input type="radio" id="payMethodCredit" name="payment_method" value="credit" {% if not credit.can_use_credit %}disabled{% endif %}>
+                            <div class="payment-icon-box" style="background: rgba(147, 51, 234, 0.1); color: #9333ea;">
+                                <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
+                            </div>
+                            <label for="payMethodCredit" class="payment-option-text">
+                                <strong>Pay with Store Credit (Available: ₦<span id="creditAvailableDisplay">{{ credit.available_credit }}</span>)</strong>
+                                {% if not credit.can_use_credit %}
+                                    <small class="text-danger" id="creditNoticeText">Credit limit exceeded: Available credit is ₦{{ credit.available_credit }}, but cart total is ₦{{ total }}.</small>
+                                {% else %}
+                                    <small id="creditNoticeText">Settle purchase instantly using your approved store credit facility.</small>
+                                {% endif %}
+                            </label>
+                            {% if not credit.can_use_credit %}
+                                <span class="badge badge-warning" id="creditStatusBadge" style="font-size: 11px;">Limit Exceeded</span>
+                            {% else %}
+                                <span class="badge badge-primary" id="creditStatusBadge" style="font-size: 11px; background: rgba(147, 51, 234, 0.1); color: #9333ea; border: 1px solid rgba(147, 51, 234, 0.3);">Instant Credit</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Dynamic Payment Rail Instruction Box -->
+                    <div id="paymentRailInstructions" class="payment-rail-instructions" style="margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-md, 8px); background: #f8fafc; border: 1px solid #e2e8f0; font-size: 13px; line-height: 1.5; color: #334155;">
+                        <i class="bi bi-info-circle" aria-hidden="true" style="margin-right: 6px; color: #0284c7;"></i>
+                        <span id="paymentInstructionText">You will be securely redirected to Paystack to complete your payment with debit card, USSD, or direct bank transfer.</span>
                     </div>
                 </div>
 
-                <div id="checkoutFormError" class="form-alert form-alert-error hidden" role="alert"></div>
+                <!-- Error Notice Container -->
+                <div id="checkoutFormError" class="form-alert form-alert-error hidden" role="alert" aria-live="assertive"></div>
 
+                <!-- Action Buttons -->
                 <div class="form-actions">
-                    <a href="/customer/cart/" class="btn btn-secondary">Back to cart</a>
-                    <button type="submit" class="btn btn-primary">Place order</button>
+                    <a href="/customer/cart/" class="btn btn-secondary" aria-label="Return to shopping cart">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        <span>Back to Cart</span>
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitOrderBtn" aria-label="Place customer order">
+                        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                        <span>Place &amp; Settle Order</span>
+                    </button>
                 </div>
+
             </form>
         </article>
 
+        <!-- Right Column: Sticky Order Review & Totals -->
         <aside class="card checkout-summary-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Order summary</h3>
+                    <h3>Order Review</h3>
+                    <p>Review items and totals before placing</p>
                 </div>
             </div>
 
-            <div id="checkoutItemsList" class="checkout-items-list"></div>
+            <!-- Dynamic Items List -->
+            <div id="checkoutItemsList" class="checkout-items-list" aria-live="polite"></div>
 
+            <!-- Totals Breakdown -->
             <div class="summary-breakdown">
                 <div class="summary-row">
                     <span>Subtotal</span>
-                    <strong id="checkoutSubtotal">₦ 0</strong>
+                    <strong id="checkoutSubtotal" class="font-mono">₦ 0.00</strong>
                 </div>
                 <div class="summary-row">
-                    <span>Tax (estimate)</span>
-                    <strong id="checkoutTax">₦ 0</strong>
+                    <span>Tax</span>
+                    <strong id="checkoutTax" class="summary-hint">Not calculated</strong>
                 </div>
                 <div class="summary-row">
                     <span>Delivery</span>
-                    <strong id="checkoutDelivery">₦ 0</strong>
+                    <strong id="checkoutDelivery" class="font-mono text-success">Not calculated</strong>
                 </div>
                 <div class="summary-row summary-total">
-                    <span>Total</span>
-                    <strong id="checkoutTotal">₦ 0</strong>
+                    <span>Total Due</span>
+                    <strong id="checkoutTotal" class="font-mono text-primary" style="font-size: 22px; color: var(--primary, #15803d);">₦ 0.00</strong>
                 </div>
             </div>
+            <p class="summary-note">Delivery fee is calculated from your selected area before placing the order.</p>
+
         </aside>
+
     </section>
+
 </div>
 {% endblock %}
 
-{% block page_js %}
+{% block customer_js %}
 <script src="{% static 'js/pages/customer/checkout.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,50 @@
+[Unit]
+Description=MADAM HY Smart Shop - Gunicorn WSGI Application Service
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=notify
+User=smartshop
+Group=www-data
+WorkingDirectory=/var/www/smart_shop
+EnvironmentFile=/var/www/smart_shop/.env.production
+
+# Runtime directory for Unix socket (/run/smart_shop/gunicorn.sock)
+RuntimeDirectory=smart_shop
+RuntimeDirectoryMode=0755
+
+# Logs directory (/var/log/smart_shop)
+LogsDirectory=smart_shop
+LogsDirectoryMode=0755
+
+# Gunicorn execution command
+ExecStart=/var/www/smart_shop/.venv/bin/gunicorn \
+    --workers 3 \
+    --threads 2 \
+    --worker-class gthread \
+    --bind unix:/run/smart_shop/gunicorn.sock \
+    --umask 007 \
+    --timeout 60 \
+    --keep-alive 5 \
+    --access-logfile /var/log/smart_shop/access.log \
+    --error-logfile /var/log/smart_shop/error.log \
+    config.wsgi:application
+
+# Graceful reload via SIGHUP
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+
+# Process monitoring and failure recovery
+Restart=always
+RestartSec=5s
+
+# Security sandboxing
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

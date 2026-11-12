@@ -10,9 +10,10 @@ function bindCheckoutEvents() {
     document.getElementById('paymentMethodSelect')?.addEventListener('change', updateCheckoutSummary);
     document.getElementById('amountReceivedInput')?.addEventListener('input', updateCheckoutSummary);
     document.getElementById('confirmPaymentBtn')?.addEventListener('click', completeDraftSale);
+    document.getElementById('verifyCheckoutQrBtn')?.addEventListener('click', checkCheckoutQrStatus);
     document.getElementById('cancelCheckoutBtn')?.addEventListener('click', () => {
         sessionStorage.removeItem('madamHyDraftSale');
-        window.location.href = '/preview/sales/pos/';
+        window.location.href = '/sales/pos/';
     });
 }
 
@@ -42,6 +43,165 @@ function renderDraftSale() {
     setButtonDisabled('paymentMethodSelect', true);
     setButtonDisabled('customerIdInput', true);
     updateCheckoutSummary();
+
+    if (sale.payment_method === 'TRANSFER') {
+        loadCheckoutQr(sale);
+    }
+}
+
+let currentCheckoutQrRef = null;
+let checkoutQrPollInterval = null;
+let checkoutFallbackTimerInterval = null;
+
+function bindFallbackCopyHandlers() {
+    const copyAccBtn = document.getElementById('copyAccountNumberBtn');
+    const accEl = document.getElementById('fallbackAccountNumber');
+    if (copyAccBtn && accEl) {
+        copyAccBtn.onclick = () => {
+            navigator.clipboard.writeText(accEl.textContent.trim()).then(() => {
+                copyAccBtn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => { copyAccBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+            });
+        };
+    }
+
+    const copyLinkBtn = document.getElementById('copyPaymentLinkBtn');
+    const linkEl = document.getElementById('qrPaymentLink');
+    if (copyLinkBtn && linkEl) {
+        copyLinkBtn.onclick = () => {
+            navigator.clipboard.writeText(linkEl.href).then(() => {
+                copyLinkBtn.innerHTML = '<i class="bi bi-check2"></i> Copied';
+                setTimeout(() => { copyLinkBtn.innerHTML = '<i class="bi bi-link-45deg"></i> Copy'; }, 2000);
+            });
+        };
+    }
+}
+
+function startCheckoutFallbackTimer() {
+    if (checkoutFallbackTimerInterval) clearInterval(checkoutFallbackTimerInterval);
+    const timerEl = document.getElementById('fallbackTimer');
+    let remaining = 900;
+    checkoutFallbackTimerInterval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(checkoutFallbackTimerInterval);
+            if (timerEl) timerEl.textContent = 'Expired';
+            return;
+        }
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        if (timerEl) {
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+
+async function loadCheckoutQr(sale) {
+    const qrContainer = document.getElementById('checkoutQrContainer');
+    const qrWrapper = document.getElementById('qrCodeWrapper');
+    const qrStatusEl = document.getElementById('qrStatusText');
+    const qrRefBadge = document.getElementById('qrReferenceBadge');
+    const qrRefValue = document.getElementById('qrReferenceValue');
+
+    if (!qrContainer || !qrWrapper || !sale) return;
+    qrContainer.style.display = 'block';
+
+    if (qrStatusEl) qrStatusEl.textContent = 'Generating dynamic payment QR code...';
+
+    const qrRes = await apiRequest('/payments/qr/generate/', {
+        method: 'POST',
+        body: {
+            sale_id: sale.id,
+            target_type: 'sale',
+            provider: 'paystack',
+            amount: sale.total,
+            format: 'png',
+        },
+    });
+
+    if (!qrRes.success || !qrRes.data) {
+        if (qrStatusEl) qrStatusEl.textContent = qrRes.message || 'Could not generate QR code.';
+        qrWrapper.innerHTML = `<div class="qr-placeholder"><p>${escapeHtml(qrRes.message || 'QR generation failed.')}</p></div>`;
+        return;
+    }
+
+    const qrData = qrRes.data;
+    currentCheckoutQrRef = qrData.payment_reference;
+
+    if (qrRefBadge && qrRefValue && currentCheckoutQrRef) {
+        qrRefValue.textContent = currentCheckoutQrRef;
+        qrRefBadge.style.display = 'inline-flex';
+    }
+
+    const src = qrData.qr_code_data || qrData.qr_code_png || qrData.qr_code_base64 || qrData.qr_code_data_uri || qrData.qr_data_uri || qrData.qr_code;
+    const svg = qrData.qr_code_svg || qrData.qr_svg;
+    if (src) {
+        qrWrapper.innerHTML = `<img id="qrCodeImage" class="qr-code-img" src="${escapeHtml(src)}" alt="Payment QR Code" style="max-width: 100%; height: auto; padding: 10px; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); display: block; margin: 0 auto;" />`;
+    } else if (svg) {
+        qrWrapper.innerHTML = `<div id="qrCodeContainer" class="qr-rendered-svg">${svg}</div>`;
+    } else {
+        qrWrapper.innerHTML = `<div class="qr-placeholder"><p>Scan to pay NGN ${formatCurrency(sale.total)}</p></div>`;
+    }
+
+    // Populate fallback details
+    const fallbackRefEl = document.getElementById('fallbackRefValue');
+    const fallbackBankEl = document.getElementById('fallbackBankName');
+    const fallbackAccEl = document.getElementById('fallbackAccountNumber');
+    const fallbackAmountEl = document.getElementById('fallbackAmount');
+    const fallbackLinkEl = document.getElementById('qrPaymentLink');
+    const fallbackLinkTextEl = document.getElementById('qrPaymentLinkText');
+
+    if (fallbackRefEl) fallbackRefEl.textContent = qrData.payment_reference || currentCheckoutQrRef;
+    if (fallbackBankEl) fallbackBankEl.textContent = qrData.bank_name || 'Moniepoint MFB';
+    if (fallbackAccEl) fallbackAccEl.textContent = qrData.account_number || '-';
+    if (fallbackAmountEl) fallbackAmountEl.textContent = `₦ ${formatCurrency(sale.total)}`;
+
+    const payUrl = qrData.payment_url || qrData.checkout_url || qrData.qr_payload || '#';
+    if (fallbackLinkEl) fallbackLinkEl.href = payUrl;
+    if (fallbackLinkTextEl) fallbackLinkTextEl.textContent = payUrl;
+
+    bindFallbackCopyHandlers();
+    startCheckoutFallbackTimer();
+
+    if (qrStatusEl) qrStatusEl.textContent = 'Awaiting customer transfer...';
+
+    if (checkoutQrPollInterval) clearInterval(checkoutQrPollInterval);
+    checkoutQrPollInterval = setInterval(checkCheckoutQrStatus, 3500);
+}
+
+async function checkCheckoutQrStatus() {
+    if (!currentCheckoutQrRef || !draftState?.sale?.id) return;
+    const qrStatusEl = document.getElementById('qrStatusText');
+    const res = await apiRequest(`/payments/qr/${encodeURIComponent(currentCheckoutQrRef)}/status/`);
+    if (!res.success) return;
+
+    const data = res.data;
+    const isCompleted = data.status === 'COMPLETED' || data.payment_status === 'COMPLETED' || data.is_verified === true;
+    if (isCompleted) {
+        if (checkoutQrPollInterval) {
+            clearInterval(checkoutQrPollInterval);
+            checkoutQrPollInterval = null;
+        }
+        if (qrStatusEl) qrStatusEl.textContent = 'Payment Confirmed! Finalizing sale...';
+        showMessage('checkoutMessage', 'Payment confirmed via QR transfer! Finalizing...', 'success');
+        window.setTimeout(() => {
+            completeDraftSale();
+        }, 1000);
+    } else if (data.status === 'FAILED') {
+        if (checkoutQrPollInterval) {
+            clearInterval(checkoutQrPollInterval);
+            checkoutQrPollInterval = null;
+        }
+        if (qrStatusEl) qrStatusEl.textContent = 'Payment Failed.';
+        showMessage('checkoutMessage', 'Payment transaction failed or was declined.', 'error');
+    } else if (data.status === 'EXPIRED') {
+        if (checkoutQrPollInterval) {
+            clearInterval(checkoutQrPollInterval);
+            checkoutQrPollInterval = null;
+        }
+        if (qrStatusEl) qrStatusEl.textContent = 'Payment Expired.';
+        showMessage('checkoutMessage', 'Payment request expired. Please regenerate QR.', 'warning');
+    }
 }
 
 function updateCheckoutSummary() {
@@ -81,7 +241,7 @@ async function completeDraftSale() {
     sessionStorage.removeItem('madamHyDraftSale');
     showMessage('checkoutMessage', response.message || 'Sale completed successfully.', 'success');
     window.setTimeout(() => {
-        window.location.href = `/preview/sales/receipt/?sale_id=${response.data.sale_number}`;
+        window.location.href = `/sales/receipt/?sale_id=${response.data.sale_number}`;
     }, 500);
 }
 

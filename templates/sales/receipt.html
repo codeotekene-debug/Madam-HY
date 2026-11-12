@@ -22,8 +22,17 @@
             <h2>Sales receipt</h2>
             <p>Customer-facing invoice generated from the completed checkout.</p>
         </div>
-        <div class="page-actions">
-            <button type="button" class="btn btn-secondary" id="receiptRetryBtn">Retry</button>
+        <div class="page-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" id="receiptRetryBtn">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="window.print()" id="receiptPrintBtn">
+                <i class="bi bi-printer" aria-hidden="true"></i> Print Receipt
+            </button>
+            <a href="/sales/pos/" class="btn btn-primary">
+                <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                <span>New Sale</span>
+            </a>
         </div>
     </section>
 
@@ -32,7 +41,9 @@
             <div class="receipt-header">
                 <div>
                     <div class="brand-block">
-                        <div class="brand-logo">HY</div>
+                        <div class="brand-logo has-emblem receipt-brand-logo" aria-hidden="true">
+                            <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg receipt-emblem-svg" width="36" height="36" />
+                        </div>
                         <div>
                             <strong>MADAM HY</strong>
                             <span>Smart Shop</span>

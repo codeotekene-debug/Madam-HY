@@ -1,9 +1,8 @@
 {% extends "base.html" %}
-
 {% load static %}
 
 {% block title %}
-    POS | MADAM HY
+    POS Register Terminal | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -11,126 +10,639 @@
 {% endblock %}
 
 {% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/pos.css' %}">
 <link rel="stylesheet" href="{% static 'css/pages/sales/pos.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="sales" active_tab="pos" %}
 {% endblock %}
 
 {% block content %}
 <div class="sales-pos-page">
+
+    <!-- =========================================
+         POS REGISTER HERO HEADER
+         ========================================= -->
     <section class="sales-hero">
         <div>
-            <span class="badge badge-primary">Operations</span>
-            <h2>Point of Sale</h2>
-            <p>Search product stock, build the customer cart, and finalise the sale in one streamlined checkout flow.</p>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="badge badge-primary">
+                    <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg> Counter Terminal
+                </span>
+            </div>
+            <h2>Point of Sale Register</h2>
+            <p>Scan barcode or search inventory, adjust ticket items, and accept cash, Moniepoint POS, or dynamic QR payments.</p>
         </div>
 
         <div class="page-actions">
-            <button type="button" class="btn btn-secondary" id="toggleCatalogBtn">Grid view</button>
-            <button type="button" class="btn btn-primary" id="openQuickAddBtn">Quick add</button>
+            <button type="button" class="btn btn-secondary" id="toggleCatalogBtn" aria-label="Toggle between grid and list view">
+                <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+                <span>Grid view</span>
+            </button>
         </div>
     </section>
 
+    <!-- =========================================
+         POS REGISTER WORKSPACE LAYOUT
+         ========================================= -->
     <section class="pos-layout">
+
+        <!-- LEFT COLUMN: PRODUCT CATALOGUE -->
         <div class="card pos-products-panel">
             <div class="panel-header">
                 <div>
-                    <h3>Product catalogue</h3>
-                    <p>Search and select products for the current customer sale.</p>
+                    <h3>Product Catalogue</h3>
+                    <p>Tap products or scan barcode to add directly to the active sale ticket.</p>
                 </div>
             </div>
 
+            <!-- Search, Barcode & Category Filters -->
             <div class="catalog-controls">
                 <div class="catalog-search">
-                    <label class="visually-hidden" for="productSearchInput">Search products</label>
-                    <input id="productSearchInput" class="form-control" type="search" placeholder="Search products, category or SKU" />
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <label class="visually-hidden" for="productSearchInput">Search products or scan barcode</label>
+                    <input
+                        id="productSearchInput"
+                        class="form-control"
+                        type="search"
+                        placeholder="Scan barcode or search name, SKU, category..."
+                        aria-label="Scan barcode or search products"
+                        autocomplete="off"
+                    />
+                    <input type="hidden" id="search-input" />
+                    <input type="hidden" id="barcode-input" />
                 </div>
 
                 <div class="catalog-filters">
                     <label class="visually-hidden" for="categoryFilter">Filter by category</label>
-                    <select id="categoryFilter" class="form-select">
+                    <select id="categoryFilter" class="form-select" aria-label="Category filter">
                         <option value="all">All categories</option>
-                        <option value="Fashion">Fashion</option>
-                        <option value="Beauty">Beauty</option>
-                        <option value="Home">Home</option>
-                        <option value="Electronics">Electronics</option>
                     </select>
                 </div>
             </div>
 
-            <div id="productList" class="product-list" aria-live="polite"></div>
+            <!-- Live Product Cards Grid -->
+            <div id="productList" class="product-list" aria-live="polite">
+                <div class="dashboard-loading">
+                    <div class="spinner"></div>
+                    <span>Loading inventory products...</span>
+                </div>
+            </div>
+
+            <!-- Empty Search State -->
             <div id="productEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <i class="bi bi-search"></i>
+                </div>
                 <h3>No products match this search</h3>
-                <p>Try another keyword or choose another category.</p>
-                <button type="button" class="btn btn-secondary" id="productRetryBtn">Retry catalogue</button>
+                <p>Try searching another keyword, clear the category filter, or scan a valid product SKU.</p>
+                <button type="button" class="btn btn-secondary" id="productRetryBtn" aria-label="Retry loading product catalogue">
+                    <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                    <span>Reload Catalogue</span>
+                </button>
             </div>
         </div>
 
-        <aside class="card pos-cart-panel">
+        <!-- RIGHT COLUMN: ORDER TICKET / ACTIVE CART -->
+        <aside class="card pos-cart-panel" aria-label="Active sale order ticket">
             <div class="panel-header cart-header">
                 <div>
-                    <h3>Current sale</h3>
-                    <p>Customer cart and payment summary</p>
+                    <h3>Current Sale Ticket</h3>
+                    <p>Live checkout summary and payment channels</p>
                 </div>
                 <span class="cart-badge" id="cartItemCount">0 items</span>
             </div>
 
+            <!-- Cart Line Items -->
             <div id="cartItems" class="cart-items" aria-live="polite"></div>
 
-            <div id="cartEmptyState" class="empty-cart empty-state-hidden">
-                <div class="empty-cart-icon">🛒</div>
-                <h4>Cart is empty</h4>
-                <p>Select products from the catalogue to begin a sale.</p>
+            <!-- Empty Cart Placeholder -->
+            <div id="cartEmptyState" class="empty-cart">
+                <div class="empty-cart-icon" aria-hidden="true">
+                    <i class="bi bi-cart3"></i>
+                </div>
+                <h4>Active Ticket is Empty</h4>
+                <p>Select products from the catalogue or scan a barcode to begin checkout.</p>
             </div>
 
+            <!-- Totals Calculation Summary -->
             <div class="totals-box">
                 <div class="totals-row">
                     <span>Subtotal</span>
-                    <strong id="subtotalValue">₦ 0</strong>
+                    <strong id="subtotalValue">₦ 0.00</strong>
+                    <span id="subtotal" style="display:none;">₦ 0.00</span>
                 </div>
                 <div class="totals-row">
-                    <span>Discount</span>
-                    <input id="discountInput" class="form-control discount-input" type="number" min="0" value="0" aria-label="Discount amount" />
+                    <span>Store Discount</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="font-size: 11px; color: var(--muted);">₦</span>
+                        <input
+                            id="discountInput"
+                            class="form-control discount-input"
+                            type="number"
+                            min="0"
+                            step="50"
+                            value="0"
+                            aria-label="Discount amount in Naira"
+                        />
+                    </div>
+                </div>
+                <div class="totals-row">
+                    <span>Tax</span>
+                    <strong id="tax">Not calculated</strong>
                 </div>
                 <div class="totals-row total-row">
-                    <span>Total</span>
-                    <strong id="totalValue">₦ 0</strong>
+                    <span>Total Amount</span>
+                    <strong id="totalValue">₦ 0.00</strong>
+                    <span id="total-amount" style="display:none;">₦ 0.00</span>
                 </div>
             </div>
 
+            <!-- Payment Method Selection & Inputs -->
             <div class="payment-box">
-                <div class="form-group compact-group">
+                <label class="form-label" style="display: block; margin-bottom: 8px; font-size: 11.5px; font-weight: 750; text-transform: uppercase; color: var(--muted);">
+                    Select Payment Method
+                </label>
+
+                <!-- Touch Payment Method Buttons -->
+                <div class="payment-method-tabs" aria-label="Select payment method">
+                    <button type="button" class="pay-method-btn active" data-method="CASH" id="payCashBtn" aria-pressed="true">
+                        <i class="bi bi-cash-stack" aria-hidden="true"></i>
+                        <span>Cash</span>
+                    </button>
+                    <button type="button" class="pay-method-btn" data-method="CARD" id="payPosBtn" aria-pressed="false">
+                        <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                        <span>Moniepoint POS</span>
+                    </button>
+                    <button type="button" class="pay-method-btn" data-method="TRANSFER" id="payQrBtn" aria-pressed="false">
+                        <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-qr"></use></svg>
+                        <span>Dynamic QR</span>
+                    </button>
+                    <button type="button" class="pay-method-btn" data-method="BANK_TRANSFER" id="payTransferBtn" aria-pressed="false">
+                        <i class="bi bi-bank" aria-hidden="true"></i>
+                        <span>Bank Transfer</span>
+                    </button>
+                    <button type="button" class="pay-method-btn" data-method="CREDIT" id="payCreditBtn" aria-pressed="false">
+                        <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
+                        <span>Credit Ledger</span>
+                    </button>
+                </div>
+
+                <!-- Preserved Synced Payment Select for JS / Tests -->
+                <div class="form-group compact-group" style="display: none;">
                     <label class="form-label" for="paymentMethodSelect">Payment method</label>
                     <select id="paymentMethodSelect" class="form-select">
-                        <option value="CASH">Cash</option>
-                        <option value="TRANSFER">Bank transfer</option>
-                        <option value="CARD">Card</option>
+                        <option value="CASH" selected>Cash</option>
+                        <option value="CARD">Moniepoint POS</option>
+                        <option value="TRANSFER">Dynamic QR</option>
+                        <option value="BANK_TRANSFER">Direct Store Bank Transfer</option>
                         <option value="CREDIT">Credit</option>
                     </select>
                 </div>
 
-                <div class="form-group compact-group" id="customerIdGroup">
-                    <label class="form-label" for="customerIdInput">Customer ID <span>(required for credit)</span></label>
-                    <input id="customerIdInput" class="form-control" type="number" min="1" step="1" placeholder="Optional for walk-in sales" />
+                <!-- Interactive Customer Credit Ledger Search & Balance Display (Visible for Credit) -->
+                <div class="form-group compact-group payment-field-hidden" id="customerIdGroup">
+                    <label class="form-label" for="creditCustomerSearchInput">
+                        <span>Search Customer</span>
+                        <span style="color: var(--danger); font-weight: normal;">*</span>
+                    </label>
+                    <div class="credit-search-box" style="position: relative;">
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input
+                                id="creditCustomerSearchInput"
+                                class="form-control"
+                                type="text"
+                                placeholder="Search customer by name or phone number..."
+                                autocomplete="off"
+                                style="padding-right: 32px;"
+                            />
+                            <i class="bi bi-search" style="position: absolute; right: 10px; color: var(--muted); pointer-events: none;"></i>
+                        </div>
+                        <input id="customerIdInput" class="form-control" type="hidden" />
+
+                        <!-- Customer Search Results Dropdown -->
+                        <div id="creditCustomerDropdown" class="credit-customer-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: var(--surface, #ffffff); border: 1px solid var(--border); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1)); max-height: 220px; overflow-y: auto; margin-top: 4px;"></div>
+                    </div>
+
+                    <!-- Selected Customer Credit Account Card -->
+                    <div id="selectedCreditCustomerCard" style="display: none; margin-top: 10px; padding: 12px 14px; background: var(--background, #f8fafc); border: 1px solid var(--border); border-radius: var(--radius-md, 8px);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <strong id="selectedCustomerName" style="color: var(--text-heading); font-size: 13.5px; display: block;">-</strong>
+                                <span id="selectedCustomerPhone" style="color: var(--muted); font-size: 12px;">-</span>
+                            </div>
+                            <button type="button" class="btn btn-xs btn-outline-secondary" id="clearSelectedCustomerBtn" style="font-size: 11px; padding: 2px 8px; border-radius: 4px;">
+                                <i class="bi bi-x-circle"></i> Change
+                            </button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; border-top: 1px solid var(--border); padding-top: 8px;">
+                            <div>
+                                <span  class="u-muted-block">Credit Limit:</span>
+                                <strong id="selectedCreditLimit" style="font-family: monospace;">₦ 0.00</strong>
+                            </div>
+                            <div>
+                                <span  class="u-muted-block">Current Outstanding Debt:</span>
+                                <strong id="selectedCurrentDebt" style="font-family: monospace; color: var(--danger, #dc2626);">₦ 0.00</strong>
+                            </div>
+                            <div style="grid-column: span 2; padding-top: 6px; margin-top: 2px; border-top: 1px dashed var(--border); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 11.5px; font-weight: 600; color: var(--text);">Available Credit:</span>
+                                <strong id="selectedAvailableCredit" style="font-family: monospace; font-size: 14px; color: var(--success, #16a34a);">₦ 0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Credit Limit Exceeded Alert Box -->
+                    <div id="creditLimitAlert" class="alert alert-danger" style="display: none; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-md, 8px); background: #fee2e2; border: 1px solid #f87171; color: #991b1b; font-size: 12px; line-height: 1.4;">
+                        <i class="bi bi-exclamation-triangle-fill" style="margin-right: 6px; color: #dc2626;"></i>
+                        <span id="creditLimitAlertText"></span>
+                    </div>
                 </div>
 
-                <div class="form-group compact-group">
-                    <label class="form-label" for="amountReceivedInput">Amount received</label>
-                    <input id="amountReceivedInput" class="form-control" type="number" min="0" step="100" placeholder="0" />
+                <!-- Cash Tendered & Change -->
+                <div class="form-group compact-group" id="amountReceivedGroup">
+                    <label class="form-label" for="amountReceivedInput">Cash Tendered (₦)</label>
+                    <input id="amountReceivedInput" class="form-control" type="number" min="0" step="100" placeholder="e.g. 5000" />
                 </div>
 
-                <div class="totals-row balance-row">
-                    <span>Change</span>
-                    <strong id="changeValue">₦ 0</strong>
+                <div class="totals-row balance-row u-mt-10" id="changeDueRow" >
+                    <span>Change Due</span>
+                    <strong id="changeValue">₦ 0.00</strong>
+                </div>
+
+                <!-- Direct Store Bank Transfer Card -->
+                <div class="bank-transfer-box payment-field-hidden" id="directBankTransferGroup" style="margin-top: 12px; padding: 14px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                        <span style="font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                            <i class="bi bi-bank" aria-hidden="true"></i> Direct Store Bank Transfer
+                        </span>
+                        <span class="badge badge-success" style="font-size: 11px;">Instant Verify</span>
+                    </div>
+
+                    <div style="display: grid; gap: 6px; font-size: 12px; margin-bottom: 12px;">
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Bank Name:</span>
+                            <strong id="storeBankName"  class="text-body">{{ bank_name|default:'Moniepoint MFB' }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span  class="text-muted">Account Number:</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <strong id="storeAccountNumber" style="font-family: monospace; font-size: 13.5px; letter-spacing: 0.5px; color: var(--primary);">{{ counter_account|default:'8123456789' }}</strong>
+                                <button type="button" class="btn btn-icon btn-xs" id="copyStoreAccountBtn" title="Copy account number" aria-label="Copy account number" style="padding: 2px 6px; font-size: 11px;">
+                                    <i class="bi bi-clipboard" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Account Name:</span>
+                            <strong id="storeAccountName"  class="text-body">MADAM HY STORES</strong>
+                        </div>
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Exact Amount Due:</span>
+                            <strong id="storeTransferAmount" style="color: var(--primary); font-size: 13px;">₦ 0.00</strong>
+                        </div>
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Narration/Reference:</span>
+                            <strong id="storeTransferRef" style="font-family: monospace; color: var(--text); font-size: 11px;">-</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-group compact-group" style="margin-bottom: 10px;">
+                        <label class="form-label" for="transferSenderInput" style="font-size: 11.5px;">Sender Name / Reference Digits <span style="color: var(--danger);">*</span></label>
+                        <input id="transferSenderInput" class="form-control" type="text" placeholder="Enter sender name or last transfer digits" />
+                    </div>
+
+                    <button type="button" class="btn btn-primary btn-block" id="confirmTransferBtn" style="width: 100%;">
+                        <i class="bi bi-check-circle" aria-hidden="true"></i>
+                        <span>Confirm Transfer &amp; Print Receipt</span>
+                    </button>
                 </div>
             </div>
 
+            <!-- Bottom Checkout Actions -->
             <div class="cart-actions">
-                <button type="button" id="clearCartBtn" class="btn btn-secondary btn-block">Clear cart</button>
-                <button type="button" id="checkoutBtn" class="btn btn-primary btn-block">Checkout</button>
+                <button type="button" id="clearCartBtn" class="btn btn-secondary btn-block" aria-label="Clear shopping cart">
+                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                    <span>Clear</span>
+                </button>
+                <button type="button" id="checkoutBtn" class="btn btn-primary btn-block" aria-label="Proceed to sale checkout">
+                    <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                    <span>Complete Sale</span>
+                </button>
             </div>
 
-            <div id="saleMessage" class="sale-message" aria-live="polite"></div>
+            <div id="saleMessage" class="sale-message" role="status" aria-live="polite"></div>
         </aside>
+
     </section>
+
+    <!-- =========================================
+         IN-STORE DYNAMIC COUNTER QR PAYMENT MODAL (Phase 4C)
+         ========================================= -->
+    <div class="modal-overlay" id="qrPaymentModal" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle" aria-hidden="true">
+        <div class="modal" id="qr-modal" style="max-width: 440px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge badge-primary">
+                        <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-qr"></use></svg> Instant QR
+                    </span>
+                    <h3 id="qrModalTitle" style="margin: 0; font-size: 16px;">Counter QR Payment</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeQrModalBtn" aria-label="Close QR payment modal">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-qr-container" id="qrModalOuterContainer">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: var(--primary-light); color: var(--primary); margin: 0 auto 4px auto;" aria-hidden="true">
+                        <svg class="retail-svg icon-md"><use href="#icon-retail-qr"></use></svg>
+                    </div>
+
+                    <div id="qrCodeWrapper" class="qr-code-wrapper" aria-label="Customer payment QR code" style="margin: 0 auto 12px auto; max-width: 220px; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                        {% if qr_code_data %}
+                            <img id="qrCodeImage" class="qr-code-img" src="{{ qr_code_data }}" alt="Payment QR Code" style="max-width: 100%; height: auto; padding: 10px; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); display: block; margin: 0 auto;" />
+                        {% else %}
+                            <div class="qr-placeholder" id="qrPlaceholder">
+                                <span class="spinner" aria-hidden="true"></span>
+                                <p>Generating dynamic counter QR code...</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="qr-details">
+                        <div class="qr-amount-box">
+                            <span class="qr-amount-label">Amount Payable</span>
+                            <strong class="qr-amount-value" id="qrModalAmount">₦ 0.00</strong>
+                        </div>
+
+                        <div id="qrReferenceBadge" class="badge badge-outline" style="display: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 11px;">
+                            <span  class="text-muted">Ref:</span>
+                            <strong id="qrReferenceValue" style="color: var(--text); font-family: monospace;">-</strong>
+                        </div>
+
+                        <p class="qr-instruction">
+                            Customer can scan this dynamic QR code using any Nigerian banking app, Kuda, OPay, PalmPay, or camera to complete instant payment.
+                        </p>
+                        <div class="qr-status-indicator" id="qrStatusIndicator" role="status" aria-live="polite">
+                            <span class="status-dot pulse" aria-hidden="true"></span>
+                            <span id="qrStatusText">Awaiting customer transfer...</span>
+                        </div>
+
+                        <!-- Explicit Fallback Display: Payment Link, Order Reference & Bank Transfer Account Details -->
+                        <div id="qrFallbackDetails" class="qr-fallback-details" style="margin-top: 14px; padding: 12px 14px; background: var(--background); border: 1px dashed var(--border); border-radius: var(--radius-md); text-align: left; font-size: 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+                                <span style="font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 6px;">
+                                    <i class="bi bi-bank" aria-hidden="true"></i> Bank Transfer Account
+                                </span>
+                                <span class="badge badge-warning" style="font-family: monospace; font-size: 11px;">
+                                    <i class="bi bi-clock-history" aria-hidden="true"></i> <span id="posFallbackTimer">14:59</span>
+                                </span>
+                            </div>
+
+                            <div style="display: grid; gap: 5px; margin-bottom: 8px;">
+                                <div  class="u-flex-between">
+                                    <span  class="text-muted">Order Ref:</span>
+                                    <strong id="posFallbackRefValue" style="font-family: monospace; color: var(--text);">{% firstof payment_reference reference '-' %}</strong>
+                                </div>
+                                <div  class="u-flex-between">
+                                    <span  class="text-muted">Bank Name:</span>
+                                    <strong id="posFallbackBankName"  class="text-body">{{ bank_name|default:'Moniepoint MFB' }}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span  class="text-muted">Account Number:</span>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <strong id="posFallbackAccountNumber" style="font-family: monospace; font-size: 13.5px; letter-spacing: 0.5px; color: var(--text);">{{ account_number|default:'-' }}</strong>
+                                        <button type="button" class="btn btn-icon btn-xs" id="copyPosAccountBtn" title="Copy account number" aria-label="Copy account number" style="padding: 2px 6px; font-size: 10px;">
+                                            <i class="bi bi-clipboard" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div  class="u-flex-between">
+                                    <span  class="text-muted">Amount Due:</span>
+                                    <strong id="posFallbackAmount" style="color: var(--primary); font-size: 13px;">₦ {{ amount|default:'0.00' }}</strong>
+                                </div>
+                            </div>
+
+                            <!-- Direct Payment Link Fallback -->
+                            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 11px;">
+                                <span style="color: var(--muted); display: block; margin-bottom: 2px;">Direct Payment Link:</span>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <a id="posQrPaymentLink" href="{{ payment_url|default:'javascript:void(0);' }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); word-break: break-all; text-decoration: underline; flex: 1;">
+                                        <span id="posQrPaymentLinkText">{{ payment_url|default:'-' }}</span>
+                                    </a>
+                                    <button type="button" class="btn btn-secondary btn-xs" id="copyPosPaymentLinkBtn" title="Copy payment link" aria-label="Copy payment link" style="white-space: nowrap;">
+                                        <i class="bi bi-link-45deg" aria-hidden="true"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" id="cancelQrPaymentBtn" style="flex: 1;">Cancel</button>
+                <button type="button" class="btn btn-primary" id="checkQrStatusBtn" style="flex: 1;">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    <span>Verify Payment</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================
+         MONIEPOINT POS TERMINAL MODAL (Phase 4B)
+         ========================================= -->
+    <div class="modal-overlay" id="posTerminalModal" role="dialog" aria-modal="true" aria-labelledby="terminalModalTitle" aria-hidden="true">
+        <div class="modal" id="terminal-modal" style="max-width: 440px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge badge-primary">
+                        <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg> Terminal Push
+                    </span>
+                    <h3 id="terminalModalTitle" style="margin: 0; font-size: 16px;">Moniepoint POS Checkout</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeTerminalModalBtn" aria-label="Close POS terminal modal">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="modal-body text-center" style="padding: 24px 20px;">
+                <!-- Target Terminal Hardware Serial -->
+                <div style="margin-bottom: 16px;">
+                    <span style="font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Target Terminal</span>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
+                        <strong id="posTerminalSerialDisplay" style="font-family: monospace; font-size: 15px; color: var(--text-heading); background: var(--background); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">
+                            {{ terminal_serial|default:'DEFAULT_POS_TERMINAL' }}
+                        </strong>
+                    </div>
+                </div>
+
+                <!-- Amount Due -->
+                <div class="qr-amount-box" style="margin-bottom: 18px;">
+                    <span class="qr-amount-label">Charge Amount</span>
+                    <strong class="qr-amount-value" id="terminalModalAmount">₦ 0.00</strong>
+                </div>
+
+                <!-- Animated Sync Indicator -->
+                <div class="terminal-sync-animation" style="margin: 20px auto; width: 68px; height: 68px; border-radius: 50%; background: rgba(37, 99, 235, 0.08); display: flex; align-items: center; justify-content: center; position: relative;">
+                    <div class="pulse-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--primary); animation: pulse 1.8s infinite;"></div>
+                    <svg class="retail-svg icon-md text-primary" ><use href="#icon-retail-pos"></use></svg>
+                </div>
+
+                <!-- Steps (Request sent -> Waiting for card -> Processing) -->
+                <div class="pos-steps" style="display: flex; justify-content: space-between; margin: 20px 0 16px; position: relative; font-size: 11px;">
+                    <div class="pos-step active" id="terminalStep1" style="flex: 1; text-align: center;">
+                        <div class="step-circle" id="circleStep1" style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; font-weight: bold;">1</div>
+                        <span id="labelStep1" style="color: var(--text); font-weight: 600;">Request Sent</span>
+                    </div>
+                    <div class="pos-step" id="terminalStep2" style="flex: 1; text-align: center;">
+                        <div class="step-circle" id="circleStep2" style="width: 24px; height: 24px; border-radius: 50%; background: var(--border); color: var(--muted); margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; font-weight: bold;">2</div>
+                        <span id="labelStep2"  class="text-muted">Waiting for Card</span>
+                    </div>
+                    <div class="pos-step" id="terminalStep3" style="flex: 1; text-align: center;">
+                        <div class="step-circle" id="circleStep3" style="width: 24px; height: 24px; border-radius: 50%; background: var(--border); color: var(--muted); margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; font-weight: bold;">3</div>
+                        <span id="labelStep3"  class="text-muted">Processing</span>
+                    </div>
+                </div>
+
+                <div class="qr-status-indicator u-mt-10" id="terminalStatusIndicator" role="status" aria-live="polite" >
+                    <span class="status-dot pulse" aria-hidden="true"></span>
+                    <span id="terminalStatusText">Pushing transaction to terminal...</span>
+                </div>
+
+                <!-- 120-second countdown -->
+                <div style="margin-top: 14px; font-size: 12px; color: var(--muted);">
+                    <span>Push Timeout: </span>
+                    <strong id="posPushTimer" style="font-family: monospace; color: var(--text);">02:00</strong>
+                </div>
+
+                <div id="terminalRefBadge" class="badge badge-outline" style="display: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 11px; margin-top: 12px;">
+                    <span  class="text-muted">Ref:</span>
+                    <strong id="terminalRefValue" style="color: var(--text); font-family: monospace;">-</strong>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" id="cancelTerminalPushBtn" style="flex: 1;">Cancel Push</button>
+                <button type="button" class="btn btn-primary" id="checkTerminalStatusBtn" style="flex: 1;">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    <span>Check Status</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- =========================================
+         POS SALE RECEIPT MODAL (Credit & Counter Checkout)
+         ========================================= -->
+    <div class="modal-overlay" id="posReceiptModal" role="dialog" aria-modal="true" aria-labelledby="posReceiptModalTitle" aria-hidden="true">
+        <div class="modal" id="pos-receipt-modal" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge badge-success">
+                        <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Sale Completed
+                    </span>
+                    <h3 id="posReceiptModalTitle" style="margin: 0; font-size: 16px;">Sale Receipt</h3>
+                </div>
+                <button type="button" class="modal-close" id="closeReceiptModalBtn" aria-label="Close receipt modal">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px;">
+                <div class="receipt-brand text-center" style="margin-bottom: 16px; border-bottom: 1px dashed var(--border); padding-bottom: 12px; text-align: center;">
+                    <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg receipt-emblem-svg" width="36" height="36" style="margin-bottom: 6px;" />
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-heading);">MADAM HY</h4>
+                    <p style="margin: 2px 0 0; font-size: 12px; color: var(--muted);">Smart Shop — Point of Sale</p>
+                </div>
+
+                <div class="receipt-meta-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; margin-bottom: 14px;">
+                    <div>
+                        <span  class="u-muted-block">Receipt No:</span>
+                        <strong id="posReceiptNumber" style="font-family: monospace;">-</strong>
+                    </div>
+                    <div  class="text-right">
+                        <span  class="u-muted-block">Date &amp; Time:</span>
+                        <span id="posReceiptDate">-</span>
+                    </div>
+                    <div>
+                        <span  class="u-muted-block">Cashier:</span>
+                        <span id="posReceiptCashier">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </div>
+                    <div  class="text-right">
+                        <span  class="u-muted-block">Payment Method:</span>
+                        <span id="posReceiptPaymentMethod" class="badge badge-primary">Credit Ledger</span>
+                    </div>
+                    <div id="posReceiptCustomerBlock" style="grid-column: span 2; padding-top: 6px; border-top: 1px dotted var(--border);">
+                        <span  class="u-muted-block">Customer:</span>
+                        <strong id="posReceiptCustomerName">-</strong>
+                        <span id="posReceiptCustomerPhone" style="font-size: 11.5px; color: var(--muted); margin-left: 6px;"></span>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <table class="table receipt-table" style="font-size: 12px; margin-bottom: 14px; width: 100%;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border); color: var(--muted);">
+                            <th style="text-align: left; padding: 4px 0;">Item</th>
+                            <th style="text-align: center; padding: 4px 0;">Qty</th>
+                            <th style="text-align: right; padding: 4px 0;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="posReceiptItemsBody"></tbody>
+                </table>
+
+                <!-- Totals Breakdown -->
+                <div style="border-top: 1px dashed var(--border); padding-top: 10px; font-size: 13px; display: grid; gap: 5px;">
+                    <div  class="u-flex-between">
+                        <span  class="text-muted">Subtotal:</span>
+                        <strong id="posReceiptSubtotal" style="font-family: monospace;">₦ 0.00</strong>
+                    </div>
+                    <div  id="posReceiptDiscountRow" class="u-flex-between">
+                        <span  class="text-muted">Discount:</span>
+                        <strong id="posReceiptDiscount" style="font-family: monospace;">₦ 0.00</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; border-top: 1px solid var(--border); padding-top: 6px; color: var(--text-heading);">
+                        <span>Total Charged:</span>
+                        <strong id="posReceiptTotal" style="font-family: monospace; color: var(--primary);">₦ 0.00</strong>
+                    </div>
+                </div>
+
+                <!-- Credit Ledger Summary / Updated Debt Balance -->
+                <div id="posReceiptCreditSummary" style="margin-top: 14px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 11.5px; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <svg class="retail-svg icon-xs" aria-hidden="true" style="margin-right: 4px;"><use href="#icon-retail-credit"></use></svg>
+                            Credit Account Ledger
+                        </span>
+                        <span class="badge badge-warning" style="font-size: 10px;">Updated Balance</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                        <div>
+                            <span style="color: #7f1d1d; display: block; font-size: 11px;">Current Outstanding Debt:</span>
+                            <strong id="posReceiptDebtBalance" style="font-family: monospace; font-size: 14px; color: #b91c1c;">₦ 0.00</strong>
+                        </div>
+                        <div  class="text-right">
+                            <span style="color: #7f1d1d; display: block; font-size: 11px;">Remaining Available Credit:</span>
+                            <strong id="posReceiptAvailableCredit" style="font-family: monospace; font-size: 14px; color: #15803d;">₦ 0.00</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" id="posReceiptPrintBtn" style="flex: 1;">
+                    <i class="bi bi-printer" aria-hidden="true"></i> Print Receipt
+                </button>
+                <button type="button" class="btn btn-primary" id="posReceiptNewSaleBtn" style="flex: 1;">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i> New Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 

@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.db import models
@@ -16,27 +16,53 @@ from apps.sales.models import Sale, SaleItem
 def get_date_range(period='this_month', start_date=None, end_date=None):
     """Return a date range with timezone-aware start/end datetimes for reporting."""
     today = timezone.localdate()
-    if start_date and end_date:
-        start = start_date
-        end = end_date
-        return {'start_date': start, 'end_date': end}
+    if isinstance(start_date, str):
+        try:
+            start_date = datetime.strptime(start_date.strip(), '%Y-%m-%d').date()
+        except ValueError:
+            raise ValueError(f"Invalid start_date format '{start_date}'. Expected YYYY-MM-DD.")
+    if isinstance(end_date, str):
+        try:
+            end_date = datetime.strptime(end_date.strip(), '%Y-%m-%d').date()
+        except ValueError:
+            raise ValueError(f"Invalid end_date format '{end_date}'. Expected YYYY-MM-DD.")
 
-    if period == 'today':
+    if start_date and end_date:
+        if start_date > end_date:
+            raise ValueError('start_date must be before or equal to end_date.')
+        return {'start_date': start_date, 'end_date': end_date}
+
+    period_clean = (period or 'this_month').lower().strip()
+    if period_clean == 'today':
         return {'start_date': today, 'end_date': today}
-    if period == 'this_week':
+    if period_clean in ('this_week', 'week'):
         start = today - timedelta(days=today.weekday())
         end = start + timedelta(days=6)
         return {'start_date': start, 'end_date': end}
-    if period == 'this_month':
+    if period_clean in ('this_month', 'month'):
         start = today.replace(day=1)
         next_month = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
         end = next_month - timedelta(days=1)
         return {'start_date': start, 'end_date': end}
-    if period == 'this_year':
+    if period_clean in ('this_quarter', 'quarter'):
+        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
+        start = today.replace(month=quarter_start_month, day=1)
+        next_quarter_month = quarter_start_month + 3
+        next_quarter_year = today.year
+        if next_quarter_month > 12:
+            next_quarter_month -= 12
+            next_quarter_year += 1
+        end = date(next_quarter_year, next_quarter_month, 1) - timedelta(days=1)
+        return {'start_date': start, 'end_date': end}
+    if period_clean in ('this_year', 'year'):
         start = today.replace(month=1, day=1)
         end = today.replace(month=12, day=31)
         return {'start_date': start, 'end_date': end}
-    raise ValueError('Unsupported period. Use today, this_week, this_month, this_year, or custom dates.')
+    if period_clean == 'custom':
+        if not start_date or not end_date:
+            raise ValueError('Both start_date and end_date are required for custom period.')
+        return {'start_date': start_date, 'end_date': end_date}
+    raise ValueError('Unsupported period. Use today, week, month, quarter, year, or custom dates.')
 
 
 def _as_datetime_range(start_date, end_date):
@@ -44,6 +70,12 @@ def _as_datetime_range(start_date, end_date):
     start_dt = timezone.make_aware(datetime.combine(start_date, time.min), tz)
     end_dt = timezone.make_aware(datetime.combine(end_date, time.max), tz)
     return start_dt, end_dt
+
+
+def _to_money(val):
+    if val is None:
+        return Decimal('0.00')
+    return Decimal(str(val)).quantize(Decimal('0.01'))
 
 
 def sales_report(period='this_month', start_date=None, end_date=None):
@@ -89,9 +121,9 @@ def sales_report(period='this_month', start_date=None, end_date=None):
         ).order_by('-total_sales')
     )
 
-    total_sales = queryset.aggregate(total_sales=Sum('total'))['total_sales'] or Decimal('0.00')
+    total_sales = _to_money(queryset.aggregate(total_sales=Sum('total'))['total_sales'])
     sales_count = queryset.count()
-    average_sale = queryset.aggregate(avg_sale=Avg('total'))['avg_sale'] or Decimal('0.00')
+    average_sale = _to_money(queryset.aggregate(avg_sale=Avg('total'))['avg_sale'])
 
     return {
         'start_date': date_range['start_date'],
@@ -102,7 +134,7 @@ def sales_report(period='this_month', start_date=None, end_date=None):
         'sales_by_day': [
             {
                 'day': item['day'],
-                'total_sales': item['total_sales'] or Decimal('0.00'),
+                'total_sales': _to_money(item['total_sales']),
                 'sales_count': item['sales_count'],
             }
             for item in sales_by_day
@@ -110,7 +142,7 @@ def sales_report(period='this_month', start_date=None, end_date=None):
         'sales_by_payment_method': [
             {
                 'payment_method': item['payment_method'],
-                'total_sales': item['total_sales'] or Decimal('0.00'),
+                'total_sales': _to_money(item['total_sales']),
                 'sales_count': item['sales_count'],
             }
             for item in by_payment_method
@@ -118,7 +150,7 @@ def sales_report(period='this_month', start_date=None, end_date=None):
         'sales_by_cashier': [
             {
                 'cashier_name': f"{item['cashier__first_name']} {item['cashier__last_name']}".strip() or 'Unknown',
-                'total_sales': item['total_sales'] or Decimal('0.00'),
+                'total_sales': _to_money(item['total_sales']),
                 'sales_count': item['sales_count'],
             }
             for item in by_cashier
@@ -127,29 +159,42 @@ def sales_report(period='this_month', start_date=None, end_date=None):
             {
                 'product_name': item['product__name'],
                 'total_quantity': item['total_quantity'],
-                'total_revenue': item['total_revenue'] or Decimal('0.00'),
+                'total_revenue': _to_money(item['total_revenue']),
             }
             for item in product_totals
         ],
         'sales_by_category': [
             {
                 'category': item['product__category__name'],
-                'total_sales': item['total_sales'] or Decimal('0.00'),
+                'total_sales': _to_money(item['total_sales']),
             }
             for item in sales_by_category
+        ],
+        'recent_sales': [
+            {
+                'date': sale.created_at.date().isoformat(),
+                'invoice': sale.sale_number,
+                'payment': sale.payment_method,
+                'customer': (f"{sale.customer.first_name} {sale.customer.last_name}".strip() or sale.customer.username) if sale.customer else 'Walk-in Customer',
+                'revenue': _to_money(sale.total),
+                'items': sale.items.count(),
+            }
+            for sale in queryset.order_by('-created_at')[:50].prefetch_related('items')
         ],
     }
 
 
-def expense_report(period='this_month', start_date=None, end_date=None):
+def expense_report(period='this_month', start_date=None, end_date=None, status=Expense.Status.APPROVED):
     date_range = get_date_range(period=period, start_date=start_date, end_date=end_date)
     start_dt, end_dt = _as_datetime_range(date_range['start_date'], date_range['end_date'])
     queryset = Expense.objects.filter(
         created_at__gte=start_dt,
         created_at__lte=end_dt,
     )
+    if status is not None and status != 'ALL':
+        queryset = queryset.filter(status=status)
 
-    total_expenses = queryset.aggregate(total_expenses=Sum('amount'))['total_expenses'] or Decimal('0.00')
+    total_expenses = _to_money(queryset.aggregate(total_expenses=Sum('amount'))['total_expenses'])
     expense_count = queryset.count()
 
     expenses_by_category = list(
@@ -159,10 +204,15 @@ def expense_report(period='this_month', start_date=None, end_date=None):
         queryset.values('payment_method').annotate(total_expenses=Sum('amount'), expense_count=Count('id')).order_by('-total_expenses')
     )
     by_day = list(
-        queryset.annotate(day=TruncDate('expense_date')).values('day').annotate(total_expenses=Sum('amount'), expense_count=Count('id')).order_by('day')
+        queryset.annotate(day=F('expense_date')).values('day').annotate(total_expenses=Sum('amount'), expense_count=Count('id')).order_by('day')
     )
     largest_expenses = list(
-        queryset.order_by('-amount')[:10].values('expense_reference', 'vendor', 'amount', 'category', 'expense_date')
+        queryset.order_by('-amount')[:10].values('expense_reference', 'vendor', 'amount', 'category', 'expense_date', 'description')
+    )
+    recent_expenses = list(
+        queryset.order_by('-expense_date', '-created_at')[:50].values(
+            'expense_reference', 'vendor', 'amount', 'category', 'expense_date', 'description'
+        )
     )
 
     return {
@@ -173,7 +223,7 @@ def expense_report(period='this_month', start_date=None, end_date=None):
         'expenses_by_category': [
             {
                 'category': item['category'],
-                'total_expenses': item['total_expenses'] or Decimal('0.00'),
+                'total_expenses': _to_money(item['total_expenses']),
                 'expense_count': item['expense_count'],
             }
             for item in expenses_by_category
@@ -181,7 +231,7 @@ def expense_report(period='this_month', start_date=None, end_date=None):
         'expenses_by_payment_method': [
             {
                 'payment_method': item['payment_method'],
-                'total_expenses': item['total_expenses'] or Decimal('0.00'),
+                'total_expenses': _to_money(item['total_expenses']),
                 'expense_count': item['expense_count'],
             }
             for item in expenses_by_payment_method
@@ -189,7 +239,7 @@ def expense_report(period='this_month', start_date=None, end_date=None):
         'expenses_by_day': [
             {
                 'day': item['day'],
-                'total_expenses': item['total_expenses'] or Decimal('0.00'),
+                'total_expenses': _to_money(item['total_expenses']),
                 'expense_count': item['expense_count'],
             }
             for item in by_day
@@ -198,21 +248,33 @@ def expense_report(period='this_month', start_date=None, end_date=None):
             {
                 'expense_reference': item['expense_reference'],
                 'vendor': item['vendor'],
-                'amount': item['amount'],
+                'amount': _to_money(item['amount']),
                 'category': item['category'],
                 'expense_date': item['expense_date'],
+                'description': item.get('description', ''),
             }
             for item in largest_expenses
+        ],
+        'recent_expenses': [
+            {
+                'expense_reference': item['expense_reference'],
+                'vendor': item['vendor'],
+                'amount': _to_money(item['amount']),
+                'category': item['category'],
+                'expense_date': item['expense_date'],
+                'description': item.get('description', ''),
+            }
+            for item in recent_expenses
         ],
     }
 
 
 def profit_report(period='this_month', start_date=None, end_date=None):
     sales = sales_report(period=period, start_date=start_date, end_date=end_date)
-    expenses = expense_report(period=period, start_date=start_date, end_date=end_date)
+    expenses = expense_report(period=period, start_date=start_date, end_date=end_date, status=Expense.Status.APPROVED)
 
-    revenue = sales['total_sales']
-    expenses_total = expenses['total_expenses']
+    revenue = _to_money(sales['total_sales'])
+    expenses_total = _to_money(expenses['total_expenses'])
 
     cost_of_goods_sold = Decimal('0.00')
     range_data = get_date_range(period=period, start_date=start_date, end_date=end_date)
@@ -227,34 +289,38 @@ def profit_report(period='this_month', start_date=None, end_date=None):
         if item.product.cost_price is not None:
             cost_of_goods_sold += (item.quantity * item.product.cost_price)
 
-    gross_profit = revenue - cost_of_goods_sold
-    net_profit = gross_profit - expenses_total
+    cost_of_goods_sold = _to_money(cost_of_goods_sold)
+    gross_profit = _to_money(revenue - cost_of_goods_sold)
+    net_profit = _to_money(gross_profit - expenses_total)
     profit_margin = Decimal('0.00')
     if revenue > 0:
-        profit_margin = (net_profit / revenue) * Decimal('100')
+        profit_margin = ((net_profit / revenue) * Decimal('100')).quantize(Decimal('0.01'))
 
     return {
+        'start_date': range_data['start_date'],
+        'end_date': range_data['end_date'],
         'revenue': revenue,
         'cost_of_goods_sold': cost_of_goods_sold,
         'gross_profit': gross_profit,
         'expenses': expenses_total,
         'net_profit': net_profit,
-        'profit_margin': profit_margin.quantize(Decimal('0.01')),
+        'profit_margin': profit_margin,
     }
 
 
 def growth_report(period='this_month', start_date=None, end_date=None):
     current_range = get_date_range(period=period, start_date=start_date, end_date=end_date)
-    if period in {'today', 'this_week', 'this_month', 'this_year'}:
-        if period == 'today':
+    period_clean = (period or 'this_month').lower().strip()
+    if period_clean in {'today', 'this_week', 'week', 'this_month', 'month', 'this_quarter', 'quarter', 'this_year', 'year'}:
+        if period_clean == 'today':
             previous_start = current_range['start_date'] - timedelta(days=1)
             previous_end = current_range['end_date'] - timedelta(days=1)
-        elif period == 'this_week':
+        elif period_clean in {'this_week', 'week'}:
             current_start = current_range['start_date']
             current_end = current_range['end_date']
             previous_start = current_start - timedelta(days=7)
             previous_end = current_end - timedelta(days=7)
-        elif period == 'this_month':
+        elif period_clean in {'this_month', 'month'}:
             current_start = current_range['start_date']
             current_end = current_range['end_date']
             if current_start.month == 1:
@@ -264,6 +330,10 @@ def growth_report(period='this_month', start_date=None, end_date=None):
             else:
                 previous_start = current_start.replace(month=current_start.month - 1, day=1)
                 previous_end = (previous_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        elif period_clean in {'this_quarter', 'quarter'}:
+            previous_end = current_range['start_date'] - timedelta(days=1)
+            previous_start_month = ((previous_end.month - 1) // 3) * 3 + 1
+            previous_start = previous_end.replace(month=previous_start_month, day=1)
         else:
             previous_start = current_range['start_date'].replace(year=current_range['start_date'].year - 1)
             previous_end = current_range['end_date'].replace(year=current_range['end_date'].year - 1)
@@ -274,8 +344,8 @@ def growth_report(period='this_month', start_date=None, end_date=None):
 
     current_sales = sales_report(period=period, start_date=current_range['start_date'], end_date=current_range['end_date'])
     previous_sales = sales_report(period='custom', start_date=previous_start, end_date=previous_end)
-    current_expenses = expense_report(period=period, start_date=current_range['start_date'], end_date=current_range['end_date'])
-    previous_expenses = expense_report(period='custom', start_date=previous_start, end_date=previous_end)
+    current_expenses = expense_report(period=period, start_date=current_range['start_date'], end_date=current_range['end_date'], status=Expense.Status.APPROVED)
+    previous_expenses = expense_report(period='custom', start_date=previous_start, end_date=previous_end, status=Expense.Status.APPROVED)
     current_profit = profit_report(period=period, start_date=current_range['start_date'], end_date=current_range['end_date'])
     previous_profit = profit_report(period='custom', start_date=previous_start, end_date=previous_end)
 
@@ -297,16 +367,32 @@ def growth_report(period='this_month', start_date=None, end_date=None):
     elif current_profit['net_profit'] > 0:
         profit_growth = Decimal('100.00')
 
+    # Transaction volume comparisons
+    current_sales_count = current_sales['sales_count']
+    previous_sales_count = previous_sales['sales_count']
+    sales_volume_growth = Decimal('0.00')
+    if previous_sales_count > 0:
+        sales_volume_growth = Decimal(str(((current_sales_count - previous_sales_count) / previous_sales_count) * 100))
+    elif current_sales_count > 0:
+        sales_volume_growth = Decimal('100.00')
+
     return {
-        'current_period_sales': current_sales['total_sales'],
-        'previous_period_sales': previous_sales['total_sales'],
+        'start_date': current_range['start_date'],
+        'end_date': current_range['end_date'],
+        'previous_start_date': previous_start,
+        'previous_end_date': previous_end,
+        'current_period_sales': _to_money(current_sales['total_sales']),
+        'previous_period_sales': _to_money(previous_sales['total_sales']),
         'sales_growth_percentage': sales_growth.quantize(Decimal('0.01')),
-        'current_period_expenses': current_expenses['total_expenses'],
-        'previous_period_expenses': previous_expenses['total_expenses'],
+        'current_period_expenses': _to_money(current_expenses['total_expenses']),
+        'previous_period_expenses': _to_money(previous_expenses['total_expenses']),
         'expense_growth_percentage': expense_growth.quantize(Decimal('0.01')),
-        'current_period_profit': current_profit['net_profit'],
-        'previous_period_profit': previous_profit['net_profit'],
+        'current_period_profit': _to_money(current_profit['net_profit']),
+        'previous_period_profit': _to_money(previous_profit['net_profit']),
         'profit_growth_percentage': profit_growth.quantize(Decimal('0.01')),
+        'current_period_sales_count': current_sales_count,
+        'previous_period_sales_count': previous_sales_count,
+        'sales_volume_growth_percentage': sales_volume_growth.quantize(Decimal('0.01')),
     }
 
 
@@ -316,7 +402,7 @@ def inventory_summary():
     low_stock = InventoryItem.objects.filter(quantity__lte=F('product__reorder_level')).count()
     out_of_stock = InventoryItem.objects.filter(quantity=0).count()
     total_inventory_quantity = InventoryItem.objects.aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-    inventory_value = InventoryItem.objects.select_related('product').aggregate(
+    inventory_val = InventoryItem.objects.select_related('product').aggregate(
         value=Sum(models.F('quantity') * models.F('product__selling_price'))
     )['value'] or Decimal('0.00')
 
@@ -326,23 +412,23 @@ def inventory_summary():
         'low_stock_products': low_stock,
         'out_of_stock_products': out_of_stock,
         'total_inventory_quantity': total_inventory_quantity,
-        'inventory_value': inventory_value,
+        'inventory_value': _to_money(inventory_val),
     }
 
 
 def credit_summary(period='this_month', start_date=None, end_date=None):
     date_range = get_date_range(period=period, start_date=start_date, end_date=end_date)
-    total_credit_limit = CreditAccount.objects.aggregate(total_credit_limit=Sum('credit_limit'))['total_credit_limit'] or Decimal('0.00')
-    total_outstanding_credit = CreditAccount.objects.aggregate(total_outstanding=Sum('outstanding_balance'))['total_outstanding'] or Decimal('0.00')
-    available_credit = total_credit_limit - total_outstanding_credit
+    total_credit_limit = _to_money(CreditAccount.objects.aggregate(total_credit_limit=Sum('credit_limit'))['total_credit_limit'])
+    total_outstanding_credit = _to_money(CreditAccount.objects.aggregate(total_outstanding=Sum('outstanding_balance'))['total_outstanding'])
+    available_credit = _to_money(total_credit_limit - total_outstanding_credit)
     active_credit_accounts = CreditAccount.objects.filter(status=CreditAccount.Status.ACTIVE).count()
     overdue_credit_accounts = CreditAccount.objects.filter(status=CreditAccount.Status.OVERDUE).count()
     start_dt, end_dt = _as_datetime_range(date_range['start_date'], date_range['end_date'])
-    repayments_during_period = CreditTransaction.objects.filter(
+    repayments_during_period = _to_money(CreditTransaction.objects.filter(
         transaction_type=CreditTransaction.TransactionType.REPAYMENT,
         created_at__gte=start_dt,
         created_at__lte=end_dt,
-    ).aggregate(total_repayed=Sum('amount'))['total_repayed'] or Decimal('0.00')
+    ).aggregate(total_repayed=Sum('amount'))['total_repayed'])
 
     return {
         'total_credit_limit': total_credit_limit,

@@ -7,10 +7,13 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Case, Count, Q, Sum, When, DecimalField, Value
 from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from datetime import datetime, time
 
 from apps.products.models import Product
+from .dashboard_service import ManagementDashboardService
 from .models import Sale, SaleItem
 
 User = get_user_model()
@@ -47,6 +50,26 @@ def _can_view_sales_dashboard(user):
 		and getattr(user, 'is_authenticated', False)
 		and getattr(user, 'role', None) in ('OWNER', 'MANAGER', 'CASHIER', 'STAFF')
 	)
+
+
+def _wants_json(request):
+	format_param = (request.GET.get('format') or '').lower()
+	if format_param == 'json':
+		return True
+	if format_param == 'html':
+		return False
+	accept_header = request.headers.get('Accept', '') or request.META.get('HTTP_ACCEPT', '')
+	if 'text/html' in accept_header and 'application/json' not in accept_header:
+		return False
+	if 'application/json' in accept_header and 'text/html' not in accept_header:
+		return True
+	content_type = getattr(request, 'content_type', '') or request.META.get('CONTENT_TYPE', '')
+	if 'application/json' in content_type:
+		return True
+	if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+		return True
+	return True
+
 
 
 def _parse_json_body(request):
@@ -302,6 +325,16 @@ def sale_detail(request, sale_id):
 def sale_report_summary(request):
 	if request.method != 'GET':
 		return _json_response(message='Only GET is allowed.', success=False, status=405)
+
+	if not _wants_json(request):
+		if not request.user or not getattr(request.user, 'is_authenticated', False):
+			return redirect(f"{reverse('accounts:login')}?next=/sales/summary/")
+		if getattr(request.user, 'role', None) == 'CUSTOMER':
+			return redirect('/customer/dashboard/')
+		if not _can_view_sales_dashboard(request.user):
+			return render(request, '403.html', {'message': 'You do not have permission to view sales reports.'}, status=403)
+		return render(request, 'sales/dashboard.html', {})
+
 	if not request.user or not getattr(request.user, 'is_authenticated', False):
 		return _json_response(message='Authentication required.', success=False, status=401)
 	if not _can_view_sales_dashboard(request.user):
@@ -336,13 +369,13 @@ def sale_report_summary(request):
 	)
 	return _json_response(
 		data={
-			'total_sales': str(aggregates['total_sales'] or Decimal('0.00')),
+			'total_sales': f"{Decimal(str(aggregates['total_sales'] or 0)):.2f}",
 			'transaction_count': aggregates['transaction_count'] or 0,
-			'total_discount': str(aggregates['total_discount'] or Decimal('0.00')),
-			'cash_total': str(aggregates['cash_total'] or Decimal('0.00')),
-			'transfer_total': str(aggregates['transfer_total'] or Decimal('0.00')),
-			'card_total': str(aggregates['card_total'] or Decimal('0.00')),
-			'credit_total': str(aggregates['credit_total'] or Decimal('0.00')),
+			'total_discount': f"{Decimal(str(aggregates['total_discount'] or 0)):.2f}",
+			'cash_total': f"{Decimal(str(aggregates['cash_total'] or 0)):.2f}",
+			'transfer_total': f"{Decimal(str(aggregates['transfer_total'] or 0)):.2f}",
+			'card_total': f"{Decimal(str(aggregates['card_total'] or 0)):.2f}",
+			'credit_total': f"{Decimal(str(aggregates['credit_total'] or 0)):.2f}",
 		},
 		message='Sales summary retrieved successfully.',
 	)
@@ -350,6 +383,8 @@ def sale_report_summary(request):
 
 def sale_create(request):
 	if request.method == 'GET':
+		if not _wants_json(request):
+			return redirect('sales:pos')
 		return sale_list(request)
 	if request.method != 'POST':
 		return _json_response(message='Only POST is allowed.', success=False, status=405)
@@ -415,6 +450,10 @@ def sale_create(request):
 			errors[f'{prefix}.quantity'] = 'Quantity must be a positive integer.'
 			continue
 
+		if product.inventory_item.quantity < quantity:
+			errors[f'{prefix}.quantity'] = f'Insufficient stock. Only {product.inventory_item.quantity} units available.'
+			continue
+
 		line_discount, line_discount_error = _parse_money(
 			item_payload.get('discount', '0.00'),
 			f'{prefix}.discount',
@@ -430,11 +469,37 @@ def sale_create(request):
 			continue
 
 		line_total = line_gross - line_discount
+		if product.cost_price is not None and product.cost_price > Decimal('0.00'):
+			min_line_total = product.cost_price * quantity
+			if line_total < min_line_total:
+				errors[f'{prefix}.discount'] = (
+					f'Line discount causes effective selling price to fall below cost price '
+					f'({product.cost_price:.2f} per unit).'
+				)
+				continue
+
 		subtotal += line_total
 		prepared_items.append((product, quantity, line_discount))
 
+	total_cost = sum(
+		((p.cost_price or Decimal('0.00')) * q)
+		for p, q, _ in prepared_items
+	)
+	effective_discount = discount if discount is not None else Decimal('0.00')
+	if effective_discount > Decimal('0.00') and total_cost > Decimal('0.00') and (subtotal - effective_discount) < total_cost:
+		errors['discount'] = 'Sale discount causes effective sale total to fall below total product cost price.'
+
 	if errors:
 		return _json_response(message='Validation failed.', success=False, status=400, errors=errors)
+
+	final_sale_total = max(subtotal - effective_discount, Decimal('0.00'))
+	if payment_method == Sale.PaymentMethod.CREDIT and customer is not None:
+		from apps.credits.services import CreditService
+		try:
+			CreditService.validate_credit_eligibility(customer, final_sale_total)
+		except ValidationError as credit_err:
+			credit_errors = credit_err.message_dict if hasattr(credit_err, 'message_dict') else {'credit': credit_err.messages}
+			return _json_response(message='Validation failed.', success=False, status=400, errors=credit_errors)
 
 	sale = Sale(
 		sale_number=_generate_sale_number(),
@@ -444,7 +509,7 @@ def sale_create(request):
 		payment_method=payment_method,
 		discount=discount,
 		subtotal=subtotal,
-		total=max(subtotal - discount, Decimal('0.00')),
+		total=final_sale_total,
 		notes=payload.get('notes') or '',
 	)
 	try:
@@ -504,22 +569,205 @@ def sale_complete(request, sale_id):
 		return _validation_error_response(error)
 
 	sale.refresh_from_db()
+	response_data = {
+		'sale_number': sale.sale_number,
+		'status': sale.status,
+		'payment_status': sale.payment_status,
+		'subtotal': str(sale.subtotal),
+		'discount': str(sale.discount),
+		'total': str(sale.total),
+		'amount_received': str(sale.amount_received) if sale.amount_received is not None else None,
+		'change_amount': str(sale.change_amount) if sale.change_amount is not None else None,
+		'payment_method': sale.payment_method,
+		'customer': _serialize_customer(sale.customer),
+		'items': [_serialize_sale_item(item) for item in sale.items.select_related('product').all()],
+		'completed_at': sale.updated_at.isoformat(),
+	}
+
+	if sale.payment_method == Sale.PaymentMethod.CREDIT and sale.customer:
+		try:
+			account = getattr(sale.customer, 'credit_account', None)
+			if account:
+				account.refresh_from_db()
+				response_data['credit_account'] = {
+					'outstanding_balance': str(account.outstanding_balance),
+					'current_balance': str(account.outstanding_balance),
+					'credit_limit': str(account.credit_limit),
+					'available_credit': str(account.get_available_credit()),
+					'status': account.status,
+				}
+		except Exception:
+			pass
+
 	return _json_response(
-		data={
-			'sale_number': sale.sale_number,
-			'status': sale.status,
-			'payment_status': sale.payment_status,
-			'subtotal': str(sale.subtotal),
-			'discount': str(sale.discount),
-			'total': str(sale.total),
-			'amount_received': str(sale.amount_received) if sale.amount_received is not None else None,
-			'change_amount': str(sale.change_amount) if sale.change_amount is not None else None,
-			'payment_method': sale.payment_method,
-			'customer': _serialize_customer(sale.customer),
-			'items': [_serialize_sale_item(item) for item in sale.items.select_related('product').all()],
-			'completed_at': sale.updated_at.isoformat(),
-		},
+		data=response_data,
 		message='Sale completed successfully.',
 	)
 
-# Create your views here.
+
+def customer_search_view(request):
+	"""Customer search endpoint for POS Credit Ledger and counter lookup."""
+	if request.method != 'GET':
+		return _json_response(message='Only GET is allowed.', success=False, status=405)
+	if not request.user or not getattr(request.user, 'is_authenticated', False):
+		return _json_response(message='Authentication required.', success=False, status=401)
+	if not _can_process_sales(request.user):
+		return _json_response(message='You do not have permission to search customers.', success=False, status=403)
+
+	query = (request.GET.get('q') or request.GET.get('search') or '').strip()
+	customers_qs = User.objects.filter(role='CUSTOMER', is_active=True)
+	if query:
+		customers_qs = customers_qs.filter(
+			Q(first_name__icontains=query)
+			| Q(last_name__icontains=query)
+			| Q(phone_number__icontains=query)
+			| Q(email__icontains=query)
+			| Q(username__icontains=query)
+		)
+
+	customers_qs = customers_qs.select_related('credit_account').order_by('first_name', 'last_name')[:20]
+
+	results = []
+	for cust in customers_qs:
+		credit_acc = getattr(cust, 'credit_account', None)
+		if credit_acc:
+			available = credit_acc.get_available_credit()
+			limit = credit_acc.credit_limit
+			balance = credit_acc.outstanding_balance
+			status = credit_acc.status
+			has_account = True
+			can_use = credit_acc.can_use_credit(1)
+		else:
+			available = Decimal('0.00')
+			limit = Decimal('0.00')
+			balance = Decimal('0.00')
+			status = 'NO_ACCOUNT'
+			has_account = False
+			can_use = False
+
+		results.append({
+			'id': cust.id,
+			'name': cust.get_full_name() or cust.username,
+			'full_name': cust.get_full_name() or cust.username,
+			'username': cust.username,
+			'phone': getattr(cust, 'phone_number', '') or '',
+			'email': cust.email,
+			'credit_limit': str(limit),
+			'outstanding_balance': str(balance),
+			'current_balance': str(balance),
+			'available_credit': str(available),
+			'has_credit_account': has_account,
+			'status': status,
+			'can_use_credit': can_use,
+		})
+
+	return _json_response(data={'customers': results}, message='Customers retrieved successfully.')
+
+
+def pos_view(request):
+	"""Interactive POS Cashier Register View (GET /sales/pos/)."""
+	if not request.user or not request.user.is_authenticated:
+		return redirect(f"{reverse('accounts:login')}?next=/sales/pos/")
+	if not _can_process_sales(request.user):
+		if _wants_json(request):
+			return _json_response(message="You do not have permission to access the POS terminal.", success=False, status=403)
+		from django.contrib import messages
+		messages.warning(request, "Access restricted to store staff. Redirected to customer storefront.")
+		return redirect('/customer/products/')
+	from django.conf import settings
+	context = {
+		'counter_account': getattr(settings, 'MONIEPOINT_COUNTER_ACCOUNT', '') or '8123456789',
+		'bank_name': getattr(settings, 'MONIEPOINT_BANK_NAME', 'Moniepoint MFB'),
+		'terminal_serial': getattr(settings, 'MONIEPOINT_TERMINAL_ID', '') or 'MP_POS_01',
+	}
+	return render(request, 'sales/pos.html', context)
+
+
+def sales_checkout_view(request):
+	"""Sales Checkout View (GET /sales/checkout/)."""
+	if not request.user or not request.user.is_authenticated:
+		return redirect(f"{reverse('accounts:login')}?next=/sales/checkout/")
+	if not _can_process_sales(request.user):
+		if _wants_json(request):
+			return _json_response(message="You do not have permission to access sales checkout.", success=False, status=403)
+		return redirect('sales:dashboard')
+	return render(request, 'sales/checkout.html', {})
+
+
+def sales_receipt_view(request):
+	"""Sales Receipt View (GET /sales/receipt/)."""
+	if not request.user or not request.user.is_authenticated:
+		return redirect(f"{reverse('accounts:login')}?next=/sales/receipt/")
+	if not _can_view_sales(request.user):
+		if _wants_json(request):
+			return _json_response(message="You do not have permission to view receipts.", success=False, status=403)
+		return redirect('sales:dashboard')
+	return render(request, 'sales/receipt.html', {})
+
+
+def sales_history_view(request):
+	"""Completed Sales Transactions Audit History View (GET /sales/history/)."""
+	if not request.user or not request.user.is_authenticated:
+		return redirect(f"{reverse('accounts:login')}?next=/sales/history/")
+	if not _can_view_sales(request.user):
+		if _wants_json(request):
+			return _json_response(message="You do not have permission to view sales history.", success=False, status=403)
+		return redirect('sales:dashboard')
+	return render(request, 'sales/sales_history.html', {})
+
+
+
+def management_dashboard_view(request):
+	"""Unified Management Dashboard View (GET /dashboard/).
+
+	Routes OWNER and MANAGER roles to owner.html with business analytics,
+	and CASHIER and STAFF roles to staff.html with operational work queues.
+	Enforces strict role boundaries and customer isolation.
+	"""
+	if request.method != 'GET':
+		return _json_response(message='Only GET is allowed.', success=False, status=405)
+
+	accept = request.headers.get('Accept', '') or request.META.get('HTTP_ACCEPT', '')
+	wants_json = (
+		request.GET.get('format') == 'json'
+		or ('application/json' in accept and 'text/html' not in accept)
+		or request.headers.get('x-requested-with') == 'XMLHttpRequest'
+	)
+
+	if not request.user or not request.user.is_authenticated:
+		if wants_json:
+			return _json_response(message='Authentication required.', success=False, status=401)
+		return redirect(f"{reverse('accounts:login')}?next=/dashboard/")
+
+	user_role = getattr(request.user, 'role', None)
+
+	if user_role == 'CUSTOMER':
+		if wants_json:
+			return _json_response(message='Customers cannot access the management dashboard.', success=False, status=403)
+		return redirect('/customer/dashboard/')
+
+	if user_role not in ('OWNER', 'MANAGER', 'CASHIER', 'STAFF'):
+		if wants_json:
+			return _json_response(message='Access denied.', success=False, status=403)
+		return redirect(f"{reverse('accounts:login')}?next=/dashboard/")
+
+	if user_role in ('OWNER', 'MANAGER'):
+		dashboard_data = ManagementDashboardService.get_owner_dashboard_data()
+		template_name = 'dashboard/owner.html'
+	else:
+		dashboard_data = ManagementDashboardService.get_staff_dashboard_data(request.user)
+		template_name = 'dashboard/staff.html'
+
+	if wants_json:
+		return _json_response(
+			data=dashboard_data,
+			message=f"{dashboard_data['role'].capitalize()} dashboard retrieved successfully.",
+			success=True,
+			status=200,
+		)
+
+	context = {
+		**dashboard_data,
+		'dashboard_json': json.dumps(dashboard_data),
+	}
+	return render(request, template_name, context)

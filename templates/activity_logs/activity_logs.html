@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    System Audit Trail &amp; Activity Logs | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Activity Logs
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/activity_logs/activity_logs.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="activity-logs-page">
+
+    <!-- Page Header & Hero -->
+    <header class="activity-logs-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                    <span>Security &amp; Compliance</span>
+                </span>
+            </div>
+            <h2>System Audit Trail &amp; Activity Log</h2>
+            <p>Inspect immutable historical records of system operations, user logins, status transitions, inventory deltas, and business transactions across MADAM HY.</p>
+        </div>
+    </header>
+
+    <!-- Top Statistical Summary Cards -->
+    <section class="activity-summary" aria-label="Audit summary metrics">
+        <article class="summary-card" aria-label="Total audit log entries">
+            <div class="summary-top">
+                <span>Total Audit Records</span>
+                <span class="card-icon"><i class="bi bi-shield-shaded" aria-hidden="true"></i></span>
+            </div>
+            <strong>{{ metrics.total_logs|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Events recorded today">
+            <div class="summary-top">
+                <span  class="text-primary">Events Today</span>
+                <span class="card-icon"><i class="bi bi-calendar-event" aria-hidden="true"></i></span>
+            </div>
+            <strong>{{ metrics.today_logs|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Events recorded in the past 24 hours">
+            <div class="summary-top">
+                <span>Past 24 Hours</span>
+                <span class="card-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+            </div>
+            <strong>{{ metrics.last_24h_logs|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Tracked model entities">
+            <div class="summary-top">
+                <span>Tracked Entity Models</span>
+                <span class="card-icon"><i class="bi bi-database" aria-hidden="true"></i></span>
+            </div>
+            <strong>{{ available_entities|length|default:"0" }}</strong>
+        </article>
+    </section>
+
+    <!-- Audit Records Panel -->
+    <section class="card activity-logs-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Audit Log Registry</h3>
+                <p>Filter by keyword, IP address, actor user, action type, or date range.</p>
+            </div>
+        </div>
+
+        <form method="GET" action="{% url 'activity_logs:list' %}" class="activity-toolbar">
+            <div class="toolbar-search">
+                <label class="visually-hidden" for="activitySearchInput">Search audit logs</label>
+                <input
+                    id="activitySearchInput"
+                    type="search"
+                    name="q"
+                    class="form-control"
+                    placeholder="Search by description, IP address, username, or email..."
+                    value="{{ search_query }}"
+                    aria-label="Search audit records"
+                >
+            </div>
+
+            <div class="toolbar-filters">
+                <label class="visually-hidden" for="actionFilterSelect">Filter by action type</label>
+                <select id="actionFilterSelect" name="action" class="form-select" aria-label="Filter by action type">
+                    <option value="" {% if not filter_action %}selected{% endif %}>All action types</option>
+                    {% for code, label in action_choices %}
+                    <option value="{{ code }}" {% if filter_action == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <label class="visually-hidden" for="entityFilterSelect">Filter by target entity</label>
+                <select id="entityFilterSelect" name="entity" class="form-select" aria-label="Filter by target entity">
+                    <option value="" {% if not filter_entity %}selected{% endif %}>All entities</option>
+                    {% for entity in available_entities %}
+                    <option value="{{ entity }}" {% if filter_entity == entity %}selected{% endif %}>{{ entity|title }}</option>
+                    {% endfor %}
+                </select>
+
+                <input
+                    type="date"
+                    name="start_date"
+                    class="form-control"
+                    placeholder="Start date"
+                    aria-label="Filter activity from date"
+                    value="{{ filter_start_date }}"
+                    style="width: 140px;"
+                >
+
+                <input
+                    type="date"
+                    name="end_date"
+                    class="form-control"
+                    placeholder="End date"
+                    aria-label="Filter activity to date"
+                    value="{{ filter_end_date }}"
+                    style="width: 140px;"
+                >
+
+                <button type="submit" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">
+                    <i class="bi bi-funnel" aria-hidden="true"></i> Filter
+                </button>
+                {% if search_query or filter_action or filter_entity or filter_start_date or filter_end_date %}
+                <a href="{% url 'activity_logs:list' %}" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">
+                    <i class="bi bi-x-circle" aria-hidden="true"></i> Reset
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <div class="table-wrapper table-responsive">
+            <table class="table activity-logs-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Timestamp</th>
+                        <th scope="col">Action Type</th>
+                        <th scope="col">Activity Summary</th>
+                        <th scope="col">Actor User</th>
+                        <th scope="col">Target Entity</th>
+                        <th scope="col">IP Address</th>
+                        <th scope="col"  class="text-right">Inspection</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if logs %}
+                        {% for log in logs %}
+                        <tr>
+                            <td class="font-mono" style="color: var(--muted); white-space: nowrap;">
+                                {{ log.created_at|date:"M d, Y H:i:s" }}
+                            </td>
+                            <td>
+                                <span class="action-badge {{ log.action_type|lower }}">
+                                    {{ log.get_action_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong style="display: block; color: var(--text-heading, #090d16); font-size: 13px;">{{ log.action_label }}</strong>
+                                <span style="font-size: 12px; color: var(--muted); display: block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {{ log.description }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.actor %}
+                                <div class="actor-tag">
+                                    <div class="actor-avatar-tiny" aria-hidden="true">
+                                        {{ log.actor.first_name|first|default:log.actor.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 700; color: var(--text);">{{ log.actor.get_full_name|default:log.actor.username }}</div>
+                                        <div style="font-size: 10.5px; color: var(--muted);">{{ log.actor.role }}</div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span style="color: var(--muted); font-style: italic;"><i class="bi bi-cpu" aria-hidden="true"></i> System</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.content_type %}
+                                <span class="entity-pill">{{ log.content_type.model|title }} #{{ log.object_id }}</span>
+                                {% else %}
+                                <span  class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-mono" style="color: var(--muted); font-size: 12px;">
+                                {{ log.ip_address|default:"-" }}
+                            </td>
+                            <td  class="text-right">
+                                <a href="{% url 'activity_logs:detail' log.id %}" class="btn-action btn-action-primary" title="Inspect audit record details">
+                                    <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                    <span>Inspect</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon" aria-hidden="true">
+                                        <i class="bi bi-shield-slash"></i>
+                                    </div>
+                                    <h3>No audit records match the criteria</h3>
+                                    <p>Try clearing your keyword query or resetting the date filter to inspect more activity entries.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if is_paginated %}
+        <nav class="pagination-wrapper" aria-label="Activity logs pagination">
+            <span>Showing page {{ page_obj.number }} of {{ paginator.num_pages }} ({{ paginator.count }} total records)</span>
+            <div  class="u-flex-gap-sm">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if filter_action %}&action={{ filter_action }}{% endif %}{% if filter_entity %}&entity={{ filter_entity }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-secondary btn-sm" aria-label="Previous page">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i> Previous
+                </a>
+                {% endif %}
+
+                <span style="padding: 5px 12px; font-weight: 750; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);">{{ page_obj.number }}</span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if filter_action %}&action={{ filter_action }}{% endif %}{% if filter_entity %}&entity={{ filter_entity }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-secondary btn-sm" aria-label="Next page">
+                    Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
+    </section>
+
+</div>
+
+<script id="activity-logs-data" type="application/json">
+{{ logs_json|safe }}
+</script>
+{% endblock %}

@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/requests/create.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='requests' current_tab='create' %}
+{% endblock %}
+
 {% block content %}
 <div class="request-form-page">
     <section class="request-form-hero">

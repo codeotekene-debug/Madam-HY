@@ -33,8 +33,34 @@ class ProductImageAdmin(admin.ModelAdmin):
 
 @admin.register(ProductPriceHistory)
 class ProductPriceHistoryAdmin(admin.ModelAdmin):
-    list_display = ('product', 'previous_price', 'new_price', 'changed_by', 'changed_at')
+    list_display = (
+        'product',
+        'previous_price',
+        'new_price',
+        'previous_cost_price',
+        'new_cost_price',
+        'changed_by',
+        'changed_at',
+    )
     list_filter = ('product', 'changed_by', 'changed_at')
-    search_fields = ('product__name', 'reason', 'changed_by__email')
-    readonly_fields = ('previous_price', 'new_price', 'changed_by', 'reason', 'changed_at')
+    search_fields = ('product__name', 'product__sku', 'reason', 'changed_by__email')
+    readonly_fields = (
+        'product',
+        'previous_price',
+        'new_price',
+        'previous_cost_price',
+        'new_cost_price',
+        'changed_by',
+        'reason',
+        'changed_at',
+    )
     ordering = ('-changed_at',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/sales/dashboard.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="sales" active_tab="summary" %}
+{% endblock %}
+
 {% block content %}
 <div class="sales-dashboard-page">
     <section class="sales-hero">

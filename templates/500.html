@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+500 Server Error | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+Server Error
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/errors.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="error-page-wrapper">
+    <div class="error-card">
+        <span class="error-badge badge-500">500 Server Error</span>
+        <div class="error-icon">⚠️</div>
+        <h2 class="error-title">Unexpected Error</h2>
+        <p class="error-desc">
+            Something unexpected occurred while processing your request.
+            Our technical staff has been informed. Please refresh the page or return to the dashboard.
+        </p>
+        <div class="error-actions">
+            {% if user.is_authenticated %}
+                {% if user.role == "CUSTOMER" %}
+                <a href="/customer/" class="btn-return">
+                    <span>⌂</span>
+                    <span>Return to Customer Dashboard</span>
+                </a>
+                {% else %}
+                <a href="/dashboard/" class="btn-return">
+                    <span>▦</span>
+                    <span>Return to Shop Dashboard</span>
+                </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'accounts:login' %}" class="btn-return">
+                    <span>Sign In</span>
+                </a>
+            {% endif %}
+            <button type="button" class="btn-back" onclick="window.location.reload()">
+                <span>↻</span>
+                <span>Reload Page</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -20,12 +20,24 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
+from django.views.generic import RedirectView
+
+from apps.accounts.views import customer_preferences_api, customer_settings_view
+from apps.products.views import customer_product_list
+from apps.sales.views import management_dashboard_view
+from config.views import root_entry_view
 
  
 urlpatterns = [
+    path('', root_entry_view, name='root_index'),
     path('admin/', admin.site.urls),
 
-    path("accounts/",include("apps.accounts.urls")),
+    path("dashboard/", management_dashboard_view, name="management_dashboard"),
+    path("accounts/", include("apps.accounts.urls")),
+    path("portal/login/", RedirectView.as_view(url="/accounts/portal/login/", permanent=False)),
+    path("customer/settings/", customer_settings_view, name="customer_settings"),
+    path("api/customer/preferences/", customer_preferences_api, name="api_customer_preferences"),
+    path("customer/", include("apps.orders.customer_urls")),
 
     path("products/",include("apps.products.urls")),
 
@@ -44,10 +56,27 @@ urlpatterns = [
     path("reports/",include("apps.reports.urls")),
 
     path("requests/",include("apps.requests.urls")),
+    path("customer/requests/", include("apps.requests.customer_urls")),
+    path("notifications/", include("apps.notifications.urls")),
+    path("activity-logs/", include("apps.activity_logs.urls")),
+    path("logs/", RedirectView.as_view(url="/activity-logs/", permanent=False)),
+    path("", include("apps.delivery.urls")),
+    path("preview/", include("apps.preview.urls")),
 ]
+
+from django.views.static import serve
+from django.urls import re_path
 
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
+else:
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
+
+handler403 = 'config.views.custom_403_view'
+handler404 = 'config.views.custom_404_view'
+handler500 = 'config.views.custom_500_view'

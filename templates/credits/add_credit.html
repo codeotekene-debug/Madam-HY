@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Issue &amp; Manage Customer Credit | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Issue Customer Credit
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/payment.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/credits/add-credit-page.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="credits" current_tab="accounts" %}
+{% endblock %}
+
+{% block content %}
+<div class="credit-payment-page">
+    <header class="credits-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
+                    <span>Credit Allocation</span>
+                </span>
+            </div>
+            <h2>Issue &amp; Manage Customer Credit</h2>
+            <p>Allocate store credit lines, approve limit adjustments, or top up prepaid customer accounts.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="{% url 'credits:credit_list' %}" class="btn btn-secondary" aria-label="Cancel and return to credit accounts">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span>Credit Accounts</span>
+            </a>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="messages-container" style="margin-bottom: 20px;">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}" role="alert" style="padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 8px; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <section class="add-credit-layout">
+        <!-- Main Form Card -->
+        <article class="card payment-form-card" style="padding: 24px;">
+            <div class="panel-header compact-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700;">Credit Provisioning Form</h3>
+                    <p style="margin: 0; color: var(--muted); font-size: 13px;">Specify the customer, credit amount, transaction type, and mandatory approval reason.</p>
+                </div>
+            </div>
+
+            <form id="addCreditForm" method="post" action="{% url 'credits:add_customer_credit' %}" class="payment-form">
+                {% csrf_token %}
+
+                <!-- Customer Selection -->
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label for="creditCustomer" class="form-label" style="font-weight: 600; display: block; margin-bottom: 6px;">Customer Account *</label>
+                    <select id="creditCustomer" name="customer_id" class="form-select" required style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                        <option value="">-- Choose active customer --</option>
+                        {% for c in customers %}
+                        <option value="{{ c.id }}"
+                            data-name="{{ c.get_full_name|default:c.username }}"
+                            data-email="{{ c.email }}"
+                            data-phone="{{ c.phone_number|default:'' }}"
+                            data-limit="{{ c.credit_account.credit_limit|default:'0.00' }}"
+                            data-balance="{{ c.credit_account.outstanding_balance|default:'0.00' }}"
+                            data-available="{{ c.credit_account.get_available_credit|default:'0.00' }}"
+                            data-status="{{ c.credit_account.get_status_display|default:'No Account' }}">
+                            {{ c.get_full_name|default:c.username }} ({{ c.email }}) — Available: ₦{{ c.credit_account.get_available_credit|default:'0.00'|floatformat:2 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small style="color: var(--muted); font-size: 12px; margin-top: 4px; display: block;">Displays active retail customers and current available store credit.</small>
+                </div>
+
+                <!-- Transaction Type -->
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label for="creditTxType" class="form-label" style="font-weight: 600; display: block; margin-bottom: 6px;">Transaction Type *</label>
+                    <select id="creditTxType" name="transaction_type" class="form-select" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                        <option value="TOP_UP" selected>TOP_UP — Top Up / Add Store Credit</option>
+                        <option value="CREDIT_LIMIT_ADJUSTMENT">CREDIT_LIMIT_ADJUSTMENT — Credit Limit Adjustment</option>
+                        <option value="MANUAL_OVERRIDE">MANUAL_OVERRIDE — Management Manual Override</option>
+                    </select>
+                </div>
+
+                <!-- Amount Field with Currency Prefix -->
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label for="creditAmount" class="form-label" style="font-weight: 600; display: block; margin-bottom: 6px;">Credit Amount to Add (₦) *</label>
+                    <div class="currency-input-wrapper">
+                        <span class="currency-prefix">₦</span>
+                        <input id="creditAmount" name="amount" class="form-control" type="number" step="0.01" min="0.01" placeholder="50,000.00" required style="width: 100%; padding: 10px 12px 10px 32px; border-radius: var(--radius-md); border: 1px solid var(--border); font-size: 15px; font-weight: 600;" />
+                    </div>
+                    <small style="color: var(--muted); font-size: 12px; margin-top: 4px; display: block;">Amount to be credited to the customer's allowance line.</small>
+                </div>
+
+                <!-- Optional Specific Credit Limit Adjuster Field -->
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label for="creditLimitAdjuster" class="form-label" style="font-weight: 600; display: block; margin-bottom: 6px;">
+                        Explicit Credit Limit Override (₦) <span style="font-weight: 400; color: var(--muted);">(Optional)</span>
+                    </label>
+                    <div class="currency-input-wrapper">
+                        <span class="currency-prefix">₦</span>
+                        <input id="creditLimitAdjuster" name="credit_limit" class="form-control" type="number" step="0.01" min="0.00" placeholder="Leave blank to add amount to current limit" style="width: 100%; padding: 10px 12px 10px 32px; border-radius: var(--radius-md); border: 1px solid var(--border);" />
+                    </div>
+                    <small style="color: var(--muted); font-size: 12px; margin-top: 4px; display: block;">Optionally enforce an explicit total credit limit cap.</small>
+                </div>
+
+                <!-- Purpose / Reason Text Area -->
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label for="creditNotes" class="form-label" style="font-weight: 600; display: block; margin-bottom: 6px;">Purpose / Reason for Credit *</label>
+                    <textarea id="creditNotes" name="notes" class="form-control" rows="3" placeholder="E.g., Advance store deposit, Management loyalty credit, Overpayment credit, Refund credit" required style="width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border); font-family: inherit;"></textarea>
+                    <small style="color: var(--muted); font-size: 12px; margin-top: 4px; display: block;">Mandatory audit note for store management and accounting records.</small>
+                </div>
+
+                <div id="creditFormAlert" class="alert alert-danger" style="display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius-md); background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 13px;"></div>
+
+                <!-- Form Action Buttons -->
+                <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--border); padding-top: 18px;">
+                    <button type="submit" id="submitCreditBtn" class="btn btn-primary" style="padding: 10px 24px; font-weight: 650; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-check-circle" aria-hidden="true"></i>
+                        <span>Grant Credit</span>
+                    </button>
+                    <a href="{% url 'credits:credit_list' %}" class="btn btn-secondary" style="padding: 10px 20px;">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </article>
+
+        <!-- Right Side Live Preview & Ledger Overview -->
+        <aside class="card payment-summary-card" style="padding: 24px;">
+            <div class="panel-header compact-header" style="margin-bottom: 16px;">
+                <div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 700;">Account Standing Preview</h3>
+                    <p style="margin: 0; color: var(--muted); font-size: 12.5px;">Live summary for selected customer.</p>
+                </div>
+            </div>
+
+            <div style="display: grid; gap: 10px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                    <span  class="text-muted">Customer:</span>
+                    <strong id="previewCustomerName"  class="text-body">No customer chosen</strong>
+                </div>
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Phone / Contact:</span>
+                    <strong id="previewCustomerPhone"  class="text-body">-</strong>
+                </div>
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Account Status:</span>
+                    <span id="previewAccountStatus" class="badge badge-secondary">-</span>
+                </div>
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Current Credit Limit:</span>
+                    <strong id="previewCurrentLimit"  class="text-body">₦ 0.00</strong>
+                </div>
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Outstanding Debt:</span>
+                    <strong id="previewCurrentDebt" style="color: #b87700;">₦ 0.00</strong>
+                </div>
+                <div  class="u-flex-between">
+                    <span  class="text-muted">Current Available:</span>
+                    <strong id="previewCurrentAvailable"  class="text-primary">₦ 0.00</strong>
+                </div>
+            </div>
+
+            <!-- Projection Box -->
+            <div class="projection-box">
+                <span style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px;">
+                    Projected Post-Grant Standing
+                </span>
+                <div class="projection-row">
+                    <span>Credit to Provision:</span>
+                    <strong id="projGrantAmount"  class="text-primary">+ ₦ 0.00</strong>
+                </div>
+                <div class="projection-row">
+                    <span>New Total Limit:</span>
+                    <strong id="projNewLimit">₦ 0.00</strong>
+                </div>
+                <div class="projection-row highlight">
+                    <span>Projected Available:</span>
+                    <strong id="projNewAvailable">₦ 0.00</strong>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding: 12px; background: rgba(14, 165, 233, 0.08); border-radius: var(--radius-md); font-size: 11.5px; color: var(--muted);">
+                <i class="bi bi-shield-lock" style="color: #0284c7;" aria-hidden="true"></i>
+                <span>Authorized Owner/Manager action. Balance movement will be timestamped and permanently logged to audit ledger.</span>
+            </div>
+        </aside>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const customerSelect = document.getElementById('creditCustomer');
+    const amountInput = document.getElementById('creditAmount');
+    const limitInput = document.getElementById('creditLimitAdjuster');
+    const txTypeSelect = document.getElementById('creditTxType');
+    const formEl = document.getElementById('addCreditForm');
+    const alertEl = document.getElementById('creditFormAlert');
+    const submitBtn = document.getElementById('submitCreditBtn');
+
+    // Preview elements
+    const pName = document.getElementById('previewCustomerName');
+    const pPhone = document.getElementById('previewCustomerPhone');
+    const pStatus = document.getElementById('previewAccountStatus');
+    const pLimit = document.getElementById('previewCurrentLimit');
+    const pDebt = document.getElementById('previewCurrentDebt');
+    const pAvail = document.getElementById('previewCurrentAvailable');
+    const projGrant = document.getElementById('projGrantAmount');
+    const projLimit = document.getElementById('projNewLimit');
+    const projAvail = document.getElementById('projNewAvailable');
+
+    function updatePreview() {
+        const opt = customerSelect.selectedOptions[0];
+        if (!opt || !opt.value) {
+            pName.textContent = 'No customer chosen';
+            pPhone.textContent = '-';
+            pStatus.textContent = '-';
+            pLimit.textContent = '₦ 0.00';
+            pDebt.textContent = '₦ 0.00';
+            pAvail.textContent = '₦ 0.00';
+            projGrant.textContent = '+ ₦ 0.00';
+            projLimit.textContent = '₦ 0.00';
+            projAvail.textContent = '₦ 0.00';
+            return;
+        }
+
+        const name = opt.getAttribute('data-name') || opt.textContent;
+        const phone = opt.getAttribute('data-phone') || 'No phone recorded';
+        const status = opt.getAttribute('data-status') || 'Active';
+        const curLimit = parseFloat(opt.getAttribute('data-limit') || '0') || 0;
+        const curDebt = parseFloat(opt.getAttribute('data-balance') || '0') || 0;
+        const curAvail = parseFloat(opt.getAttribute('data-available') || '0') || 0;
+
+        pName.textContent = name;
+        pPhone.textContent = phone;
+        pStatus.textContent = status;
+        pLimit.textContent = `₦ ${curLimit.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+        pDebt.textContent = `₦ ${curDebt.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+        pAvail.textContent = `₦ ${curAvail.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+
+        const grantAmt = parseFloat(amountInput.value) || 0;
+        const explicitLimit = parseFloat(limitInput.value);
+        let projectedLimit = curLimit + grantAmt;
+        if (!isNaN(explicitLimit) && explicitLimit >= 0) {
+            projectedLimit = explicitLimit;
+        }
+
+        const projectedAvailable = Math.max(0, projectedLimit - curDebt);
+
+        projGrant.textContent = `+ ₦ ${grantAmt.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+        projLimit.textContent = `₦ ${projectedLimit.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+        projAvail.textContent = `₦ ${projectedAvailable.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    }
+
+    customerSelect.addEventListener('change', updatePreview);
+    amountInput.addEventListener('input', updatePreview);
+    limitInput.addEventListener('input', updatePreview);
+    txTypeSelect.addEventListener('change', updatePreview);
+
+    // Auto-select customer from query param if available
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedCustomer = urlParams.get('customer_id');
+    if (preselectedCustomer) {
+        customerSelect.value = preselectedCustomer;
+        updatePreview();
+    }
+
+    formEl?.addEventListener('submit', function(e) {
+        if (!formEl.checkValidity()) {
+            return;
+        }
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; margin-right: 6px;"></span> Granting Credit...';
+        }
+    });
+});
+</script>
+{% endblock %}

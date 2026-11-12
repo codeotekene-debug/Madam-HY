@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Rider Portal · MADAM HY{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'css/pages/delivery/delivery.css' %}">{% endblock %}
+{% block content %}
+<div class="delivery-shell rider-shell">
+    <header class="delivery-page-header">
+        <h1>Rider workspace</h1>
+        <p class="delivery-muted">Your assigned deliveries, route details, and proof of delivery.</p>
+    </header>
+    <nav class="delivery-nav rider-nav" aria-label="Rider navigation">
+        {% with current=request.resolver_match.url_name %}
+        <a href="{% url 'delivery:rider_dashboard' %}" {% if current == 'rider_dashboard' %}aria-current="page"{% endif %}>Overview</a>
+        <a href="{% url 'delivery:rider_assignments' %}" {% if current == 'rider_assignments' %}aria-current="page"{% endif %}>New assignments</a>
+        <a href="{% url 'delivery:rider_deliveries' %}" {% if current == 'rider_deliveries' or current == 'rider_delivery_detail' %}aria-current="page"{% endif %}>My deliveries</a>
+        <a href="{% url 'delivery:rider_active_delivery' %}" {% if current == 'rider_active_delivery' %}aria-current="page"{% endif %}>Active job</a>
+        <a href="{% url 'delivery:rider_history' %}" {% if current == 'rider_history' %}aria-current="page"{% endif %}>History</a>
+        <a href="{% url 'delivery:rider_profile' %}" {% if current == 'rider_profile' %}aria-current="page"{% endif %}>Profile</a>
+        <a href="{% url 'delivery:rider_notifications' %}" {% if current == 'rider_notifications' %}aria-current="page"{% endif %}>Notifications</a>
+        {% endwith %}
+    </nav>
+    {% if messages %}
+        {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }} delivery-message" role="status">{{ message }}</div>{% endfor %}
+    {% endif %}
+    {% block rider_content %}{% endblock %}
+</div>
+{% endblock %}

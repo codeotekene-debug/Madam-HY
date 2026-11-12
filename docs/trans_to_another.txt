@@ -1,0 +1,11 @@
+Read AGENTS.md first.
+
+Then read SMART_SHOP_PROJECT.md.
+
+Then read PROJECT_STATUS.md.
+
+Use these documents as the source of truth for the project.
+
+Do not repeat work that is already marked COMPLETE.
+
+Continue from the CURRENT DEVELOPMENT STATE.

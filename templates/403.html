@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+403 Forbidden | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+Access Forbidden
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/errors.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="error-page-wrapper">
+    <div class="error-card">
+        <span class="error-badge badge-403">403 Forbidden</span>
+        <div class="error-icon">🔒</div>
+        <h2 class="error-title">Access Restricted</h2>
+        <p class="error-desc">
+            You do not have permission to view or manage this area of MADAM HY.
+            Role-based boundaries protect shop financial and administrative operations.
+        </p>
+        <div class="error-actions">
+            {% if user.is_authenticated %}
+                {% if user.role == "CUSTOMER" %}
+                <a href="/customer/" class="btn-return">
+                    <span>⌂</span>
+                    <span>Return to Customer Dashboard</span>
+                </a>
+                {% else %}
+                <a href="/dashboard/" class="btn-return">
+                    <span>▦</span>
+                    <span>Return to Shop Dashboard</span>
+                </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'accounts:login' %}" class="btn-return">
+                    <span>Sign In</span>
+                </a>
+            {% endif %}
+            <button type="button" class="btn-back" onclick="window.history.back()">
+                <span>←</span>
+                <span>Go Back</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}
-    Inventory | MADAM HY
+    Inventory & Stock Management | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -14,172 +14,255 @@
 <link rel="stylesheet" href="{% static 'css/pages/inventory/inventory.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="inventory" active_tab="items" %}
+{% endblock %}
+
 {% block content %}
 <div class="inventory-page">
-    <section class="inventory-hero">
+
+    <!-- Page Header & Hero -->
+    <header class="inventory-hero">
         <div>
-            <span class="badge badge-primary">Operations</span>
-            <h2>Inventory overview</h2>
-            <p>Track stock movement, maintain category visibility, and review item availability across the retail floor.</p>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-boxes" aria-hidden="true"></i>
+                    <span>Retail Operations</span>
+                </span>
+            </div>
+            <h2>Inventory &amp; Stock Ledger</h2>
+            <p>Track real-time stock levels across all sales channels, record audit adjustments, monitor reorder alerts, and inspect item movement history.</p>
         </div>
 
         <div class="page-actions">
-            <button type="button" class="btn btn-secondary" id="inventoryRetryButton">Retry</button>
+            <button type="button" class="btn btn-secondary" id="inventoryRetryButton" aria-label="Refresh inventory data">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                <span>Refresh</span>
+            </button>
+            <a href="/sales/pos/" class="btn btn-primary" aria-label="Open POS counter register">
+                <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                <span>Counter Register</span>
+            </a>
         </div>
-    </section>
+    </header>
 
-    <section class="inventory-summary" aria-label="Inventory summary">
-        <article class="summary-card">
-            <span>Total items</span>
+    <!-- Operational KPI Summary Cards -->
+    <section class="inventory-summary" aria-label="Inventory metrics summary">
+        <article class="summary-card" aria-label="Total inventory catalog items">
+            <div class="summary-top">
+                <span>Catalog Items</span>
+                <span class="card-icon"><i class="bi bi-collection" aria-hidden="true"></i></span>
+            </div>
             <strong id="totalInventoryItems">0</strong>
         </article>
 
-        <article class="summary-card">
-            <span>Total units</span>
+        <article class="summary-card" aria-label="Total physical units in stock">
+            <div class="summary-top">
+                <span>Total Units</span>
+                <span class="card-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+            </div>
             <strong id="totalUnitsCount">0</strong>
         </article>
 
-        <article class="summary-card">
-            <span>Stock value</span>
-            <strong id="stockValue">₦ 0</strong>
+        <article class="summary-card" aria-label="Total inventory valuation">
+            <div class="summary-top">
+                <span>Stock Valuation</span>
+                <span class="card-icon"><i class="bi bi-cash-coin" aria-hidden="true"></i></span>
+            </div>
+            <strong id="stockValue">₦ 0.00</strong>
         </article>
 
-        <article class="summary-card">
-            <span>Low stock</span>
-            <strong id="lowStockCount">0</strong>
+        <article class="summary-card" aria-label="Low stock threshold alerts">
+            <div class="summary-top">
+                <span  class="text-warning-dark">Low Stock Alerts</span>
+                <span class="card-icon u-warning-surface" ><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+            </div>
+            <strong id="lowStockCount"  class="text-warning-dark">0</strong>
         </article>
 
-        <article class="summary-card">
-            <span>Out of stock</span>
-            <strong id="outOfStockCount">0</strong>
+        <article class="summary-card" aria-label="Out of stock count">
+            <div class="summary-top">
+                <span  class="text-danger">Out of Stock</span>
+                <span class="card-icon" style="background: #fef2f2; color: var(--danger, #dc2626);"><i class="bi bi-x-circle" aria-hidden="true"></i></span>
+            </div>
+            <strong id="outOfStockCount"  class="text-danger">0</strong>
         </article>
     </section>
 
+    <!-- Search & Filter Controls -->
     <section class="card inventory-toolbar" aria-label="Inventory filters">
         <div class="toolbar-search">
             <label class="visually-hidden" for="inventorySearch">Search inventory</label>
-            <input id="inventorySearch" class="form-control" type="search" placeholder="Search by product, SKU or category" />
+            <div style="position: relative; width: 100%;">
+                <input
+                    id="inventorySearch"
+                    class="form-control"
+                    type="search"
+                    placeholder="Search by product name, SKU, or category..."
+                    aria-label="Search inventory by product, SKU, or category"
+                />
+            </div>
         </div>
 
         <div class="toolbar-filters">
             <label class="visually-hidden" for="inventoryStatusFilter">Filter by stock status</label>
-            <select id="inventoryStatusFilter" class="form-select">
-                <option value="all">All stock</option>
-                <option value="IN_STOCK">In stock</option>
-                <option value="LOW_STOCK">Low stock</option>
-                <option value="OUT_OF_STOCK">Out of stock</option>
+            <select id="inventoryStatusFilter" class="form-select" aria-label="Filter by stock status">
+                <option value="all">All stock availability</option>
+                <option value="IN_STOCK">In Stock</option>
+                <option value="LOW_STOCK">Low Stock</option>
+                <option value="OUT_OF_STOCK">Out of Stock</option>
             </select>
 
             <label class="visually-hidden" for="inventorySort">Sort inventory</label>
-            <select id="inventorySort" class="form-select">
-                <option value="product_name">Sort: product</option>
-                <option value="sku">Sort: SKU</option>
-                <option value="quantity_desc">Stock: high to low</option>
-                <option value="quantity_asc">Stock: low to high</option>
-                <option value="reorder_level">Reorder level</option>
+            <select id="inventorySort" class="form-select" aria-label="Sort inventory results">
+                <option value="product_name">Sort: Product Name A-Z</option>
+                <option value="sku">Sort: SKU Code</option>
+                <option value="quantity_desc">Stock: High to Low</option>
+                <option value="quantity_asc">Stock: Low to High</option>
+                <option value="reorder_level">Reorder Level Threshold</option>
             </select>
         </div>
     </section>
 
+    <!-- Connection / Load Error State -->
     <section id="inventoryErrorState" class="card inventory-state inventory-state-hidden" aria-live="polite">
-        <div>
-            <h3>Inventory could not load</h3>
-            <p id="inventoryErrorMessage">Try again when the connection is ready.</p>
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div class="empty-state-icon" style="background: #fef2f2; color: var(--danger);" aria-hidden="true">
+                <i class="bi bi-exclamation-octagon"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 16px;">Inventory could not load</h3>
+                <p id="inventoryErrorMessage" style="margin: 4px 0 0 0; color: var(--muted); font-size: 13px;">Please check network connection and try again.</p>
+            </div>
         </div>
-        <button type="button" class="btn btn-secondary" id="inventoryErrorRetryButton">Retry</button>
+        <button type="button" class="btn btn-secondary" id="inventoryErrorRetryButton" aria-label="Retry loading inventory">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry
+        </button>
     </section>
 
+    <!-- Main Inventory Table Panel -->
     <section class="card inventory-panel">
         <div class="section-header compact-header">
             <div>
-                <h3>Inventory ledger</h3>
-                <p>Current stock levels and product availability status.</p>
+                <h3>Stock Inventory Ledger</h3>
+                <p>Live inventory records, unit costs, valuation, and threshold alerts.</p>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <div class="table-wrapper table-responsive">
             <table class="table inventory-table">
                 <thead>
                     <tr>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>SKU</th>
-                        <th>On hand</th>
-                        <th>Reorder</th>
-                        <th>Unit price</th>
-                        <th>Stock value</th>
-                        <th>Status</th>
-                        <th>Details</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">SKU</th>
+                        <th scope="col" class="num">On Hand</th>
+                        <th scope="col" class="num">Reorder</th>
+                        <th scope="col" class="num">Unit Price</th>
+                        <th scope="col" class="num">Stock Value</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"  class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="inventoryTableBody"></tbody>
             </table>
         </div>
 
+        <!-- Structured Empty State -->
         <div id="inventoryEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
-            <h3>No inventory matches your filters</h3>
-            <p>Adjust the search terms or stock filters to see more items.</p>
+            <div class="empty-state-icon" aria-hidden="true">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <h3>No inventory items match your search</h3>
+            <p>Try clearing your search query or switching your stock filter to view more inventory items.</p>
         </div>
 
+        <!-- Pagination -->
         <div class="pagination-bar" id="inventoryPagination" aria-label="Inventory pagination"></div>
     </section>
 
+    <!-- Stock Item Detail & Adjustment Drawer / Panel -->
     <section id="inventoryDetailPanel" class="card inventory-detail-panel inventory-state-hidden" aria-live="polite">
         <div class="section-header compact-header">
-            <div>
-                <h3 id="inventoryDetailTitle">Inventory detail</h3>
-                <p>Read-only product stock metadata and recent movement history.</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div>
+                    <h3 id="inventoryDetailTitle" style="margin: 0;">Inventory Detail</h3>
+                    <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 12.5px;">Product stock metadata and movement audit trail.</p>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="closeInventoryDetailBtn" onclick="document.getElementById('inventoryDetailPanel')?.classList.add('inventory-state-hidden')" aria-label="Close detail panel">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
 
         <div id="inventoryDetailContent" class="inventory-detail-grid"></div>
 
+        <!-- Stock Adjustment Form Section -->
         <section id="inventoryAdjustmentPanel" class="inventory-adjustment-panel inventory-state-hidden" aria-labelledby="inventoryAdjustmentTitle">
             <div class="section-header compact-header">
                 <div>
-                    <h3 id="inventoryAdjustmentTitle">Adjust stock</h3>
-                    <p>Record received or removed stock with an audit reason.</p>
+                    <h3 id="inventoryAdjustmentTitle">Record Stock Adjustment</h3>
+                    <p>Audit received goods, damages, returns, or manual count corrections with mandatory reason.</p>
                 </div>
             </div>
-            <form id="inventoryAdjustmentForm" class="inventory-adjustment-form" novalidate>
-                <fieldset>
-                    <legend class="visually-hidden">Stock adjustment</legend>
+            <form id="inventoryAdjustmentForm" class="inventory-adjustment-form" onsubmit="event.preventDefault(); return false;" novalidate>
+                <div id="stock-form-error" class="alert alert-danger d-none my-2" role="alert"></div>
+                <fieldset style="border: 0; padding: 0; margin: 0;">
+                    <legend class="visually-hidden">Stock adjustment form</legend>
                     <div class="adjustment-type-control">
-                        <label><input type="radio" name="adjustmentType" value="in" checked /> Stock In</label>
-                        <label><input type="radio" name="adjustmentType" value="out" /> Stock Out</label>
+                        <label><input type="radio" name="adjustmentType" value="in" checked /> <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Stock In (Received)</label>
+                        <label><input type="radio" name="adjustmentType" value="out" /> <i class="bi bi-box-arrow-up" aria-hidden="true"></i> Stock Out (Deduction)</label>
                     </div>
-                    <label for="inventoryAdjustmentQuantity">Quantity</label>
-                    <input id="inventoryAdjustmentQuantity" class="form-control" type="number" min="1" step="1" required />
-                    <label for="inventoryAdjustmentReason">Reason</label>
-                    <input id="inventoryAdjustmentReason" class="form-control" type="text" maxlength="200" required />
-                    <label for="inventoryAdjustmentReference">Reference <span>(optional)</span></label>
-                    <input id="inventoryAdjustmentReference" class="form-control" type="text" maxlength="100" />
-                    <p id="inventoryAdjustmentPreview" class="adjustment-preview" aria-live="polite">Resulting quantity: -</p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 14px;">
+                        <div>
+                            <label for="inventoryAdjustmentQuantity" class="form-label">Quantity</label>
+                            <input id="inventoryAdjustmentQuantity" class="form-control" type="number" min="1" step="1" placeholder="e.g. 10" required />
+                        </div>
+                        <div>
+                            <label for="inventoryAdjustmentReason" class="form-label">Audit Reason</label>
+                            <input id="inventoryAdjustmentReason" class="form-control" type="text" maxlength="200" placeholder="e.g. Supplier delivery, shelf audit, damaged goods" required />
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px;">
+                        <label for="inventoryAdjustmentReference" class="form-label">Reference ID / Invoice # <span style="color: var(--muted); font-weight: normal;">(optional)</span></label>
+                        <input id="inventoryAdjustmentReference" class="form-control" type="text" maxlength="100" placeholder="e.g. PO-2026-0042, AUDIT-AUG-01" />
+                    </div>
+
+                    <p id="inventoryAdjustmentPreview" class="adjustment-preview" aria-live="polite" style="margin-top: 12px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--background); font-weight: 700; font-size: 12.5px;">Resulting quantity: -</p>
                     <div id="inventoryAdjustmentMessage" class="inventory-adjustment-message" aria-live="polite"></div>
-                    <button type="submit" class="btn btn-primary" id="inventoryAdjustmentSubmit">Confirm adjustment</button>
+
+                    <div style="margin-top: 14px;">
+                        <button type="submit" class="btn btn-primary" id="inventoryAdjustmentSubmit">
+                            <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                            <span>Confirm Adjustment</span>
+                        </button>
+                    </div>
                 </fieldset>
             </form>
         </section>
 
-        <div class="section-header compact-header movement-header">
+        <!-- Stock Movement History Section -->
+        <div class="section-header compact-header movement-header" style="margin-top: 24px;">
             <div>
-                <h3>Movement history</h3>
-                <p>Stock movement records from the inventory ledger.</p>
+                <h3>Movement Audit Trail</h3>
+                <p>Complete historical log of all inventory inflows, deductions, sales, and corrections.</p>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <div class="table-wrapper table-responsive">
             <table class="table inventory-table">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Delta</th>
-                        <th>Previous</th>
-                        <th>New</th>
-                        <th>Reason</th>
-                        <th>Reference</th>
-                        <th>Created by</th>
+                        <th scope="col">Date &amp; Time</th>
+                        <th scope="col">Movement Type</th>
+                        <th scope="col" class="num">Delta</th>
+                        <th scope="col" class="num">Previous</th>
+                        <th scope="col" class="num">New</th>
+                        <th scope="col">Reason</th>
+                        <th scope="col">Reference</th>
+                        <th scope="col">Recorded By</th>
                     </tr>
                 </thead>
                 <tbody id="inventoryMovementTableBody"></tbody>
@@ -187,12 +270,16 @@
         </div>
 
         <div id="inventoryMovementEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
-            <h3>No movement history yet</h3>
-            <p>This item has no recorded stock movement entries.</p>
+            <div class="empty-state-icon" aria-hidden="true">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <h3>No movement history recorded</h3>
+            <p>This inventory item has no recorded stock adjustments or movement entries.</p>
         </div>
 
         <div class="pagination-bar" id="inventoryMovementPagination" aria-label="Movement pagination"></div>
     </section>
+
 </div>
 {% endblock %}
 

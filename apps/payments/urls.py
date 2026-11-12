@@ -1,3 +1,47 @@
 from django.urls import path
 
-urlpatterns = []
+from . import views
+
+app_name = 'payments'
+
+urlpatterns = [
+    path('', views.payment_list, name='list'),
+    path('reconciliation/order/<str:order_id>/', views.order_reconciliation, name='order-reconciliation'),
+    path('reconciliation/sale/<str:sale_id>/', views.sale_reconciliation, name='sale-reconciliation'),
+    path('reconcile/overview/', views.reconcile_overview, name='reconcile-overview'),
+    path('reconcile/overview/', views.reconcile_overview, name='reconcile_overview'),
+    path('reconcile/sale/<uuid:sale_id>/', views.reconcile_sale, name='reconcile-sale-uuid'),
+    path('reconcile/sale/<str:sale_id>/', views.reconcile_sale, name='reconcile-sale'),
+    path('reconcile/sale/<str:sale_id>/', views.reconcile_sale, name='reconcile_sale'),
+    path('reconcile/order/<uuid:order_id>/', views.reconcile_order, name='reconcile-order-uuid'),
+    path('reconcile/order/<str:order_id>/', views.reconcile_order, name='reconcile-order'),
+    path('reconcile/order/<str:order_id>/', views.reconcile_order, name='reconcile_order'),
+    path('<int:payment_id>/confirm/', views.payment_confirm, name='confirm'),
+    path('pay/<str:reference>/', views.qr_pay_view, name='qr-pay'),
+    path('checkout/pay/<str:reference>/', views.qr_pay_view, name='checkout-pay'),
+    path('qr/generate/', views.qr_generate, name='qr-generate'),
+    path('qr/sale/<str:target_id>/generate/', views.qr_generate, {'target_type': 'sale'}, name='qr-generate-sale'),
+    path('qr/order/<str:target_id>/generate/', views.qr_generate, {'target_type': 'order'}, name='qr-generate-order'),
+    path('qr/<str:target_id>/generate/', views.qr_generate, name='qr-generate-target'),
+    path('qr/<str:reference>/status/', views.qr_status, name='qr-status'),
+    path('qr-status/<str:reference>/', views.qr_status, name='qr-status-alias'),
+    path('terminal/push/', views.terminal_push, name='terminal-push'),
+    path('terminal/<str:reference>/status/', views.terminal_status, name='terminal-status'),
+    path('pos-status/<str:reference>/', views.terminal_status, name='pos-status-alias'),
+    path('paystack/initialize/', views.paystack_initialize, name='paystack-initialize'),
+    path('webhooks/paystack/', views.paystack_webhook, name='webhook-paystack'),
+    path('webhooks/moniepoint/', views.moniepoint_webhook, name='webhook-moniepoint'),
+    path('mismatches/', views.mismatches_list, name='mismatches'),
+    path('<int:payment_id>/resolve/', views.payment_resolve, name='resolve-int'),
+    path('<uuid:payment_id>/resolve/', views.payment_resolve, name='resolve-uuid'),
+    path('<str:payment_id>/resolve/', views.payment_resolve, name='resolve'),
+    path('refunds/', views.refunds_list, name='refunds-list'),
+    path('<int:payment_id>/refund/', views.payment_refund, name='refund-int'),
+    path('<uuid:payment_id>/refund/', views.payment_refund, name='refund-uuid'),
+    path('<str:payment_id>/refund/', views.payment_refund, name='refund'),
+    path('<int:payment_id>/verify/', views.payment_verify, name='verify-int'),
+    path('<uuid:payment_id>/verify/', views.payment_verify, name='verify-uuid'),
+    path('<str:payment_id>/verify/', views.payment_verify, name='verify'),
+    path('<int:payment_id>/', views.payment_detail, name='detail'),
+    path('<str:payment_id>/', views.payment_detail, name='detail-str'),
+]

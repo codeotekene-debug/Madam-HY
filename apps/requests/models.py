@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -30,6 +31,12 @@ class Request(models.Model):
         HIGH = 'HIGH', 'High'
         URGENT = 'URGENT', 'Urgent'
 
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        db_index=True,
+        help_text='Unique request UUID identifier for public and API routing.',
+    )
     request_number = models.CharField(
         max_length=80,
         unique=True,
@@ -96,6 +103,17 @@ class Request(models.Model):
         blank=True,
         help_text='Staff response or resolution details.',
     )
+    notes = models.TextField(
+        blank=True,
+        default='',
+        help_text='Optional internal staff or customer notes.',
+    )
+    attachment = models.FileField(
+        upload_to='requests/attachments/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text='Optional file or document attachment.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     resolved_at = models.DateTimeField(
@@ -158,6 +176,8 @@ class Request(models.Model):
             raise ValidationError({'resolved_at': 'Rejected or cancelled requests should record when they were resolved.'})
 
     def save(self, *args, **kwargs):
+        if not self.request_number:
+            self.request_number = f'REQ-{uuid.uuid4().hex[:8].upper()}'
         self.full_clean()
         if self.status in {self.Status.COMPLETED, self.Status.REJECTED, self.Status.CANCELLED} and self.resolved_at is None:
             self.resolved_at = timezone.now()

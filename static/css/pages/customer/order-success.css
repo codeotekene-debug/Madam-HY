@@ -1,0 +1,13 @@
+@media print {
+    .sidebar, .topbar, .customer-storefront-subnav, .storefront-footer, .confirmation-actions, .btn-print-hide {
+        display: none !important;
+    }
+    .customer-order-success-page {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+}

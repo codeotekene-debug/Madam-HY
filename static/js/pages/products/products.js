@@ -1,7 +1,7 @@
 /** MADAM HY - Products catalog interactions. */
 
 const productListState = { page: 1, pageSize: 10, requestId: 0 };
-const productPlaceholder = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+const productPlaceholder = "/static/img/defaults/product-placeholder.svg";
 
 document.addEventListener("DOMContentLoaded", () => {
     if (!canManageProducts()) document.getElementById("addProductLink")?.remove();
@@ -17,6 +17,9 @@ function setupProductFilters() {
     const categoryFilter = document.getElementById("categoryFilter");
     const stockFilter = document.getElementById("stockFilter");
     const sortSelect = document.getElementById("sortSelect");
+
+    const initialSearch = new URLSearchParams(window.location.search).get("search") || "";
+    if (search && initialSearch) search.value = initialSearch;
 
     const applyFilters = () => {
         productListState.page = 1;
@@ -113,7 +116,7 @@ function renderProductCards(products) {
     grid.innerHTML = products.map(product => {
         const status = normalizeStatus(product.stock?.status);
         const category = product.category?.name || "Uncategorised";
-        const image = product.image?.url || productPlaceholder;
+        const image = product.image?.url || product.image_url || product.primary_image?.url || (typeof product.image === "string" ? product.image : "") || productPlaceholder;
         return `
         <article class="product-card" aria-label="${product.name}">
             <div class="product-card-image">
@@ -135,7 +138,7 @@ function renderProductCards(products) {
                 </div>
 
                 <div class="product-card-actions">
-                    <a href="/preview/products/detail/?id=${product.id}" class="btn btn-outline btn-sm">View</a>
+                    <a href="/products/${product.id}/" class="btn btn-outline btn-sm">View</a>
                 </div>
             </div>
         </article>

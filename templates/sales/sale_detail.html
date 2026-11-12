@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/sales/detail.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="sales" active_tab="history" %}
+{% endblock %}
+
 {% block content %}
 <div class="sale-detail-page">
     <section class="sales-hero">

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Credit Aging &amp; Exposure Report | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Aging &amp; Reports
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/credits/credits.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/credits/credit-report-page.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="credits" current_tab="reports" %}
+{% endblock %}
+
+{% block content %}
+<div class="credits-page aging-page">
+
+    <!-- Page Header & Hero -->
+    <header class="credits-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-bar-chart" aria-hidden="true"></i>
+                    <span>Credit Risk &amp; Aging Analytics</span>
+                </span>
+            </div>
+            <h2>Credit Aging &amp; Portfolio Limits</h2>
+            <p>Risk assessment of outstanding customer credit, delinquent aging tiers, and storewide credit exposure.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="{% url 'credits:credit_account_list' %}" class="btn btn-secondary" aria-label="Back to credit accounts">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                <span>Credit Accounts</span>
+            </a>
+            <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-primary" aria-label="Open financial reports">
+                <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                <span>Financial Reports</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Top Aging Metric Cards -->
+    <section class="aging-grid" aria-label="Credit aging buckets">
+        <article class="aging-card card-current">
+            <div class="aging-header">
+                <span>Current / Not Due</span>
+                <i class="bi bi-check-circle text-success" aria-hidden="true"></i>
+            </div>
+            <div class="aging-value" style="color: #15803d;">₦ {{ summary.current.amount }}</div>
+            <div class="aging-count">{{ summary.current.count }} account(s)</div>
+        </article>
+
+        <article class="aging-card card-warn">
+            <div class="aging-header">
+                <span>1 – 30 Days Overdue</span>
+                <i class="bi bi-exclamation-circle text-warning" aria-hidden="true"></i>
+            </div>
+            <div class="aging-value" style="color: #b87700;">₦ {{ summary.days_1_30.amount }}</div>
+            <div class="aging-count">{{ summary.days_1_30.count }} account(s)</div>
+        </article>
+
+        <article class="aging-card card-risk">
+            <div class="aging-header">
+                <span>31 – 60 Days Overdue</span>
+                <i class="bi bi-clock-history text-danger" aria-hidden="true"></i>
+            </div>
+            <div class="aging-value" style="color: #ea580c;">₦ {{ summary.days_31_60.amount }}</div>
+            <div class="aging-count">{{ summary.days_31_60.count }} account(s)</div>
+        </article>
+
+        <article class="aging-card card-danger">
+            <div class="aging-header">
+                <span>60+ Days Delinquent</span>
+                <i class="bi bi-shield-x text-danger" aria-hidden="true"></i>
+            </div>
+            <div class="aging-value" style="color: #dc2626;">₦ {{ summary.days_60_plus.amount }}</div>
+            <div class="aging-count">{{ summary.days_60_plus.count }} account(s)</div>
+        </article>
+    </section>
+
+    <!-- Portfolio Exposure Card -->
+    <section class="card" style="padding: 24px; margin-bottom: 24px;">
+        <div class="panel-header" style="margin-bottom: 16px;">
+            <div>
+                <h3 style="margin: 0 0 4px 0;">Portfolio Credit Exposure</h3>
+                <p style="margin: 0; color: var(--text-muted);">Aggregate limits vs. active debt drawn.</p>
+            </div>
+            <div  class="text-right">
+                <span style="font-size: 13px; color: var(--text-muted);">Utilization Rate:</span>
+                <strong style="font-size: 18px; margin-left: 6px; color: #15803d;">{{ summary.utilization_rate }}%</strong>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 16px; background: var(--background, #f8fafc); border-radius: 8px;">
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted);">Total Approved Limit</div>
+                <div style="font-size: 18px; font-weight: 700;" class="font-mono">₦ {{ summary.total_credit_limit }}</div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted);">Total Outstanding Debt</div>
+                <div style="font-size: 18px; font-weight: 700; color: #b87700;" class="font-mono">₦ {{ summary.total_outstanding }}</div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted);">Total Overdue Exposure</div>
+                <div style="font-size: 18px; font-weight: 700; color: #dc2626;" class="font-mono">₦ {{ summary.total_overdue }}</div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted);">Accounts With Debt</div>
+                <div style="font-size: 18px; font-weight: 700;">{{ summary.accounts_with_balance }} / {{ summary.total_accounts }}</div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

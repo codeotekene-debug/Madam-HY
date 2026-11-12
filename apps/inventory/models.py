@@ -34,6 +34,11 @@ class InventoryItem(models.Model):
             raise ValidationError({'quantity': 'Inventory quantity cannot be negative.'})
 
     @property
+    def current_stock(self):
+        """Authoritative current physical stock count."""
+        return self.quantity
+
+    @property
     def reorder_level(self):
         return self.product.reorder_level
 
@@ -79,6 +84,7 @@ class StockMovement(models.Model):
         RETURN = 'RETURN', 'Return'
         DAMAGE = 'DAMAGE', 'Damage'
         CORRECTION = 'CORRECTION', 'Correction'
+        EXPIRY = 'EXPIRY', 'Expiry'
 
     inventory_item = models.ForeignKey(
         InventoryItem,
@@ -121,6 +127,11 @@ class StockMovement(models.Model):
 
     def __str__(self):
         return f'{self.product.name} {self.movement_type}: {self.quantity}'
+
+    @property
+    def performed_by(self):
+        """Staff member or owner who authorized/performed the movement."""
+        return self.created_by
 
     def clean(self):
         super().clean()

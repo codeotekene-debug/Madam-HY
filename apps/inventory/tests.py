@@ -1039,3 +1039,291 @@ class InventoryAdjustmentApiTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 404)
+
+
+class InventoryAuditReasonsTests(TestCase):
+    def setUp(self):
+        self.category = ProductCategory.objects.create(
+            name='Groceries',
+            slug='groceries',
+            description='Daily grocery items',
+        )
+        self.product = Product.objects.create(
+            name='Madam HY Sugar 1kg',
+            slug='madam-hy-sugar-1kg',
+            sku='MHY-SUG-01',
+            category=self.category,
+            selling_price=Decimal('1500.00'),
+            cost_price=Decimal('1000.00'),
+            reorder_level=5,
+        )
+        self.inventory = InventoryItem.objects.create(
+            product=self.product,
+            quantity=20,
+        )
+        self.owner = User.objects.create_user(
+            email='audit-owner@example.com',
+            username='audit-owner',
+            password='StrongPass123',
+            role='OWNER',
+        )
+        self.manager = User.objects.create_user(
+            email='audit-manager@example.com',
+            username='audit-manager',
+            password='StrongPass123',
+            role='MANAGER',
+        )
+        self.cashier = User.objects.create_user(
+            email='audit-cashier@example.com',
+            username='audit-cashier',
+            password='StrongPass123',
+            role='CASHIER',
+        )
+        self.url = reverse('inventory:add_stock')
+
+    def test_restock_action_increases_stock_and_records_audit(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'RESTOCK',
+                'product_id': self.product.id,
+                'quantity': 30,
+                'supplier': 'Golden Penny Mills',
+                'reference': 'INV-2026-90',
+                'notes': 'Delivered in good condition',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 50)
+
+        # Audit movement record
+        movement = StockMovement.objects.filter(product=self.product).latest('created_at')
+        self.assertEqual(movement.movement_type, StockMovement.MovementType.STOCK_IN)
+        self.assertEqual(movement.quantity, 30)
+        self.assertEqual(movement.previous_quantity, 20)
+        self.assertEqual(movement.new_quantity, 50)
+        self.assertEqual(movement.created_by, self.owner)
+        self.assertIn('Golden Penny Mills', movement.reason)
+
+        # Prices preserved
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.selling_price, Decimal('1500.00'))
+        self.assertEqual(self.product.cost_price, Decimal('1000.00'))
+
+    def test_restock_with_authorized_price_update(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'RESTOCK',
+                'product_id': self.product.id,
+                'quantity': 10,
+                'update_pricing': True,
+                'new_cost_price': '1200.00',
+                'new_selling_price': '1800.00',
+                'price_change_reason': 'Supplier price inflation update',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 30)
+
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.cost_price, Decimal('1200.00'))
+        self.assertEqual(self.product.selling_price, Decimal('1800.00'))
+
+        # Price history recorded
+        from apps.products.models import ProductPriceHistory
+        history = ProductPriceHistory.objects.filter(product=self.product).latest('changed_at')
+        self.assertEqual(history.previous_price, Decimal('1500.00'))
+        self.assertEqual(history.new_price, Decimal('1800.00'))
+        self.assertEqual(history.previous_cost_price, Decimal('1000.00'))
+        self.assertEqual(history.new_cost_price, Decimal('1200.00'))
+        self.assertEqual(history.reason, 'Supplier price inflation update')
+        self.assertEqual(history.changed_by, self.manager)
+
+    def test_restock_rejects_selling_lower_than_cost(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'RESTOCK',
+                'product_id': self.product.id,
+                'quantity': 10,
+                'update_pricing': True,
+                'new_cost_price': '2000.00',
+                'new_selling_price': '1500.00',
+                'price_change_reason': 'Loss leader test',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 20)  # Unchanged
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.cost_price, Decimal('1000.00'))  # Unchanged
+
+    def test_correction_action_with_physical_count(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'CORRECTION',
+                'product_id': self.product.id,
+                'actual_quantity': 25,
+                'notes': 'Quarterly physical stock audit discrepancy discovered',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 25)
+
+        movement = StockMovement.objects.filter(product=self.product).latest('created_at')
+        self.assertEqual(movement.movement_type, StockMovement.MovementType.CORRECTION)
+        self.assertEqual(movement.quantity, 5)  # 25 - 20 = +5
+        self.assertEqual(movement.previous_quantity, 20)
+        self.assertEqual(movement.new_quantity, 25)
+        self.assertIn('Quarterly physical stock audit', movement.reason)
+
+    def test_correction_action_rejects_identical_count(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'CORRECTION',
+                'product_id': self.product.id,
+                'actual_quantity': 20,
+                'notes': 'Stock count matches exactly',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 20)
+
+    def test_correction_requires_meaningful_notes(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'CORRECTION',
+                'product_id': self.product.id,
+                'actual_quantity': 25,
+                'notes': '',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_damage_action_reduces_stock_and_records_audit(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'DAMAGE',
+                'product_id': self.product.id,
+                'quantity': 4,
+                'notes': 'Water leakage damaged carton packaging',
+                'reference': 'INC-2026-08',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 16)  # 20 - 4 = 16
+
+        movement = StockMovement.objects.filter(product=self.product).latest('created_at')
+        self.assertEqual(movement.movement_type, StockMovement.MovementType.DAMAGE)
+        self.assertEqual(movement.quantity, -4)
+        self.assertEqual(movement.previous_quantity, 20)
+        self.assertEqual(movement.new_quantity, 16)
+        self.assertIn('Water leakage', movement.reason)
+
+    def test_damage_action_cannot_exceed_available_stock(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'DAMAGE',
+                'product_id': self.product.id,
+                'quantity': 25,  # Stock is only 20
+                'notes': 'Massive damage',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 20)  # Preserved
+
+    def test_expiry_action_removes_expired_stock(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'EXPIRY',
+                'product_id': self.product.id,
+                'quantity': 6,
+                'batch_reference': 'BATCH-SUG-2024-X',
+                'notes': 'Passed best before date',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 14)  # 20 - 6 = 14
+
+        movement = StockMovement.objects.filter(product=self.product).latest('created_at')
+        self.assertEqual(movement.movement_type, StockMovement.MovementType.EXPIRY)
+        self.assertEqual(movement.quantity, -6)
+        self.assertEqual(movement.previous_quantity, 20)
+        self.assertEqual(movement.new_quantity, 14)
+        self.assertIn('Passed best before date', movement.reason)
+
+    def test_expiry_action_cannot_exceed_available_stock(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'EXPIRY',
+                'product_id': self.product.id,
+                'quantity': 35,  # Stock is only 20
+                'notes': 'Expired lot',
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 20)
+
+    def test_invalid_action_rejected(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'UNKNOWN_ACTION',
+                'product_id': self.product.id,
+                'quantity': 5,
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 20)
+
+    def test_cashier_cannot_access_add_stock(self):
+        self.client.force_login(self.cashier)
+        response = self.client.post(
+            self.url,
+            data={
+                'action': 'RESTOCK',
+                'product_id': self.product.id,
+                'quantity': 5,
+            },
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Notifications | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Notifications
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/notifications/notifications.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='notifications' current_tab=active_tab %}
+{% endblock %}
+
+{% block content %}
+<div class="notifications-page">
+    <section class="notifications-hero">
+        <div>
+            <span class="badge badge-primary">Alerts & Updates</span>
+            <h2>Notifications Center</h2>
+            <p>Track order updates, credit balance alerts, service requests, inventory notifications, and system events in real time.</p>
+        </div>
+
+        <div class="notifications-actions">
+            {% if metrics.unread > 0 %}
+            <form action="{% url 'notifications:mark_all_read' %}" method="POST" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary" id="markAllReadBtn">
+                    ✓ Mark all as read
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="notifications-summary" aria-label="Notifications summary">
+        <article class="summary-card">
+            <span>Total notifications</span>
+            <strong id="totalNotificationsCount">{{ metrics.total }}</strong>
+        </article>
+        <article class="summary-card {% if metrics.unread > 0 %}unread-highlight{% endif %}">
+            <span>Unread alerts</span>
+            <strong id="unreadNotificationsCount">{{ metrics.unread }}</strong>
+        </article>
+        <article class="summary-card">
+            <span>Read</span>
+            <strong id="readNotificationsCount">{{ metrics.read }}</strong>
+        </article>
+        <article class="summary-card {% if metrics.urgent_unread > 0 %}urgent-highlight{% endif %}">
+            <span>Urgent unread</span>
+            <strong id="urgentNotificationsCount">{{ metrics.urgent_unread }}</strong>
+        </article>
+    </section>
+
+    <section class="card notifications-panel">
+        <div class="panel-header">
+            <h3>Recent activity</h3>
+            <p>Filter by status, category, or search keywords across your notifications.</p>
+        </div>
+
+        <form method="GET" action="{% url 'notifications:inbox' %}" class="notifications-toolbar" id="notificationsFilterForm">
+            <div class="toolbar-search">
+                <input
+                    type="search"
+                    name="q"
+                    class="form-control"
+                    placeholder="Search notifications..."
+                    value="{{ search_query }}"
+                    id="notificationsSearchInput"
+                >
+            </div>
+
+            <div class="toolbar-filters">
+                <select name="is_read" class="form-select" id="notificationsStatusFilter">
+                    <option value="" {% if not filter_is_read %}selected{% endif %}>All statuses</option>
+                    <option value="false" {% if filter_is_read == 'false' or filter_is_read == 'unread' %}selected{% endif %}>Unread</option>
+                    <option value="true" {% if filter_is_read == 'true' or filter_is_read == 'read' %}selected{% endif %}>Read</option>
+                </select>
+
+                <select name="type" class="form-select" id="notificationsTypeFilter">
+                    <option value="" {% if not filter_type %}selected{% endif %}>All types</option>
+                    {% for code, label in notification_types %}
+                    <option value="{{ code }}" {% if filter_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <select name="priority" class="form-select" id="notificationsPriorityFilter">
+                    <option value="" {% if not filter_priority %}selected{% endif %}>All priorities</option>
+                    {% for code, label in priority_choices %}
+                    <option value="{{ code }}" {% if filter_priority == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">Filter</button>
+                {% if search_query or filter_is_read or filter_type or filter_priority %}
+                <a href="{% url 'notifications:inbox' %}" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+
+        <div class="notifications-list" id="notificationsContainer">
+            {% if notifications %}
+                {% for n in notifications %}
+                <article class="notification-card {% if not n.is_read %}unread{% endif %}" id="notification-card-{{ n.id }}" data-id="{{ n.id }}" data-read="{{ n.is_read|yesno:'true,false' }}">
+                    <div class="notification-icon-wrapper {{ n.notification_type|lower }}">
+                        {% if n.notification_type == 'ORDER' %}🛒
+                        {% elif n.notification_type == 'PAYMENT' %}💳
+                        {% elif n.notification_type == 'CREDIT' %}₦
+                        {% elif n.notification_type == 'REQUEST' %}📋
+                        {% elif n.notification_type == 'INVENTORY' %}📦
+                        {% elif n.notification_type == 'EXPENSE' %}🧾
+                        {% else %}⚙️{% endif %}
+                    </div>
+
+                    <div class="notification-content">
+                        <div class="notification-meta-top">
+                            <span class="notification-type-badge">{{ n.get_notification_type_display }}</span>
+                            <span class="priority-pill {{ n.priority|lower }}">{{ n.get_priority_display }}</span>
+                            <span class="notification-time">{{ n.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+
+                        <h4 class="notification-title">{{ n.title }}</h4>
+                        <p class="notification-message">{{ n.message }}</p>
+
+                        <div class="notification-actions-row">
+                            {% if n.action_url %}
+                            <a href="{{ n.action_url }}" class="action-link">Open details →</a>
+                            {% endif %}
+
+                            {% if not n.is_read %}
+                            <form action="{% url 'notifications:mark_read' n.id %}" method="POST" class="mark-read-form" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-toggle-read" data-action="read" data-id="{{ n.id }}">
+                                    ✓ Mark as read
+                                </button>
+                            </form>
+                            {% else %}
+                            <form action="{% url 'notifications:mark_unread' n.id %}" method="POST" class="mark-unread-form" style="display: inline; margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-toggle-read" data-action="unread" data-id="{{ n.id }}">
+                                    ↺ Mark as unread
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🔔</div>
+                    <h4>All caught up!</h4>
+                    <p>No notifications match your current filters. New activities and updates will appear here.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if is_paginated %}
+        <nav class="pagination-wrapper" aria-label="Notifications pagination">
+            <span>Showing page {{ page_obj.number }} of {{ paginator.num_pages }} ({{ paginator.count }} total)</span>
+            <div class="pagination-links">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if filter_is_read %}&is_read={{ filter_is_read }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">← Previous</a>
+                {% else %}
+                <span class="page-btn disabled">← Previous</span>
+                {% endif %}
+
+                <span style="font-size: 12px; font-weight: 700; color: var(--text);">{{ page_obj.number }}</span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if filter_is_read %}&is_read={{ filter_is_read }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">Next →</a>
+                {% else %}
+                <span class="page-btn disabled">Next →</span>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
+    </section>
+</div>
+
+<script id="notifications-data" type="application/json">
+{{ notifications_json|safe }}
+</script>
+{% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/pages/notifications/notifications.js' %}"></script>
+{% endblock %}

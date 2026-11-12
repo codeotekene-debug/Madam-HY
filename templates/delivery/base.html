@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Delivery Operations · MADAM HY{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'css/pages/delivery/delivery.css' %}">{% endblock %}
+{% block content %}
+<div class="delivery-shell">
+    <header class="delivery-page-header">
+        <h1>Delivery operations</h1>
+        <p class="delivery-muted">Dispatch, rider capacity, service zones, and delivery outcomes.</p>
+    </header>
+    <nav class="delivery-nav" aria-label="Delivery management navigation">
+        {% with current=request.resolver_match.url_name %}
+        <a href="{% url 'delivery:management_dashboard' %}" {% if current == 'management_dashboard' %}aria-current="page"{% endif %}>Overview</a>
+        <a href="{% url 'delivery:management_all' %}" {% if current == 'management_all' %}aria-current="page"{% endif %}>All deliveries</a>
+        <a href="{% url 'delivery:management_unassigned' %}" {% if current == 'management_unassigned' %}aria-current="page"{% endif %}>Unassigned</a>
+        <a href="{% url 'delivery:management_active' %}" {% if current == 'management_active' %}aria-current="page"{% endif %}>Active</a>
+        <a href="{% url 'delivery:management_completed' %}" {% if current == 'management_completed' %}aria-current="page"{% endif %}>Completed</a>
+        <a href="{% url 'delivery:management_failed' %}" {% if current == 'management_failed' %}aria-current="page"{% endif %}>Failed</a>
+        <a href="{% url 'delivery:management_riders' %}" {% if current == 'management_riders' or current == 'management_rider_detail' %}aria-current="page"{% endif %}>Riders</a>
+        <a href="{% url 'delivery:management_zones' %}" {% if current == 'management_zones' %}aria-current="page"{% endif %}>Zones</a>
+        <a href="{% url 'delivery:management_settings' %}" {% if current == 'management_settings' %}aria-current="page"{% endif %}>Settings</a>
+        <a href="{% url 'delivery:management_reports' %}" {% if current == 'management_reports' %}aria-current="page"{% endif %}>Reports</a>
+        {% endwith %}
+    </nav>
+    {% if messages %}
+        {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }} delivery-message" role="status">{{ message }}</div>{% endfor %}
+    {% endif %}
+    {% block delivery_content %}{% endblock %}
+</div>
+{% endblock %}

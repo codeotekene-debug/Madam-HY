@@ -1,82 +1,104 @@
 /**
  * MADAM HY - Credit detail interactions.
- * Frontend-only demo data for credit details view.
+ * Production-grade credit details view powered by backend ledger data.
  */
 
-const creditDetailData = {
-    id: 'CRD-001',
-    customer: 'Aisha Bello',
-    phone: '0803 555 0102',
-    creditLimit: 150000,
-    amountUsed: 85000,
-    availableCredit: 65000,
-    totalIssued: 85000,
-    totalPaid: 35000,
-    outstandingBalance: 50000,
-    dueDate: '2026-09-14',
-    status: 'Active',
-    isOverdue: false,
-    overdueAmount: 0,
-    daysOverdue: 0,
-    transactions: [
-        { date: '2026-08-14', type: 'Payment', amount: -10000, balance: 40000 },
-        { date: '2026-08-10', type: 'Credit', amount: 15000, balance: 50000 },
-        { date: '2026-08-05', type: 'Payment', amount: -25000, balance: 35000 },
-        { date: '2026-07-28', type: 'Credit', amount: 35000, balance: 60000 },
-        { date: '2026-07-20', type: 'Payment', amount: -10000, balance: 25000 },
-        { date: '2026-07-15', type: 'Credit', amount: 50000, balance: 35000 }
-    ]
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-    const detailCustomerName = document.getElementById('detailCustomerName');
-    const detailCustomerPhone = document.getElementById('detailCustomerPhone');
-    const detailCreditStatus = document.getElementById('detailCreditStatus');
-    const detailCreditLimit = document.getElementById('detailCreditLimit');
-    const detailAmountUsed = document.getElementById('detailAmountUsed');
-    const detailAvailableCredit = document.getElementById('detailAvailableCredit');
-    const detailAccountStatus = document.getElementById('detailAccountStatus');
-    const detailTotalIssued = document.getElementById('detailTotalIssued');
-    const detailTotalPaid = document.getElementById('detailTotalPaid');
-    const detailOutstanding = document.getElementById('detailOutstanding');
-    const detailDueDate = document.getElementById('detailDueDate');
-    const detailOverdueAmount = document.getElementById('detailOverdueAmount');
-    const detailDaysOverdue = document.getElementById('detailDaysOverdue');
-    const detailTransactionsBody = document.getElementById('detailTransactionsBody');
+    let accountData = null;
+    let transactionsData = [];
 
-    if (detailCustomerName) detailCustomerName.textContent = creditDetailData.customer;
-    if (detailCustomerPhone) detailCustomerPhone.textContent = creditDetailData.phone;
-    if (detailCreditStatus) {
-        detailCreditStatus.textContent = creditDetailData.status;
-        detailCreditStatus.className = `status-pill ${creditDetailData.status.toLowerCase().replace(' ', '-')}`;
+    const accountEl = document.getElementById('creditAccountJson');
+    const transactionsEl = document.getElementById('creditTransactionsJson');
+
+    if (accountEl && accountEl.textContent.trim()) {
+        try {
+            accountData = JSON.parse(accountEl.textContent);
+        } catch (e) {
+            console.error('Failed to parse credit account JSON:', e);
+        }
     }
-    if (detailCreditLimit) detailCreditLimit.textContent = `₦ ${formatCurrency(creditDetailData.creditLimit)}`;
-    if (detailAmountUsed) detailAmountUsed.textContent = `₦ ${formatCurrency(creditDetailData.amountUsed)}`;
-    if (detailAvailableCredit) detailAvailableCredit.textContent = `₦ ${formatCurrency(creditDetailData.availableCredit)}`;
-    if (detailAccountStatus) detailAccountStatus.textContent = creditDetailData.status;
-    if (detailTotalIssued) detailTotalIssued.textContent = `₦ ${formatCurrency(creditDetailData.totalIssued)}`;
-    if (detailTotalPaid) detailTotalPaid.textContent = `₦ ${formatCurrency(creditDetailData.totalPaid)}`;
-    if (detailOutstanding) detailOutstanding.textContent = `₦ ${formatCurrency(creditDetailData.outstandingBalance)}`;
-    if (detailDueDate) detailDueDate.textContent = formatDate(creditDetailData.dueDate);
-    if (detailOverdueAmount) detailOverdueAmount.textContent = `₦ ${formatCurrency(creditDetailData.overdueAmount)}`;
-    if (detailDaysOverdue) detailDaysOverdue.textContent = `${creditDetailData.daysOverdue} days`;
 
-    if (detailTransactionsBody) {
-        detailTransactionsBody.innerHTML = creditDetailData.transactions.map(txn => `
-            <tr>
-                <td>${formatDate(txn.date)}</td>
-                <td>${txn.type}</td>
-                <td>${txn.type === 'Credit' ? '+' : '-'}₦ ${formatCurrency(Math.abs(txn.amount))}</td>
-                <td>₦ ${formatCurrency(txn.balance)}</td>
-            </tr>
-        `).join('');
+    if (transactionsEl && transactionsEl.textContent.trim()) {
+        try {
+            transactionsData = JSON.parse(transactionsEl.textContent);
+        } catch (e) {
+            console.error('Failed to parse credit transactions JSON:', e);
+        }
+    }
+
+    // If server rendered already populated HTML, we only update dynamic fields if JSON was present
+    if (accountData) {
+        const detailCustomerName = document.getElementById('detailCustomerName');
+        const detailCustomerPhone = document.getElementById('detailCustomerPhone');
+        const detailCreditStatus = document.getElementById('detailCreditStatus');
+        const detailCreditLimit = document.getElementById('detailCreditLimit');
+        const detailAmountUsed = document.getElementById('detailAmountUsed');
+        const detailAvailableCredit = document.getElementById('detailAvailableCredit');
+        const detailAccountStatus = document.getElementById('detailAccountStatus');
+        const detailOutstanding = document.getElementById('detailOutstanding');
+        const detailDueDate = document.getElementById('detailDueDate');
+
+        const custName = accountData.customer?.full_name || accountData.customer?.username || 'Walk-in Customer';
+        const custPhone = accountData.customer?.phone_number || accountData.customer?.email || '-';
+        const status = accountData.status_display || accountData.status || 'Active';
+        const limit = Number(accountData.credit_limit) || 0;
+        const outstanding = Number(accountData.outstanding_balance) || 0;
+        const available = accountData.available_credit != null ? Number(accountData.available_credit) : Math.max(0, limit - outstanding);
+
+        if (detailCustomerName) detailCustomerName.textContent = custName;
+        if (detailCustomerPhone) detailCustomerPhone.textContent = custPhone;
+        if (detailCreditStatus) {
+            detailCreditStatus.textContent = status;
+            detailCreditStatus.className = `status-pill ${status.toLowerCase().replace(/\s+/g, '-')}`;
+        }
+        if (detailCreditLimit) detailCreditLimit.textContent = `₦ ${formatCurrency(limit)}`;
+        if (detailAmountUsed) detailAmountUsed.textContent = `₦ ${formatCurrency(outstanding)}`;
+        if (detailAvailableCredit) detailAvailableCredit.textContent = `₦ ${formatCurrency(available)}`;
+        if (detailAccountStatus) detailAccountStatus.textContent = status;
+        if (detailOutstanding) detailOutstanding.textContent = `₦ ${formatCurrency(outstanding)}`;
+        if (detailDueDate && accountData.next_due_date) {
+            detailDueDate.textContent = formatDate(accountData.next_due_date);
+        }
+    }
+
+    if (transactionsData && transactionsData.length > 0) {
+        const detailTransactionsBody = document.getElementById('detailTransactionsBody');
+        if (detailTransactionsBody) {
+            detailTransactionsBody.innerHTML = transactionsData.map(txn => {
+                const isDebit = txn.transaction_type === 'CREDIT_PURCHASE';
+                const sign = isDebit ? '+' : '-';
+                const amtColor = isDebit ? 'color: #be123c;' : 'color: #057a44;';
+                return `
+                    <tr>
+                        <td>${formatDate(txn.created_at)}</td>
+                        <td><span class="status-pill status-pill-sm">${escapeHtml(txn.transaction_type_display || txn.transaction_type)}</span></td>
+                        <td class="num" style="${amtColor}">${sign}₦ ${formatCurrency(Math.abs(Number(txn.amount)))}</td>
+                        <td class="num">₦ ${formatCurrency(Number(txn.new_balance))}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
     }
 });
 
 function formatDate(value) {
-    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (!value) return '-';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function formatCurrency(value) {
-    return Number(value).toLocaleString('en-NG');
+    const num = Number(value) || 0;
+    return num.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }

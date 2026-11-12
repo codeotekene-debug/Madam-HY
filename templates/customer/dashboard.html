@@ -1,13 +1,13 @@
-{% extends "base.html" %}
+{% extends "customer/base.html" %}
 
 {% load static %}
 
 {% block title %}
-    Dashboard | MADAM HY Customer
+    Customer Shopping Hub | MADAM HY
 {% endblock %}
 
 {% block page_title %}
-    Dashboard
+    Customer Dashboard
 {% endblock %}
 
 {% block page_css %}
@@ -16,98 +16,219 @@
 
 {% block content %}
 <div class="customer-dashboard-page">
-    <section class="dashboard-hero">
-        <div>
-            <h2>Welcome back</h2>
-            <p id="welcomeMessage">Your shopping hub at MADAM HY</p>
+
+    <!-- Customer Hero Header -->
+    <header class="dashboard-hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-person-badge" aria-hidden="true"></i>
+                    <span>Customer Portal</span>
+                </span>
+            </div>
+            <h2>Welcome Back</h2>
+            <p id="welcomeMessage">Welcome back, {{ customer.get_full_name|default:customer.username }} • Your personal shopping hub and account overview at MADAM HY.</p>
         </div>
+
+        <div class="dashboard-hero-actions">
+            <a href="/customer/products/" class="btn btn-primary" aria-label="Browse product collection">
+                <i class="bi bi-shop" aria-hidden="true"></i>
+                <span>Explore Catalog</span>
+            </a>
+            <a href="/customer/cart/" class="btn btn-secondary" aria-label="View shopping cart">
+                <i class="bi bi-bag" aria-hidden="true"></i>
+                <span>View Cart</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Top Statistical Summary Cards -->
+    <section class="dashboard-summary" aria-label="Customer account financial and operational summary">
+        <article class="summary-card" aria-label="Total orders placed">
+            <div class="summary-top">
+                <span>Total Orders</span>
+                <span class="card-icon"><i class="bi bi-bag-check" aria-hidden="true"></i></span>
+            </div>
+            <strong id="totalOrders">{{ summary.total_orders|default:0 }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Outstanding credit debt balance">
+            <div class="summary-top">
+                <span  class="text-warning-dark">Credit Balance</span>
+                <span class="card-icon u-warning-surface" ><i class="bi bi-wallet2" aria-hidden="true"></i></span>
+            </div>
+            <strong id="creditBalance" class="font-mono text-warning-dark" >₦ {{ summary.credit_balance|default:"0.00"|floatformat:2 }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Available store credit limit">
+            <div class="summary-top">
+                <span style="color: var(--success);">Available Credit</span>
+                <span class="card-icon" style="background: #f0fdf4; color: var(--success);">
+                    <svg class="icon icon-sm" aria-hidden="true" style="width: 16px; height: 16px;"><use href="#icon-retail-credit"></use></svg>
+                </span>
+            </div>
+            <strong id="availableCredit" class="font-mono text-success" style="color: var(--success);">₦ {{ summary.available_credit|default:"0.00"|floatformat:2 }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Recent support requests and inquiries">
+            <div class="summary-top">
+                <span>Open Requests</span>
+                <span class="card-icon" style="background: #eff6ff; color: #2563eb;"><i class="bi bi-chat-left-dots" aria-hidden="true"></i></span>
+            </div>
+            <strong id="recentRequests" style="color: #2563eb;">{{ summary.recent_requests|default:0 }}</strong>
+        </article>
     </section>
 
-    <section class="dashboard-summary" aria-label="Customer account summary">
-        <article class="summary-card">
-            <span>Total orders</span>
-            <strong id="totalOrders">0</strong>
-        </article>
-        <article class="summary-card">
-            <span>Credit balance</span>
-            <strong id="creditBalance">₦ 0</strong>
-        </article>
-        <article class="summary-card">
-            <span>Recent requests</span>
-            <strong id="recentRequests">0</strong>
-        </article>
-        <article class="summary-card">
-            <span>Available credit</span>
-            <strong id="availableCredit">₦ 0</strong>
-        </article>
-    </section>
-
+    <!-- 2-Column Dashboard Grid: Orders & Quick Actions -->
     <section class="dashboard-grid">
+
+        <!-- Left Column: Recent Orders Panel -->
         <article class="card dashboard-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Recent orders</h3>
-                    <p>Your latest shopping activity</p>
+                    <h3>Recent Purchases</h3>
+                    <p>Your latest shopping orders and delivery progress</p>
                 </div>
-                <a href="/customer/orders/" class="btn btn-secondary btn-sm">View all</a>
+                <a href="/customer/orders/" class="btn btn-secondary btn-sm" aria-label="View all customer orders">
+                    <span>View All Orders</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
 
-            <div id="recentOrdersList" class="orders-list"></div>
+            <!-- Dynamic Orders List -->
+            <div id="recentOrdersList" class="orders-list" aria-live="polite">
+                {% for order in recent_orders %}
+                <div class="order-item">
+                    <div class="order-item-left">
+                        <span class="order-badge"><i class="bi bi-receipt" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>{{ order.order_number|default:order.id }}</strong>
+                            <small class="text-muted">{{ order.date }} • {{ order.items }} items</small>
+                        </div>
+                    </div>
+                    <div class="order-item-right">
+                        <strong class="font-mono">₦ {{ order.total|floatformat:2 }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
-            <div id="recentOrdersEmpty" class="empty-state empty-state-hidden" aria-live="polite">
-                <h3>No orders yet</h3>
-                <p>Start shopping to see your order history here.</p>
+            <!-- Structured Empty State for Orders -->
+            <div id="recentOrdersEmpty" class="empty-state {% if recent_orders %}empty-state-hidden{% endif %}" aria-live="polite">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <i class="bi bi-bag-x"></i>
+                </div>
+                <h3>No purchases yet</h3>
+                <p>When you place orders through the catalog, your order tracking and purchase records will appear here.</p>
+                <div style="margin-top: 14px;">
+                    <a href="/customer/products/" class="btn btn-primary btn-sm">
+                        <i class="bi bi-shop" aria-hidden="true"></i>
+                        <span>Start Shopping</span>
+                    </a>
+                </div>
             </div>
         </article>
 
+        <!-- Right Column: Quick Actions Touch Grid -->
         <article class="card dashboard-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Quick actions</h3>
-                    <p>Get started faster</p>
+                    <h3>Quick Shortcuts</h3>
+                    <p>Frequently used customer tools &amp; resources</p>
                 </div>
             </div>
 
-            <nav class="quick-actions-list">
-                <a href="/customer/products/" class="quick-action-item">
-                    <span>Browse products</span>
-                    <strong>→</strong>
+            <nav class="quick-actions-list" aria-label="Customer quick actions">
+                <a href="/customer/products/" class="quick-action-item" aria-label="Browse shop products">
+                    <div class="quick-action-left">
+                        <span class="quick-action-icon"><i class="bi bi-shop" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Browse Catalog</strong>
+                            <small>Explore products and check live stock</small>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right action-arrow" aria-hidden="true"></i>
                 </a>
-                <a href="/customer/cart/" class="quick-action-item">
-                    <span>View cart</span>
-                    <strong>→</strong>
+
+                <a href="/customer/cart/" class="quick-action-item" aria-label="View my shopping cart">
+                    <div class="quick-action-left">
+                        <span class="quick-action-icon"><i class="bi bi-cart3" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Shopping Cart</strong>
+                            <small>Review items and checkout</small>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right action-arrow" aria-hidden="true"></i>
                 </a>
-                <a href="/customer/requests/" class="quick-action-item">
-                    <span>My requests</span>
-                    <strong>→</strong>
+
+                <a href="/customer/requests/" class="quick-action-item" aria-label="View my product requests">
+                    <div class="quick-action-left">
+                        <span class="quick-action-icon"><i class="bi bi-chat-left-text" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Support &amp; Inquiries</strong>
+                            <small>Track custom product and stock requests</small>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right action-arrow" aria-hidden="true"></i>
                 </a>
-                <a href="/customer/profile/" class="quick-action-item">
-                    <span>Account settings</span>
-                    <strong>→</strong>
+
+                <a href="/customer/settings/" class="quick-action-item" aria-label="Manage account settings">
+                    <div class="quick-action-left">
+                        <span class="quick-action-icon"><i class="bi bi-gear" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Account Settings</strong>
+                            <small>Update profile and notification preferences</small>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right action-arrow" aria-hidden="true"></i>
                 </a>
             </nav>
         </article>
     </section>
 
-    <section class="dashboard-grid">
+    <!-- Bottom Row: Recent Account Activity Timeline -->
+    <section class="dashboard-grid full-width-grid">
         <article class="card dashboard-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h3>Recent activity</h3>
-                    <p>Your account timeline</p>
+                    <h3>Account Timeline &amp; Activity</h3>
+                    <p>Real-time audit record of orders, repayments, and account notifications</p>
                 </div>
-                <a href="/customer/activity/" class="btn btn-secondary btn-sm">View all</a>
+                <a href="/customer/activity/" class="btn btn-secondary btn-sm" aria-label="View all customer activity">
+                    <span>View All Activity</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
 
-            <div id="recentActivityList" class="activity-list"></div>
+            <div id="recentActivityList" class="activity-list" aria-live="polite">
+                {% for item in recent_activity %}
+                <div class="timeline-item">
+                    <span class="timeline-bullet"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+                    <div class="timeline-content">
+                        <strong>{{ item.title }}</strong>
+                        <p>{{ item.text }}</p>
+                        <time class="text-muted">{{ item.date }}</time>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
-            <div id="recentActivityEmpty" class="empty-state empty-state-hidden" aria-live="polite">
-                <h3>No activity yet</h3>
-                <p>Your activity will appear here.</p>
+            <!-- Structured Empty State for Activity -->
+            <div id="recentActivityEmpty" class="empty-state {% if recent_activity %}empty-state-hidden{% endif %}" aria-live="polite">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+                <h3>No activity recorded yet</h3>
+                <p>Your recent account milestones, order confirmations, and notifications will show here.</p>
             </div>
         </article>
     </section>
+
 </div>
+
+<script id="dashboardData" type="application/json">
+{{ dashboard_json|default:"{}"|safe }}
+</script>
 {% endblock %}
 
 {% block page_js %}

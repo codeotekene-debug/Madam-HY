@@ -1,9 +1,8 @@
 {% extends "base.html" %}
-
 {% load static %}
 
 {% block title %}
-    Staff Dashboard | MADAM HY
+    Staff Operations Dashboard | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -11,59 +10,127 @@
 {% endblock %}
 
 {% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/pages/dashboard/staff.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="staff-dashboard">
+
+    <!-- =========================================
+         HERO & SHIFT STATUS
+         ========================================= -->
     <section class="staff-hero" aria-labelledby="staffDashboardTitle">
         <div>
-            <span class="badge badge-primary">Operations</span>
-            <h2 id="staffDashboardTitle">Shop work queue</h2>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span class="badge badge-primary">
+                    <i class="bi bi-shield-lock" aria-hidden="true"></i> Store Shift Operations
+                </span>
+                <span class="badge badge-neutral">
+                    <i class="bi bi-list-check" aria-hidden="true"></i> <span id="openTasks">{{ metrics.openTasks|default:"0" }}</span> Open Tasks
+                </span>
+            </div>
+
+            <h2 id="staffDashboardTitle">
+                Shop Operations Work Queue
+            </h2>
             <p>
-                Track assigned shop tasks, customer requests, stock attention,
-                and handover notes without exposing owner-only business analytics.
+                Manage fulfillment queues, shelf inventory checks, and customer requests without exposing sensitive executive business financials.
             </p>
         </div>
 
         <div class="staff-shift-card" aria-label="Current shift">
-            <span>Current shift</span>
+            <span>Current Shift</span>
             <strong id="staffShiftDate">-</strong>
+            <div class="shift-status-pill">
+                <span class="status-dot-pulse" aria-hidden="true"></span>
+                <span>Active Register Terminal</span>
+            </div>
         </div>
     </section>
 
-    <section class="staff-metrics" aria-label="Operational summary">
+    <!-- =========================================
+         SHIFT SUMMARY CARDS (KPI GRID)
+         ========================================= -->
+    <section class="staff-metrics" aria-label="Operational shift summary">
+
+        <!-- Active Register Transactions -->
         <article class="staff-metric-card">
-            <span>Open tasks</span>
-            <strong id="openTasks">0</strong>
-            <small>Assigned today</small>
+            <div class="metric-card-header">
+                <span>My Transactions</span>
+                <span class="staff-metric-icon accent-emerald" aria-hidden="true">
+                    <i class="bi bi-receipt"></i>
+                </span>
+            </div>
+            <strong id="todayTransactions">{{ metrics.todayTransactions|default:"0" }}</strong>
+            <small>Sales handled today</small>
+            <div class="kpi-pill kpi-pill-emerald u-mt-10" >
+                <i class="bi bi-calculator" aria-hidden="true"></i>
+                <span>Active cashier</span>
+            </div>
         </article>
 
+        <!-- Orders to Prepare -->
         <article class="staff-metric-card">
-            <span>Orders to prepare</span>
-            <strong id="ordersToPrepare">0</strong>
+            <div class="metric-card-header">
+                <span>Orders to Prepare</span>
+                <span class="staff-metric-icon accent-blue" aria-hidden="true">
+                    <i class="bi bi-bag-check"></i>
+                </span>
+            </div>
+            <strong id="ordersToPrepare">{{ metrics.ordersToPrepare|default:"0" }}</strong>
             <small>Pickup and delivery</small>
+            <div class="kpi-pill kpi-pill-blue u-mt-10" >
+                <i class="bi bi-box-seam" aria-hidden="true"></i>
+                <span>Fulfillment queue</span>
+            </div>
         </article>
 
+        <!-- Low Stock Checks -->
         <article class="staff-metric-card">
-            <span>Low-stock checks</span>
-            <strong id="stockChecks">0</strong>
+            <div class="metric-card-header">
+                <span>Low-Stock Checks</span>
+                <span class="staff-metric-icon accent-amber" aria-hidden="true">
+                    <i class="bi bi-boxes"></i>
+                </span>
+            </div>
+            <strong id="stockChecks">{{ metrics.stockChecks|default:"0" }}</strong>
             <small>Needs shelf review</small>
+            <div class="kpi-pill kpi-pill-amber u-mt-10" >
+                <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+                <span>Inventory count</span>
+            </div>
         </article>
 
+        <!-- Requests to Review -->
         <article class="staff-metric-card">
-            <span>Requests to review</span>
-            <strong id="requestsToReview">0</strong>
+            <div class="metric-card-header">
+                <span>Requests to Review</span>
+                <span class="staff-metric-icon accent-purple" aria-hidden="true">
+                    <i class="bi bi-patch-plus"></i>
+                </span>
+            </div>
+            <strong id="requestsToReview">{{ metrics.requestsToReview|default:"0" }}</strong>
             <small>Customer sourcing</small>
+            <div class="kpi-pill kpi-pill-rose u-mt-10" >
+                <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+                <span>Customer tickets</span>
+            </div>
         </article>
+
     </section>
 
+    <!-- =========================================
+         OPERATIONAL LAYOUT (TASKS, ACTIONS, ORDERS)
+         ========================================= -->
     <section class="staff-layout">
+
+        <!-- Assigned Tasks Card -->
         <article class="staff-card staff-task-card">
             <div class="staff-card-header">
                 <div>
-                    <h3>Assigned Tasks</h3>
-                    <p>Operational work prepared for role permissions.</p>
+                    <h3>Assigned Tasks Queue</h3>
+                    <p>Operational work prepared for store role permissions.</p>
                 </div>
 
                 <select
@@ -73,42 +140,88 @@
                 >
                     <option value="all">All tasks</option>
                     <option value="priority">Priority</option>
-                    <option value="stock">Stock</option>
+                    <option value="stock">Stock checks</option>
                     <option value="orders">Orders</option>
                     <option value="requests">Requests</option>
                 </select>
             </div>
 
-            <div class="staff-task-list" id="staffTaskList"></div>
+            <div class="staff-task-list" id="staffTaskList">
+                <div class="dashboard-loading">
+                    <div class="spinner"></div>
+                    <span>Loading operational tasks...</span>
+                </div>
+            </div>
         </article>
 
+        <!-- Quick Action Touch Grid (>= 44px Touch Targets) -->
         <article class="staff-card">
             <div class="staff-card-header">
                 <div>
-                    <h3>Quick Actions</h3>
-                    <p>Frontend placeholders for common shop work.</p>
+                    <h3>Quick Operations</h3>
+                    <p>Immediate store operations and register actions.</p>
                 </div>
             </div>
 
             <div class="staff-action-grid">
-                <button type="button" class="staff-action" data-staff-action>
-                    <span>POS</span>
-                    <strong>Open sale</strong>
+                <button
+                    type="button"
+                    class="staff-action"
+                    data-staff-action="pos"
+                    aria-label="Launch POS Register terminal"
+                >
+                    <span class="staff-action-icon accent-emerald" aria-hidden="true">
+                        <svg class="retail-svg icon-lg"><use href="#icon-retail-pos"></use></svg>
+                    </span>
+                    <div>
+                        <strong>Launch POS</strong>
+                        <small>New customer sale</small>
+                    </div>
                 </button>
 
-                <button type="button" class="staff-action" data-staff-action>
-                    <span>Stock</span>
-                    <strong>Check item</strong>
+                <button
+                    type="button"
+                    class="staff-action"
+                    data-staff-action="stock"
+                    aria-label="Check stock item count"
+                >
+                    <span class="staff-action-icon accent-amber" aria-hidden="true">
+                        <i class="bi bi-boxes"></i>
+                    </span>
+                    <div>
+                        <strong>Check Stock</strong>
+                        <small>Verify shelf count</small>
+                    </div>
                 </button>
 
-                <button type="button" class="staff-action" data-staff-action>
-                    <span>Order</span>
-                    <strong>Prepare pickup</strong>
+                <button
+                    type="button"
+                    class="staff-action"
+                    data-staff-action="order"
+                    aria-label="Prepare pickup customer order"
+                >
+                    <span class="staff-action-icon accent-blue" aria-hidden="true">
+                        <i class="bi bi-bag-check"></i>
+                    </span>
+                    <div>
+                        <strong>Customer Orders</strong>
+                        <small>Package pickup items</small>
+                    </div>
                 </button>
 
-                <button type="button" class="staff-action" data-staff-action>
-                    <span>Request</span>
-                    <strong>Review product</strong>
+                <button
+                    type="button"
+                    class="staff-action"
+                    data-staff-action="request"
+                    aria-label="Review customer product requests"
+                >
+                    <span class="staff-action-icon accent-purple" aria-hidden="true">
+                        <i class="bi bi-patch-plus"></i>
+                    </span>
+                    <div>
+                        <strong>Store Requests</strong>
+                        <small>Product inquiries</small>
+                    </div>
                 </button>
             </div>
 
@@ -121,44 +234,74 @@
             ></div>
         </article>
 
+        <!-- Orders Needing Attention -->
         <article class="staff-card staff-orders">
             <div class="staff-card-header">
                 <div>
                     <h3>Orders Needing Attention</h3>
-                    <p>Demo queue for customer and shop orders.</p>
+                    <p>Fulfillment queue for customer store and pickup orders.</p>
                 </div>
+
+                <a
+                    href="/orders/"
+                    class="view-all-link"
+                    aria-label="View all customer orders"
+                >
+                    <span>View all</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-wrapper table-responsive">
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Order</th>
-                            <th>Customer</th>
-                            <th>Work</th>
-                            <th>Status</th>
+                            <th scope="col">Order #</th>
+                            <th scope="col">Customer</th>
+                            <th scope="col">Action Needed</th>
+                            <th scope="col">Status</th>
                         </tr>
                     </thead>
 
-                    <tbody id="staffOrdersTable"></tbody>
+                    <tbody id="staffOrdersTable">
+                        <tr>
+                            <td colspan="4">
+                                <div class="dashboard-loading">
+                                    <div class="spinner"></div>
+                                    <span>Loading orders queue...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </article>
 
+        <!-- Handover Notes -->
         <article class="staff-card">
             <div class="staff-card-header">
                 <div>
-                    <h3>Handover Notes</h3>
-                    <p>Frontend-only notes for shift continuity.</p>
+                    <h3>Shift Handover Notes</h3>
+                    <p>Internal operational notes for shift continuity.</p>
                 </div>
             </div>
 
-            <div class="handover-list" id="handoverList"></div>
+            <div class="handover-list" id="handoverList">
+                <div class="dashboard-loading">
+                    <div class="spinner"></div>
+                    <span>Loading handover notes...</span>
+                </div>
+            </div>
         </article>
+
     </section>
+
 </div>
 {% endblock %}
 
 {% block page_js %}
+<script id="staff-dashboard-data" type="application/json">
+{{ dashboard_json|safe }}
+</script>
 <script src="{% static 'js/pages/dashboard/staff.js' %}"></script>
 {% endblock %}

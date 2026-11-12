@@ -4,7 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadReceipt() {
-    const identifier = new URLSearchParams(window.location.search).get('sale_id');
+    const params = new URLSearchParams(window.location.search);
+    const identifier = params.get('sale_id') || params.get('id');
     if (!identifier) {
         showReceiptMessage('Sale number is missing.');
         return;
@@ -26,6 +27,9 @@ async function loadReceipt() {
         return;
     }
     renderReceipt(response.data);
+    if (new URLSearchParams(window.location.search).get('print') === '1') {
+        window.setTimeout(() => window.print(), 500);
+    }
 }
 
 function renderReceipt(sale) {

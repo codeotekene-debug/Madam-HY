@@ -2,6 +2,8 @@
    MADAM HY - OWNER DASHBOARD
    ========================================================= */
 
+@import url("../dashboard.css");
+
 .dashboard {
     display: flex;
     flex-direction: column;

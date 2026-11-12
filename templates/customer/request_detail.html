@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "customer/base.html" %}
 
 {% load static %}
 
@@ -80,5 +80,20 @@
 {% endblock %}
 
 {% block page_js %}
+{% if request_detail_json %}
+<script id="customer-request-detail-data" type="application/json">
+{{ request_detail_json|safe }}
+</script>
+<script>
+    try {
+        const _custReqDetailEl = document.getElementById('customer-request-detail-data');
+        if (_custReqDetailEl && _custReqDetailEl.textContent) {
+            window.__REQUEST_DETAIL__ = JSON.parse(_custReqDetailEl.textContent);
+        }
+    } catch (e) {
+        console.warn('Failed to parse customer request detail data:', e);
+    }
+</script>
+{% endif %}
 <script src="{% static 'js/pages/customer/requests.js' %}"></script>
 {% endblock %}

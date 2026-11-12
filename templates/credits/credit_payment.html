@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/credits/payment.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="credits" current_tab="settle" %}
+{% endblock %}
+
 {% block content %}
 <div class="credit-payment-page">
     <section class="credits-hero">
@@ -38,12 +42,11 @@
                     <label for="paymentCustomer" class="form-label">Customer</label>
                     <select id="paymentCustomer" class="form-select" required>
                         <option value="">Select customer</option>
-                        <option value="aisha-bello">Aisha Bello</option>
-                        <option value="musa-adamu">Musa Adamu</option>
-                        <option value="grace-nnaji">Grace Nnaji</option>
-                        <option value="emeka-ibe">Emeka Ibe</option>
-                        <option value="zainab-hassan">Zainab Hassan</option>
-                        <option value="james-obi">James Obi</option>
+                        {% for acc in accounts_with_balance %}
+                        <option value="{{ acc.id }}" data-balance="{{ acc.outstanding_balance }}" data-name="{{ acc.customer.get_full_name|default:acc.customer.username }}" {% if selected_account and selected_account.id == acc.id %}selected{% endif %}>
+                            {{ acc.customer.get_full_name|default:acc.customer.username }} (Debt: ₦{{ acc.outstanding_balance|floatformat:2 }})
+                        </option>
+                        {% endfor %}
                     </select>
                 </div>
 

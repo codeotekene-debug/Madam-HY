@@ -22,6 +22,17 @@
             <h2>Sales report</h2>
             <p>Track revenue performance, transaction volume, payment mix, and sales activity across the selected period.</p>
         </div>
+
+        <div class="report-actions u-flex-gap-sm" >
+            <button type="button" class="btn btn-secondary btn-sm" id="exportSalesCsvBtn" aria-label="Export sales report to CSV">
+                <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
+                <span>Export CSV</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()" aria-label="Print sales report">
+                <i class="bi bi-printer" aria-hidden="true"></i>
+                <span>Print</span>
+            </button>
+        </div>
     </section>
 
     <section class="report-summary" aria-label="Sales summary cards">
@@ -122,6 +133,8 @@
         </div>
     </section>
 </div>
+
+{{ sales_data|json_script:"salesDataJson" }}
 {% endblock %}
 
 {% block page_js %}

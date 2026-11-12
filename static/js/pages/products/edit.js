@@ -28,13 +28,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const file = event.target.files && event.target.files[0];
 
         if (!file) {
-            imagePreviewBox.innerHTML = '<img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80" alt="Edited product preview" />';
+            imagePreviewBox.innerHTML = '<img src="/static/img/defaults/product-placeholder.svg" alt="Edited product preview" />';
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            showMessage(messageBox, "Image file must be 5MB or smaller.", "error");
+            imageInput.value = "";
+            return;
+        }
+
+        const extension = file.name.toLowerCase().split(".").pop();
+        if (file.type && !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+            || !["jpg", "jpeg", "png", "webp"].includes(extension)) {
+            showMessage(messageBox, "Please select a valid JPEG, PNG, or WEBP image.", "error");
+            imageInput.value = "";
             return;
         }
 
         const reader = new FileReader();
         reader.onload = () => {
-            imagePreviewBox.innerHTML = `<img src="${reader.result}" alt="Updated product preview" />`;
+            imagePreviewBox.innerHTML = `<img src="${reader.result}" alt="Updated product preview" style="max-width: 100%; max-height: 100%; object-fit: contain;" />`;
         };
         reader.readAsDataURL(file);
     });
@@ -56,27 +70,43 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const response = await apiRequest(`/products/${productId}/update/`, {
-            method: "POST",
-            body: {
-                name: document.getElementById("editProductName").value.trim(),
-                category_id: Number(document.getElementById("editProductCategory").value),
-                selling_price: document.getElementById("editRetailPrice").value,
-                cost_price: document.getElementById("editCostPrice").value || null,
-                reorder_level: document.getElementById("editReorderLevel").value || 0,
-                description: document.getElementById("editDescription").value.trim()
-            }
-        });
+        const formData = new FormData();
+        formData.append("name", document.getElementById("editProductName").value.trim());
+        formData.append("category_id", document.getElementById("editProductCategory").value);
+        formData.append("selling_price", document.getElementById("editRetailPrice").value);
+        const costVal = document.getElementById("editCostPrice").value;
+        if (costVal) {
+            formData.append("cost_price", costVal);
+        }
+        formData.append("reorder_level", document.getElementById("editReorderLevel").value || 0);
+        formData.append("description", document.getElementById("editDescription").value.trim());
 
-        if (!response.success) {
-            showApiErrors(messageBox, response);
-            return;
+        const file = imageInput?.files && imageInput.files[0];
+        if (file) {
+            formData.append("image", file);
         }
 
-        showMessage(messageBox, response.message || "Product updated successfully.", "success");
-        window.setTimeout(() => {
-            window.location.href = `/preview/products/detail/?id=${productId}`;
-        }, 500);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const response = await apiRequest(`/products/${productId}/update/`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.success) {
+                showApiErrors(messageBox, response);
+                return;
+            }
+
+            showMessage(messageBox, response.message || "Product updated successfully.", "success");
+            window.setTimeout(() => {
+                window.location.href = `/products/${productId}/`;
+            }, 500);
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
     });
 });
 
@@ -95,9 +125,23 @@ async function loadProduct(productId) {
     setValue("editRetailPrice", product.selling_price);
     setValue("editCostPrice", product.cost_price || "");
     setValue("editReorderLevel", product.reorder_level ?? 0);
-    setValue("editStockQty", product.stock?.quantity ?? 0);
-    document.getElementById("editProductSku").disabled = true;
-    document.getElementById("editStockQty").disabled = true;
+
+    const imagePreviewBox = document.getElementById("editImagePreviewBox");
+    const imgUrl = product.primary_image?.url || product.image?.url || product.image_url;
+    if (imgUrl && imagePreviewBox) {
+        imagePreviewBox.innerHTML = `<img src="${imgUrl}" alt="${product.name}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />`;
+    }
+
+    const stockBadge = document.getElementById("stockBadge");
+    if (stockBadge && product.stock) {
+        const qty = product.stock.quantity ?? 0;
+        stockBadge.textContent = `Current Stock: ${qty} units`;
+        stockBadge.className = `badge ${qty > 5 ? 'badge-success' : (qty > 0 ? 'badge-warning' : 'badge-danger')}`;
+    }
+    const skuEl = document.getElementById("editProductSku");
+    if (skuEl) skuEl.disabled = true;
+    const stockQtyEl = document.getElementById("editStockQty");
+    if (stockQtyEl) stockQtyEl.disabled = true;
 }
 
 async function loadCategories(selectedId) {
@@ -116,7 +160,9 @@ async function loadCategories(selectedId) {
 }
 
 function getProductId() {
-    return new URLSearchParams(window.location.search).get("id");
+    return document.querySelector(".product-form-page")?.dataset.productId
+        || new URLSearchParams(window.location.search).get("id")
+        || window.location.pathname.match(/\/products\/(\d+)/)?.[1];
 }
 
 function setValue(id, value) {

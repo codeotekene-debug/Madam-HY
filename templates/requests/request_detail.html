@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/requests/detail.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='requests' current_tab='all' %}
+{% endblock %}
+
 {% block content %}
 <div class="request-detail-page">
     <section class="request-detail-hero">
@@ -102,5 +106,20 @@
 {% endblock %}
 
 {% block page_js %}
+{% if request_detail_json %}
+<script id="request-detail-data" type="application/json">
+{{ request_detail_json|safe }}
+</script>
+<script>
+    try {
+        const _reqDetailEl = document.getElementById('request-detail-data');
+        if (_reqDetailEl && _reqDetailEl.textContent) {
+            window.__REQUEST_DETAIL__ = JSON.parse(_reqDetailEl.textContent);
+        }
+    } catch (e) {
+        console.warn('Failed to parse request detail data:', e);
+    }
+</script>
+{% endif %}
 <script src="{% static 'js/pages/requests/detail.js' %}"></script>
 {% endblock %}

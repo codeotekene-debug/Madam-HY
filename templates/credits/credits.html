@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}
-    Credits | MADAM HY
+    Customer Credit &amp; Debt Ledger | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -14,88 +14,146 @@
 <link rel="stylesheet" href="{% static 'css/pages/credits/credits.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="credits" current_tab="accounts" %}
+{% endblock %}
+
 {% block content %}
 <div class="credits-page">
-    <section class="credits-hero">
+
+    <!-- Page Header & Hero -->
+    <header class="credits-hero">
         <div>
-            <span class="badge badge-primary">Accounts</span>
-            <h2>Customer credit</h2>
-            <p>Manage customer credit accounts, monitor balances, and track credit payments.</p>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-credit"></use></svg>
+                    <span>Credit &amp; Debt Ledger</span>
+                </span>
+            </div>
+            <h2>Customer Credit Accounts &amp; Debt Ledger</h2>
+            <p>Monitor approved customer credit limits, outstanding balances, repayment schedules, and account standing across the retail store.</p>
         </div>
+
+        <div class="page-actions">
+            {% if request.user.role == 'OWNER' or request.user.role == 'MANAGER' %}
+            <a href="{% url 'credits:add_customer_credit' %}" class="btn btn-primary" aria-label="Issue customer credit">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>Add Credit</span>
+            </a>
+            {% endif %}
+            <a href="/sales/pos/" class="btn btn-secondary" aria-label="Open POS terminal for sales">
+                <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                <span>POS Counter</span>
+            </a>
+            <a href="/sales/history/" class="btn btn-secondary" aria-label="View sales history">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <span>Sales Ledger</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Top Statistical Summary Cards -->
+    <section class="credits-summary" aria-label="Credit metrics summary">
+        <article class="summary-card" aria-label="Total credit issued">
+            <div class="summary-top">
+                <span>Total Credit Drawn</span>
+                <span class="card-icon"><i class="bi bi-credit-card" aria-hidden="true"></i></span>
+            </div>
+            <strong id="totalCreditIssued">₦ {{ summary.total_issued|floatformat:2|default:"0.00" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Total outstanding balance">
+            <div class="summary-top">
+                <span  class="text-warning-dark">Outstanding Debt</span>
+                <span class="card-icon u-warning-surface" ><i class="bi bi-exclamation-circle" aria-hidden="true"></i></span>
+            </div>
+            <strong id="totalOutstanding"  class="text-warning-dark">₦ {{ summary.total_outstanding|floatformat:2|default:"0.00" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Total overdue credit balance">
+            <div class="summary-top">
+                <span  class="text-danger">Overdue Balance</span>
+                <span class="card-icon" style="background: #fef2f2; color: var(--danger, #dc2626);"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+            </div>
+            <strong id="totalOverdue"  class="text-danger">₦ {{ summary.total_overdue|floatformat:2|default:"0.00" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Total credit customer accounts">
+            <div class="summary-top">
+                <span>Credit Accounts</span>
+                <span class="card-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+            </div>
+            <strong id="totalAccountsCount">{{ summary.total_accounts|default:"0" }}</strong>
+        </article>
     </section>
 
-    <section class="credits-summary" aria-label="Credits summary">
-        <article class="summary-card">
-            <span>Total issued</span>
-            <strong id="totalCreditIssued">₦ 0</strong>
-        </article>
-        <article class="summary-card">
-            <span>Outstanding</span>
-            <strong id="totalOutstanding">₦ 0</strong>
-        </article>
-        <article class="summary-card">
-            <span>Overdue</span>
-            <strong id="totalOverdue">₦ 0</strong>
-        </article>
-        <article class="summary-card">
-            <span>Accounts</span>
-            <strong id="totalAccountsCount">0</strong>
-        </article>
-    </section>
-
+    <!-- Credit Accounts Data Panel -->
     <section class="card credits-panel">
         <div class="panel-header compact-header">
             <div>
-                <h3>Credit accounts</h3>
-                <p>View and manage all customer credit accounts.</p>
+                <h3>Credit Account Registry</h3>
+                <p>Filter customer accounts by credit standing, payment progress, or contact information.</p>
             </div>
         </div>
 
         <div class="credits-toolbar">
             <div class="toolbar-search">
                 <label class="visually-hidden" for="creditsSearch">Search credits</label>
-                <input id="creditsSearch" class="form-control" type="search" placeholder="Search by customer name or phone" />
+                <input
+                    id="creditsSearch"
+                    class="form-control"
+                    type="search"
+                    placeholder="Search by customer name, account number, or phone..."
+                    aria-label="Search credit accounts"
+                />
             </div>
 
             <div class="toolbar-filters">
                 <label class="visually-hidden" for="creditsStatusFilter">Filter by status</label>
-                <select id="creditsStatusFilter" class="form-select">
-                    <option value="all">All statuses</option>
-                    <option value="Active">Active</option>
-                    <option value="Paid">Paid</option>
+                <select id="creditsStatusFilter" class="form-select" aria-label="Filter by credit status">
+                    <option value="all">All account statuses</option>
+                    <option value="Active">Active Standing</option>
+                    <option value="Paid">Fully Settled / Paid</option>
                     <option value="Partially Paid">Partially Paid</option>
-                    <option value="Due">Due</option>
+                    <option value="Due">Due for Settlement</option>
                     <option value="Overdue">Overdue</option>
                     <option value="Suspended">Suspended</option>
                 </select>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <!-- Table -->
+        <div class="table-wrapper table-responsive">
             <table class="table credits-table">
                 <thead>
                     <tr>
-                        <th>Customer</th>
-                        <th>Phone</th>
-                        <th>Credit Limit</th>
-                        <th>Used</th>
-                        <th>Available</th>
-                        <th>Outstanding</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                        <th>Action</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col" class="num">Credit Limit</th>
+                        <th scope="col" class="num">Used</th>
+                        <th scope="col" class="num">Available</th>
+                        <th scope="col" class="num">Outstanding</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"  class="text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody id="creditsTableBody"></tbody>
             </table>
         </div>
 
+        <!-- Structured Empty State -->
         <div id="creditsEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
+            <div class="empty-state-icon" aria-hidden="true">
+                <svg class="retail-svg icon-xl"><use href="#icon-retail-credit"></use></svg>
+            </div>
             <h3>No credit accounts match your filters</h3>
-            <p>Adjust the search terms or filters to view more accounts.</p>
+            <p>Adjust your search query or reset status filters to view customer credit accounts.</p>
         </div>
     </section>
+
 </div>
+<script id="creditsDataJson" type="application/json">{{ accounts_json|safe }}</script>
 {% endblock %}
 
 {% block page_js %}

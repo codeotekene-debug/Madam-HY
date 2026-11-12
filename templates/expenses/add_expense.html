@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/expenses/add.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="expenses" current_tab="create" %}
+{% endblock %}
+
 {% block content %}
 <div class="add-expense-page">
     <section class="expenses-hero">

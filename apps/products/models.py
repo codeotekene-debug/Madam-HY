@@ -60,6 +60,10 @@ class Product(models.Model):
         null=True,
     )
     reorder_level = models.PositiveIntegerField(default=0)
+    allow_pay_on_delivery = models.BooleanField(
+        default=True,
+        help_text="Designates whether customers can pay on delivery for this product.",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -95,10 +99,12 @@ class Product(models.Model):
 
     def clean(self):
         super().clean()
-        if self.selling_price < 0:
+        if self.selling_price < Decimal('0.00'):
             raise ValidationError({'selling_price': 'Selling price cannot be negative.'})
-        if self.cost_price is not None and self.cost_price < 0:
+        if self.cost_price is not None and self.cost_price < Decimal('0.00'):
             raise ValidationError({'cost_price': 'Cost price cannot be negative.'})
+        if self.cost_price is not None and self.selling_price < self.cost_price:
+            raise ValidationError({'selling_price': 'Selling price cannot be lower than cost price.'})
         if self.reorder_level < 0:
             raise ValidationError({'reorder_level': 'Reorder level cannot be negative.'})
 
@@ -109,28 +115,108 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def current_stock(self):
+        """Authoritative current physical stock count from InventoryItem."""
+        try:
+            return self.inventory_item.quantity if hasattr(self, 'inventory_item') and self.inventory_item else 0
+        except Exception:
+            return 0
+
+    @property
+    def stock_quantity(self):
+        """Convenience alias for current_stock."""
+        return self.current_stock
+
+    @property
     def primary_image(self):
-        return self.images.filter(is_primary=True).order_by('display_order', 'created_at').first()
+        primary = self.images.filter(is_primary=True).order_by('display_order', 'created_at').first()
+        if not primary:
+            primary = self.images.order_by('display_order', 'created_at').first()
+        return primary
 
-    def record_price_change(self, new_price, changed_by=None, reason=''):
-        if new_price < 0:
-            raise ValidationError({'new_price': 'New price cannot be negative.'})
+    @property
+    def image_url(self):
+        """URL of the primary or first product image, or None."""
+        img = self.primary_image
+        return img.image.url if (img and img.image) else None
 
-        previous_price = self.selling_price
-        if Decimal(str(new_price)) == previous_price:
+    @property
+    def gross_profit(self):
+        """Gross profit per unit = Selling price - Cost price."""
+        cost = self.cost_price if self.cost_price is not None else Decimal('0.00')
+        return self.selling_price - cost
+
+    @property
+    def gross_margin_percentage(self):
+        """
+        Gross profit margin percentage = ((Selling price - Cost price) / Selling price) * 100
+        when selling price is greater than zero.
+        """
+        if not self.selling_price or self.selling_price <= Decimal('0.00'):
+            return Decimal('0.00')
+        cost = self.cost_price if self.cost_price is not None else Decimal('0.00')
+        profit = self.selling_price - cost
+        margin = (profit / self.selling_price) * Decimal('100')
+        return margin.quantize(Decimal('0.01'))
+
+    def record_price_change(self, new_price=None, changed_by=None, reason='', *, new_selling_price=None, new_cost_price=None):
+        """
+        Atomically record a price change (selling price, cost price, or both) and
+        create an immutable ProductPriceHistory audit log record.
+        Enforces selling_price >= cost_price.
+        Returns the created ProductPriceHistory instance, or None if no prices changed.
+        """
+        from decimal import InvalidOperation
+        from django.db import transaction
+
+        target_selling = new_selling_price if new_selling_price is not None else new_price
+        if target_selling is not None:
+            try:
+                target_selling = Decimal(str(target_selling))
+            except (InvalidOperation, TypeError, ValueError):
+                raise ValidationError({'new_price': 'Selling price must be a valid decimal.'})
+            if target_selling < Decimal('0.00'):
+                raise ValidationError({'new_price': 'Selling price cannot be negative.'})
+        else:
+            target_selling = self.selling_price
+
+        if new_cost_price is not None:
+            try:
+                target_cost = Decimal(str(new_cost_price))
+            except (InvalidOperation, TypeError, ValueError):
+                raise ValidationError({'new_cost_price': 'Cost price must be a valid decimal.'})
+            if target_cost < Decimal('0.00'):
+                raise ValidationError({'new_cost_price': 'Cost price cannot be negative.'})
+        else:
+            target_cost = self.cost_price
+
+        if target_cost is not None and target_selling < target_cost:
+            raise ValidationError({'new_price': 'Selling price cannot be lower than cost price.'})
+
+        selling_changed = (target_selling != self.selling_price)
+        cost_changed = (target_cost != self.cost_price)
+
+        if not selling_changed and not cost_changed:
             return None
 
-        self.selling_price = Decimal(str(new_price))
-        self.save(update_fields=['selling_price', 'updated_at'])
+        with transaction.atomic():
+            prev_selling = self.selling_price
+            prev_cost = self.cost_price
 
-        history = ProductPriceHistory.objects.create(
-            product=self,
-            previous_price=previous_price,
-            new_price=self.selling_price,
-            changed_by=changed_by,
-            reason=reason,
-        )
-        return history
+            self.selling_price = target_selling
+            self.cost_price = target_cost
+            self.save(update_fields=['selling_price', 'cost_price', 'updated_at'])
+
+            history = ProductPriceHistory.objects.create(
+                product=self,
+                previous_price=prev_selling,
+                new_price=self.selling_price,
+                previous_cost_price=prev_cost,
+                new_cost_price=self.cost_price,
+                changed_by=changed_by,
+                reason=reason or '',
+            )
+            return history
 
 
 class ProductImage(models.Model):
@@ -157,6 +243,11 @@ class ProductImage(models.Model):
     def __str__(self):
         return f"{self.product.name} image {self.display_order}"
 
+    @property
+    def url(self):
+        """Direct URL to the uploaded image file."""
+        return self.image.url if self.image else ''
+
     def clean(self):
         super().clean()
         if self.is_primary:
@@ -172,7 +263,10 @@ class ProductImage(models.Model):
 
 
 class ProductPriceHistory(models.Model):
-    """Historical record of product selling price changes."""
+    """
+    Immutable historical audit record of product selling price and cost price revisions.
+    Maintains historical snapshots for auditing, compliance, and margin analysis.
+    """
 
     product = models.ForeignKey(
         Product,
@@ -181,6 +275,18 @@ class ProductPriceHistory(models.Model):
     )
     previous_price = models.DecimalField(max_digits=12, decimal_places=2)
     new_price = models.DecimalField(max_digits=12, decimal_places=2)
+    previous_cost_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    new_cost_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -208,7 +314,65 @@ class ProductPriceHistory(models.Model):
                 check=models.Q(new_price__gte=0),
                 name='product_price_history_new_non_negative',
             ),
+            models.CheckConstraint(
+                check=models.Q(previous_cost_price__isnull=True) | models.Q(previous_cost_price__gte=0),
+                name='product_price_history_prev_cost_non_negative',
+            ),
+            models.CheckConstraint(
+                check=models.Q(new_cost_price__isnull=True) | models.Q(new_cost_price__gte=0),
+                name='product_price_history_new_cost_non_negative',
+            ),
         ]
 
     def __str__(self):
-        return f"{self.product.name}: {self.previous_price} -> {self.new_price}"
+        return f"{self.product.name}: ₦{self.previous_price} -> ₦{self.new_price}"
+
+    @property
+    def previous_selling_price(self):
+        return self.previous_price
+
+    @property
+    def new_selling_price(self):
+        return self.new_price
+
+    @property
+    def previous_gross_profit(self):
+        cost = self.previous_cost_price if self.previous_cost_price is not None else Decimal('0.00')
+        return self.previous_price - cost
+
+    @property
+    def new_gross_profit(self):
+        cost = self.new_cost_price if self.new_cost_price is not None else Decimal('0.00')
+        return self.new_price - cost
+
+    @property
+    def previous_gross_margin_percentage(self):
+        if not self.previous_price or self.previous_price <= Decimal('0.00'):
+            return Decimal('0.00')
+        cost = self.previous_cost_price if self.previous_cost_price is not None else Decimal('0.00')
+        return (((self.previous_price - cost) / self.previous_price) * Decimal('100')).quantize(Decimal('0.01'))
+
+    @property
+    def new_gross_margin_percentage(self):
+        if not self.new_price or self.new_price <= Decimal('0.00'):
+            return Decimal('0.00')
+        cost = self.new_cost_price if self.new_cost_price is not None else Decimal('0.00')
+        return (((self.new_price - cost) / self.new_price) * Decimal('100')).quantize(Decimal('0.1'))
+
+    @property
+    def gross_profit(self):
+        """Current/new gross profit snapshot."""
+        return self.new_gross_profit
+
+    @property
+    def gross_margin_percentage(self):
+        """Current/new gross profit margin percentage snapshot."""
+        return self.new_gross_margin_percentage
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError('Price history records are immutable and cannot be deleted.')
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError('Price history records are immutable and cannot be modified.')
+        super().save(*args, **kwargs)

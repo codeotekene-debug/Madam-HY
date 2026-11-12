@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/sales/checkout.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="sales" active_tab="pos" %}
+{% endblock %}
+
 {% block content %}
 <div class="checkout-page">
     <section class="sales-hero">
@@ -62,6 +66,85 @@
                 <div class="form-group">
                     <label class="form-label" for="amountReceivedInput">Amount received</label>
                     <input id="amountReceivedInput" class="form-control" type="number" min="0" step="100" value="0" />
+                </div>
+            </div>
+
+            <!-- Dynamic QR Code Container for Bank Transfer / QR -->
+            <div id="checkoutQrContainer" class="checkout-qr-box" style="display: none; margin-top: 18px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); text-align: center;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;">
+                    <svg class="retail-svg icon-sm" aria-hidden="true"><use href="#icon-retail-qr"></use></svg>
+                    <strong style="font-size: 14px;">Dynamic Payment QR Code</strong>
+                </div>
+                <div id="qrCodeWrapper" class="qr-code-wrapper" style="margin: 0 auto 12px auto; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
+                    {% if qr_code_data %}
+                        <img id="qrCodeImage" class="qr-code-img" src="{{ qr_code_data }}" alt="Payment QR Code" style="max-width: 100%; height: auto; padding: 10px; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); display: block; margin: 0 auto;" />
+                    {% else %}
+                        <div id="qrPlaceholder" class="qr-placeholder">
+                            <span class="spinner" aria-hidden="true"></span>
+                            <p>Generating dynamic counter QR code...</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div id="qrReferenceBadge" class="badge badge-outline" style="display: none; align-items: center; justify-content: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 11px; margin-bottom: 8px;">
+                    <span>Ref:</span>
+                    <strong id="qrReferenceValue" style="color: var(--text); font-family: monospace;">-</strong>
+                </div>
+                <div id="qrStatusIndicator" class="qr-status-indicator" role="status" aria-live="polite" style="margin-bottom: 10px;">
+                    <span class="status-dot pulse" aria-hidden="true"></span>
+                    <span id="qrStatusText">Scan with bank app or camera to settle payment</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="verifyCheckoutQrBtn">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    <span>Verify Status</span>
+                </button>
+
+                <!-- Explicit Fallback Display: Payment Link, Order Reference & Bank Transfer Account Details -->
+                <div id="qrFallbackDetails" class="qr-fallback-details" style="margin-top: 14px; padding: 12px 14px; background: var(--background); border: 1px dashed var(--border); border-radius: var(--radius-md); text-align: left; font-size: 12.5px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+                        <span style="font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 6px;">
+                            <i class="bi bi-bank" aria-hidden="true"></i> Bank Transfer Account
+                        </span>
+                        <span class="badge badge-warning" style="font-family: monospace; font-size: 11px;">
+                            <i class="bi bi-clock-history" aria-hidden="true"></i> <span id="fallbackTimer">14:59</span>
+                        </span>
+                    </div>
+
+                    <div style="display: grid; gap: 6px; margin-bottom: 10px;">
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Order Ref:</span>
+                            <strong id="fallbackRefValue" style="font-family: monospace; color: var(--text);">{% firstof payment_reference reference '-' %}</strong>
+                        </div>
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Bank Name:</span>
+                            <strong id="fallbackBankName"  class="text-body">{{ bank_name|default:'Moniepoint MFB' }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span  class="text-muted">Dynamic Account:</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <strong id="fallbackAccountNumber" style="font-family: monospace; font-size: 13.5px; letter-spacing: 0.5px; color: var(--text);">{{ account_number|default:'-' }}</strong>
+                                <button type="button" class="btn btn-icon btn-xs" id="copyAccountNumberBtn" title="Copy account number" aria-label="Copy account number" style="padding: 2px 6px; font-size: 10px;">
+                                    <i class="bi bi-clipboard" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div  class="u-flex-between">
+                            <span  class="text-muted">Amount to Pay:</span>
+                            <strong id="fallbackAmount" style="color: var(--primary); font-size: 13px;">₦ {{ amount|default:'0.00' }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Explicit Payment Link Fallback -->
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11.5px;">
+                        <span style="color: var(--muted); display: block; margin-bottom: 4px;">Direct Payment Link:</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <a id="qrPaymentLink" href="{{ payment_url|default:'javascript:void(0);' }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); word-break: break-all; text-decoration: underline; flex: 1;">
+                                <span id="qrPaymentLinkText">{{ payment_url|default:'-' }}</span>
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-xs" id="copyPaymentLinkBtn" title="Copy payment link" aria-label="Copy payment link" style="white-space: nowrap;">
+                                <i class="bi bi-link-45deg" aria-hidden="true"></i> Copy
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

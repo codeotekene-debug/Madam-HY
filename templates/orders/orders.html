@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}
-    Orders | MADAM HY
+    Customer Orders &amp; Fulfillment | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -14,116 +14,173 @@
 <link rel="stylesheet" href="{% static 'css/pages/orders/orders.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='orders' current_tab=active_tab %}
+{% endblock %}
+
 {% block content %}
 <div class="orders-page">
-    <section class="orders-hero">
-        <div>
-            <span class="badge badge-primary">Management</span>
-            <h2>Customer orders</h2>
-            <p>Track and manage customer orders, their fulfillment status, and payment information from the shop.</p>
-        </div>
-    </section>
 
-    <section class="orders-summary" aria-label="Orders summary">
-        <article class="summary-card">
-            <span>Total orders</span>
+    <!-- Page Header & Hero -->
+    <header class="orders-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-bag-check" aria-hidden="true"></i>
+                    <span>Fulfillment &amp; Orders</span>
+                </span>
+            </div>
+            <h2>Customer Orders &amp; Fulfillment</h2>
+            <p>Review customer orders across all storefront channels, transition fulfillment states, and convert confirmed orders to completed sales.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="/sales/pos/" class="btn btn-primary" aria-label="Open POS counter register">
+                <svg class="retail-svg icon-xs" aria-hidden="true"><use href="#icon-retail-pos"></use></svg>
+                <span>POS Counter</span>
+            </a>
+            <a href="/customer/products/" class="btn btn-secondary" aria-label="Browse storefront products">
+                <i class="bi bi-shop" aria-hidden="true"></i>
+                <span>Storefront</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Top Statistical Summary Cards -->
+    <section class="orders-summary" aria-label="Orders summary metrics">
+        <article class="summary-card" aria-label="Total customer orders">
+            <div class="summary-top">
+                <span>Total Orders</span>
+                <span class="card-icon"><i class="bi bi-bag-check" aria-hidden="true"></i></span>
+            </div>
             <strong id="totalOrdersCount">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Pending</span>
-            <strong id="pendingOrdersCount">0</strong>
+
+        <article class="summary-card" aria-label="Pending orders awaiting action">
+            <div class="summary-top">
+                <span  class="text-warning-dark">Pending Orders</span>
+                <span class="card-icon u-warning-surface" ><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+            </div>
+            <strong id="pendingOrdersCount"  class="text-warning-dark">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Completed</span>
+
+        <article class="summary-card" aria-label="Completed orders count">
+            <div class="summary-top">
+                <span  class="text-primary">Completed</span>
+                <span class="card-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+            </div>
             <strong id="completedOrdersCount">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Order value</span>
-            <strong id="totalOrderValue">₦ 0</strong>
+
+        <article class="summary-card" aria-label="Total orders financial value">
+            <div class="summary-top">
+                <span>Total Order Value</span>
+                <span class="card-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span>
+            </div>
+            <strong id="totalOrderValue">₦ 0.00</strong>
         </article>
     </section>
 
+    <!-- Orders Filter & Search Toolbar -->
     <section class="card orders-panel">
         <div class="panel-header compact-header">
             <div>
-                <h3>Order ledger</h3>
-                <p>Filter and review customer orders across all sales channels.</p>
+                <h3>Orders Register</h3>
+                <p>Filter by fulfillment status, customer, payment channel, or date range.</p>
             </div>
         </div>
 
         <div class="orders-toolbar">
             <div class="toolbar-search">
                 <label class="visually-hidden" for="ordersSearch">Search orders</label>
-                <input id="ordersSearch" class="form-control" type="search" placeholder="Search by order number or customer" />
+                <input
+                    id="ordersSearch"
+                    class="form-control"
+                    type="search"
+                    placeholder="Search by order number, customer name, or email..."
+                    aria-label="Search orders"
+                />
             </div>
 
             <div class="toolbar-filters">
-                <label class="visually-hidden" for="ordersCustomerFilter">Customer ID</label>
-                <input id="ordersCustomerFilter" class="form-control" type="number" min="1" placeholder="Customer ID" />
                 <label class="visually-hidden" for="ordersDateFrom">From date</label>
-                <input id="ordersDateFrom" class="form-control" type="date" />
+                <input id="ordersDateFrom" class="form-control" type="date" aria-label="Filter from date" />
+
                 <label class="visually-hidden" for="ordersDateTo">To date</label>
-                <input id="ordersDateTo" class="form-control" type="date" />
+                <input id="ordersDateTo" class="form-control" type="date" aria-label="Filter to date" />
+
                 <label class="visually-hidden" for="ordersStatusFilter">Filter by status</label>
-                <select id="ordersStatusFilter" class="form-select">
+                <select id="ordersStatusFilter" class="form-select" aria-label="Filter by order status">
                     <option value="all">All statuses</option>
                     <option value="PENDING">Pending</option>
                     <option value="CONFIRMED">Confirmed</option>
                     <option value="PROCESSING">Processing</option>
-                    <option value="READY">Ready</option>
+                    <option value="READY">Ready for Pickup</option>
                     <option value="COMPLETED">Completed</option>
                     <option value="CANCELLED">Cancelled</option>
                 </select>
 
-                <label class="visually-hidden" for="ordersPaymentFilter">Filter by payment</label>
-                <select id="ordersPaymentFilter" class="form-select">
-                    <option value="all">All payment types</option>
+                <label class="visually-hidden" for="ordersPaymentFilter">Filter by payment method</label>
+                <select id="ordersPaymentFilter" class="form-select" aria-label="Filter by payment method">
+                    <option value="all">All payment channels</option>
                     <option value="CASH">Cash</option>
-                    <option value="TRANSFER">Transfer</option>
-                    <option value="CARD">Card</option>
-                    <option value="CREDIT">Credit</option>
+                    <option value="TRANSFER">Dynamic QR / Transfer</option>
+                    <option value="CARD">Moniepoint POS / Card</option>
+                    <option value="CREDIT">Credit Ledger</option>
                 </select>
+
                 <label class="visually-hidden" for="ordersOrdering">Order results</label>
-                <select id="ordersOrdering" class="form-select">
-                    <option value="-created_at">Newest first</option>
-                    <option value="created_at">Oldest first</option>
-                    <option value="order_number">Order number A-Z</option>
-                    <option value="-order_number">Order number Z-A</option>
-                    <option value="total">Total low-high</option>
-                    <option value="-total">Total high-low</option>
+                <select id="ordersOrdering" class="form-select" aria-label="Order results sorting">
+                    <option value="-created_at">Newest First</option>
+                    <option value="created_at">Oldest First</option>
+                    <option value="order_number">Order # (A-Z)</option>
+                    <option value="-order_number">Order # (Z-A)</option>
+                    <option value="total">Amount (Low to High)</option>
+                    <option value="-total">Amount (High to Low)</option>
                 </select>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <!-- Orders Table -->
+        <div class="table-wrapper table-responsive">
             <table class="table orders-table">
                 <thead>
                     <tr>
-                        <th>Order #</th>
-                        <th>Customer</th>
-                        <th>Date</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th>Order status</th>
-                        <th>Payment</th>
-                        <th>Action</th>
+                        <th scope="col">Order #</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Date</th>
+                        <th scope="col" class="num">Items</th>
+                        <th scope="col" class="num">Total Amount</th>
+                        <th scope="col">Order Status</th>
+                        <th scope="col">Payment Channel</th>
+                        <th scope="col"  class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody"></tbody>
             </table>
         </div>
 
+        <!-- Structured Empty State -->
         <div id="ordersEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
-            <h3>No orders match your filters</h3>
-            <p>Adjust the search terms or status filters to view more orders.</p>
+            <div class="empty-state-icon" aria-hidden="true">
+                <i class="bi bi-cart-x"></i>
+            </div>
+            <h3>No orders match your search filters</h3>
+            <p>Adjust your search query, change date range, or reset status filters to view more customer orders.</p>
         </div>
 
+        <!-- Orders Pagination -->
         <nav class="orders-pagination" aria-label="Order pagination">
-            <button type="button" class="btn btn-secondary btn-sm" id="ordersPrevious">Previous</button>
-            <span id="ordersPage">Page 1 of 1</span>
-            <button type="button" class="btn btn-secondary btn-sm" id="ordersNext">Next</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="ordersPrevious" aria-label="Previous orders page">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i> Previous
+            </button>
+            <span id="ordersPage" style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">Page 1 of 1</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="ordersNext" aria-label="Next orders page">
+                Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
         </nav>
     </section>
+
 </div>
 {% endblock %}
 

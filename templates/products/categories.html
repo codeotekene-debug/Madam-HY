@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/products/categories.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="products" active_tab="categories" %}
+{% endblock %}
+
 {% block content %}
 <div class="categories-page">
     <section class="page-hero">

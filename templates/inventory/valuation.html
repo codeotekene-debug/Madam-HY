@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Inventory Valuation &amp; Cost Analysis | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Inventory Valuation
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/inventory/inventory.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/inventory/valuation-page.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="inventory" active_tab="valuation" %}
+{% endblock %}
+
+{% block content %}
+<div class="inventory-page valuation-page">
+
+    <!-- Page Header & Hero -->
+    <header class="valuation-hero">
+        <div>
+            <div class="hero-badge" style="margin-bottom: 6px;">
+                <span class="badge badge-primary">
+                    <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                    <span>Financial Management</span>
+                </span>
+            </div>
+            <h2>Inventory Valuation &amp; Cost Ledger</h2>
+            <p>Audit total asset capitalization, evaluate wholesale cost vs. retail potential, and inspect product profit margins.</p>
+        </div>
+
+        <div class="page-actions">
+            <button type="button" class="btn btn-secondary" onclick="window.print()" aria-label="Print valuation report">
+                <i class="bi bi-printer" aria-hidden="true"></i>
+                <span>Print Report</span>
+            </button>
+            <a href="{% url 'inventory:add_stock' %}" class="btn btn-primary" aria-label="Stock Intake">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span>Stock Intake</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Valuation KPI Summary Cards -->
+    <section class="valuation-summary" aria-label="Valuation metrics summary">
+        <article class="summary-card" aria-label="Total stock cost valuation">
+            <div class="summary-top">
+                <span>Wholesale Cost Value</span>
+                <span class="card-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span>
+            </div>
+            <strong id="valuationCostTotal">₦ {{ cost_value|default:"0.00" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Total retail selling valuation">
+            <div class="summary-top">
+                <span>Retail Selling Value</span>
+                <span class="card-icon"><i class="bi bi-cash-stack" aria-hidden="true"></i></span>
+            </div>
+            <strong id="valuationSellingTotal"  class="text-primary">₦ {{ selling_value|default:"0.00" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Projected gross margin">
+            <div class="summary-top">
+                <span>Projected Gross Margin</span>
+                <span class="card-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+            </div>
+            <strong id="valuationMarginTotal">₦ {{ potential_margin|default:"0.00" }}</strong>
+            <small class="margin-badge">{{ margin_percent|default:"0.0" }}% Margin</small>
+        </article>
+
+        <article class="summary-card" aria-label="Total units in stock">
+            <div class="summary-top">
+                <span>Total Units Tracked</span>
+                <span class="card-icon"><i class="bi bi-boxes" aria-hidden="true"></i></span>
+            </div>
+            <strong>{{ total_units|default:"0" }}</strong>
+        </article>
+
+        <article class="summary-card" aria-label="Active catalog items">
+            <div class="summary-top">
+                <span>Active Products</span>
+                <span class="card-icon"><i class="bi bi-tag" aria-hidden="true"></i></span>
+            </div>
+            <strong>{{ total_items|default:"0" }}</strong>
+        </article>
+    </section>
+
+    <!-- Detailed Valuation Ledger Table -->
+    <section class="card inventory-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Stock Asset Breakdown by Item</h3>
+                <p>Real-time valuation based on active inventory quantities, recorded cost prices, and retail prices.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper table-responsive">
+            <table class="table valuation-table" id="valuationTable">
+                <thead>
+                    <tr>
+                        <th scope="col">Product &amp; SKU</th>
+                        <th scope="col">Category</th>
+                        <th scope="col"  class="text-right">Quantity</th>
+                        <th scope="col"  class="text-right">Unit Cost</th>
+                        <th scope="col"  class="text-right">Selling Price</th>
+                        <th scope="col"  class="text-right">Total Cost Value</th>
+                        <th scope="col"  class="text-right">Total Retail Value</th>
+                        <th scope="col"  class="text-right">Projected Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.product.name }}</strong>
+                            <div class="font-mono" style="font-size: 12px; color: var(--text-muted);">{{ item.product.sku }}</div>
+                        </td>
+                        <td>{{ item.product.category.name|default:"Uncategorized" }}</td>
+                        <td  class="font-mono text-right">{{ item.quantity }}</td>
+                        <td  class="font-mono text-right">₦ {{ item.product.cost_price|default:"0.00" }}</td>
+                        <td  class="font-mono text-right">₦ {{ item.product.selling_price }}</td>
+                        <td  class="font-mono text-right">₦ {{ item.total_cost }}</td>
+                        <td  class="font-mono text-right text-primary" >₦ {{ item.total_retail }}</td>
+                        <td  class="font-mono text-right">
+                            <span class="margin-badge">₦ {{ item.potential_profit }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                            No active inventory records found to evaluate.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@
  * Frontend-only customer request management
  */
 
-const customerRequestsData = [
+const customerRequestsData = window.__CUSTOMER_REQUESTS__ || [
     {
         id: 'REQ-1501',
         title: 'Request for imported fabric stock',
@@ -30,7 +30,7 @@ const customerRequestsData = [
     }
 ];
 
-const requestDetailData = {
+const requestDetailData = window.__REQUEST_DETAIL__ || {
     id: 'REQ-1501',
     title: 'Request for imported fabric stock',
     type: 'Product Request',
@@ -47,7 +47,7 @@ const requestDetailData = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    const isDetail = window.location.pathname.includes('/request_detail/');
+    const isDetail = window.location.pathname.includes('/request_detail/') || Boolean(document.getElementById('detailReqTitle'));
     if (isDetail) {
         renderRequestDetail();
     } else {

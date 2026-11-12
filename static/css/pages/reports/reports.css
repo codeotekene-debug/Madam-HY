@@ -159,22 +159,30 @@
     font-size: 11px;
 }
 
+.chart-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 8px 2px 24px;
+    scrollbar-width: thin;
+}
+
 .chart-bars {
     display: flex;
     align-items: end;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: flex-start;
+    gap: 10px;
     height: 220px;
-    padding-top: 16px;
+    min-width: 100%;
+    padding: 16px 4px 0;
 }
 
 .chart-bar {
     display: flex;
-    flex: 1;
+    flex: 1 0 24px;
     align-items: end;
     justify-content: center;
-    height: var(--value);
-    min-height: 42px;
+    height: max(var(--value), 2px);
+    min-height: 2px;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
     position: relative;
@@ -187,6 +195,19 @@
     font-size: 10px;
     color: var(--muted);
     font-weight: 600;
+}
+
+.chart-bar[title] {
+    cursor: help;
+}
+
+.chart-empty {
+    margin: 0;
+    padding: 28px 16px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    text-align: center;
 }
 
 .kpi-list {

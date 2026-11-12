@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/products/add.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="products" active_tab="add" %}
+{% endblock %}
+
 {% block content %}
 <div class="product-form-page">
     <section class="page-hero compact-hero">
@@ -22,60 +26,54 @@
             <h2>Add product</h2>
             <p>Create a new product entry for the shop catalog and prepare it for future stock tracking.</p>
         </div>
-        <a href="#" class="btn btn-secondary">Back to product list</a>
+        <a href="{% url 'products:list' %}" class="btn btn-secondary">Back to product list</a>
     </section>
 
-    <form class="card product-form" id="addProductForm" novalidate>
+    <form class="card product-form" id="addProductForm" action="{% url 'products:create' %}" method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
         <div class="form-grid">
             <div class="form-column">
                 <div class="form-group">
                     <label class="form-label" for="productName">Product name <span class="required">*</span></label>
-                    <input id="productName" class="form-control" type="text" required placeholder="e.g. Premium Ankara Fabric" />
+                    <input id="productName" name="name" class="form-control" type="text" required placeholder="e.g. Premium Ankara Fabric" />
                     <small class="form-help">Use the exact retail name shoppers will see.</small>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="productSku">SKU <span class="required">*</span></label>
-                    <input id="productSku" class="form-control" type="text" required placeholder="e.g. MH-FAB-104" />
+                    <input id="productSku" name="sku" class="form-control" type="text" required placeholder="e.g. MH-FAB-104" />
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="productCategory">Category <span class="required">*</span></label>
-                    <select id="productCategory" class="form-select" required>
+                    <select id="productCategory" name="category_id" class="form-select" required>
                         <option value="">Select category</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="productDescription">Description</label>
-                    <textarea id="productDescription" class="form-textarea" placeholder="Add a product summary, material details or style notes"></textarea>
+                    <textarea id="productDescription" name="description" class="form-textarea" placeholder="Add a product summary, material details or style notes"></textarea>
                 </div>
             </div>
 
             <div class="form-column">
                 <div class="form-group">
-                    <label class="form-label" for="retailPrice">Retail price <span class="required">*</span></label>
-                    <input id="retailPrice" class="form-control" type="number" min="0" step="0.01" required placeholder="0.00" />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="costPrice">Cost price</label>
-                    <input id="costPrice" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="stockQty">Stock quantity <span class="required">*</span></label>
-                    <input id="stockQty" class="form-control" type="number" min="0" placeholder="0" />
+                    <label class="form-label">Product Pricing &amp; Stock Intake</label>
+                    <div style="padding: 12px 14px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13px; color: var(--muted); line-height: 1.5;">
+                        <i class="bi bi-info-circle text-primary" aria-hidden="true"></i>
+                        Pricing and stock balances are established upon initial stock receipt through <a href="/inventory/adjust/" class="text-primary font-weight-bold">Stock Intake (Restock)</a> or managed via Product Edit.
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="reorderLevel">Reorder level</label>
-                    <input id="reorderLevel" class="form-control" type="number" min="0" placeholder="0" />
+                    <input id="reorderLevel" name="reorder_level" class="form-control" type="number" min="0" placeholder="0" />
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="productImage">Product image</label>
-                    <input id="productImage" class="form-control" type="file" accept="image/*" />
+                    <input id="productImage" name="image" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
                     <div class="image-preview-box" id="imagePreviewBox" aria-live="polite">
                         <span>No image selected</span>
                     </div>

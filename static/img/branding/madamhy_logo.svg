@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mhyGreenBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#15803d" />
+      <stop offset="50%" stop-color="#166534" />
+      <stop offset="100%" stop-color="#14532d" />
+    </linearGradient>
+    <linearGradient id="mhyHandleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="30%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#14532d" />
+    </linearGradient>
+    <linearGradient id="purePiping" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+    <filter id="mhyIconElevation" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.28" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.12" />
+    </filter>
+  </defs>
+  <g id="madam-hy-handbag-brand" filter="url(#mhyIconElevation)" transform="translate(0, 24)">
+    <path d="M 194,186 C 194,92 318,92 318,186" fill="none" stroke="url(#mhyHandleGrad)" stroke-width="17" stroke-linecap="round" />
+    <circle cx="194" cy="192" r="11" fill="#ffffff" stroke="#166534" stroke-width="4" />
+    <circle cx="318" cy="192" r="11" fill="#ffffff" stroke="#166534" stroke-width="4" />
+    <path d="M 184,188 C 192,188 200,198 214,198 L 298,198 C 312,198 320,188 328,188 C 346,188 354,198 360,218 L 378,310 C 382,336 364,346 342,346 L 170,346 C 148,346 130,336 134,310 L 152,218 C 158,198 166,188 184,188 Z" fill="url(#mhyGreenBody)" />
+    <path d="M 152,224 C 190,268 322,268 360,224 L 366,252 C 324,296 188,296 146,252 Z" fill="#0f172a" opacity="0.12" />
+    <path d="M 150,222 C 190,270 322,270 362,222" fill="none" stroke="url(#purePiping)" stroke-width="9" stroke-linecap="round" />
+    <g transform="translate(256, 256)">
+      <rect x="-14" y="-24" width="28" height="48" rx="14" fill="#ffffff" />
+      <rect x="-7" y="-17" width="14" height="34" rx="7" fill="#166534" />
+      <line x1="0" y1="-10" x2="0" y2="10" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.8" />
+    </g>
+  </g>
+</svg>

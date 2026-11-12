@@ -1,0 +1,30 @@
+body {
+            font-family: Arial, sans-serif;
+            margin: 32px;
+            background: #f5f7f5;
+            color: #143524;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+        li {
+            background: white;
+            border: 1px solid #dfe7e1;
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+        a {
+            color: #0d6b3d;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a:hover {
+            text-decoration: underline;
+        }

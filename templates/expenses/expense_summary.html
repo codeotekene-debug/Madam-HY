@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+    Expense Summary &amp; Analytics | MADAM HY
+{% endblock %}
+
+{% block page_title %}
+    Expense Summary
+{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/pages/expenses/expenses.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/expenses/summary-page.css' %}">
+{% endblock %}
+
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="expenses" current_tab="summary" %}
+{% endblock %}
+
+{% block content %}
+<div class="expenses-page summary-analytics-page">
+
+    <!-- Page Header & Hero -->
+    <header class="expenses-hero">
+        <div>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                    <span>Financial Analytics</span>
+                </span>
+            </div>
+            <h2>Operational Expense Summary &amp; Analytics</h2>
+            <p>High-level fiscal review of business operational disbursements, approval workflows, and monthly run rate.</p>
+        </div>
+
+        <div class="page-actions">
+            <a href="{% url 'expenses:expense_create' %}" class="btn btn-primary" aria-label="Record expense">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span>Add Expense</span>
+            </a>
+            <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-secondary" aria-label="Open financial reports">
+                <i class="bi bi-bar-chart" aria-hidden="true"></i>
+                <span>Financial Reports</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- KPI Metric Cards -->
+    <section class="summary-kpi-grid" aria-label="Expense KPIs">
+        <article class="kpi-card">
+            <div class="kpi-header">
+                <span>Total Recorded</span>
+                <i class="bi bi-wallet2" aria-hidden="true"></i>
+            </div>
+            <div class="kpi-value">₦ {{ summary.total_expenses }}</div>
+            <div class="kpi-sub">{{ summary.total_count }} total entries</div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-header">
+                <span>Current Month</span>
+                <i class="bi bi-calendar-check" aria-hidden="true"></i>
+            </div>
+            <div class="kpi-value" style="color: #15803d;">₦ {{ summary.this_month_total }}</div>
+            <div class="kpi-sub">{{ summary.this_month_count }} entries this month</div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-header">
+                <span>Pending Approval</span>
+                <i class="bi bi-hourglass-split text-warning" aria-hidden="true"></i>
+            </div>
+            <div class="kpi-value" style="color: #b87700;">₦ {{ summary.pending_approval }}</div>
+            <div class="kpi-sub">{{ summary.pending_count }} awaiting sign-off</div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-header">
+                <span>Approved Total</span>
+                <i class="bi bi-shield-check text-success" aria-hidden="true"></i>
+            </div>
+            <div class="kpi-value" style="color: #15803d;">₦ {{ summary.approved_total }}</div>
+            <div class="kpi-sub">{{ summary.approved_count }} approved entries</div>
+        </article>
+    </section>
+
+    <!-- Payment Methods Breakdown Section -->
+    <section class="card" style="padding: 20px; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 12px 0; font-size: 16px;">Disbursements by Payment Method</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+            {% for method, amount in summary.payment_methods.items %}
+            <div class="method-pill">
+                <span>{{ method }}:</span>
+                <strong class="font-mono">₦ {{ amount }}</strong>
+            </div>
+            {% empty %}
+            <p style="color: var(--text-muted); margin: 0;">No disbursements recorded.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Recent Expenses Audit Table -->
+    <section class="card expenses-panel">
+        <div class="panel-header compact-header">
+            <div>
+                <h3>Recent Operational Expenses</h3>
+                <p>Latest recorded operational expenses across all categories.</p>
+            </div>
+            <a href="{% url 'expenses:expense_list' %}" class="btn btn-sm btn-secondary">View All</a>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table" aria-label="Recent expenses table">
+                <thead>
+                    <tr>
+                        <th scope="col">Reference</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in recent_expenses %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'expenses:expense_detail' exp.uuid %}" class="font-mono font-bold">
+                                {{ exp.expense_reference }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="font-mono">{{ exp.expense_date|date:"Y-m-d" }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-info">{{ exp.get_category_display }}</span>
+                        </td>
+                        <td>
+                            <span>{{ exp.description|truncatechars:40 }}</span>
+                        </td>
+                        <td>
+                            <strong class="font-mono">₦ {{ exp.amount }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge {% if exp.status == 'APPROVED' %}badge-success{% elif exp.status == 'PENDING' %}badge-warning{% else %}badge-danger{% endif %}">
+                                {{ exp.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span>{{ exp.recorded_by.get_full_name|default:exp.recorded_by.username }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            No recent expenses found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

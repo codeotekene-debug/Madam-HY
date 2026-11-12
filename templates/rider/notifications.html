@@ -1,0 +1,1 @@
+{% extends 'rider/base.html' %}{% block rider_content %}<section class="delivery-panel"><h2>Notifications</h2>{% for item in notifications %}<article class="delivery-card"><strong>{{ item.title }}</strong><p>{{ item.message }}</p><time>{{ item.created_at }}</time></article>{% empty %}<p>No notifications.</p>{% endfor %}</section>{% endblock %}

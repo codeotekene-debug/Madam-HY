@@ -19,11 +19,19 @@ class Payment(models.Model):
         COMPLETED = 'COMPLETED', 'Completed'
         FAILED = 'FAILED', 'Failed'
         REFUNDED = 'REFUNDED', 'Refunded'
+        PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED', 'Partially Refunded'
 
     payment_reference = models.CharField(
         max_length=80,
         unique=True,
         help_text='Unique payment reference or transaction identifier.',
+    )
+    idempotency_key = models.CharField(
+        max_length=120,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text='Optional client key that makes payment creation retries safe.',
     )
     sale = models.ForeignKey(
         'sales.Sale',
@@ -143,8 +151,42 @@ class Payment(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    @property
+    def total_refunded(self) -> Decimal:
+        meta = self.transaction_metadata or {}
+        try:
+            return Decimal(str(meta.get('total_refunded', '0.00')))
+        except Exception:
+            return Decimal('0.00')
+
+    @property
+    def refunded_amount(self) -> Decimal:
+        return self.total_refunded
+
+    @property
+    def remaining_refundable_amount(self) -> Decimal:
+        return max(Decimal('0.00'), self.amount - self.total_refunded)
+
+    @property
+    def is_fully_refunded(self) -> bool:
+        return self.payment_status == self.PaymentStatus.REFUNDED or (
+            self.amount > 0 and self.total_refunded >= self.amount
+        )
+
+    @property
+    def status(self) -> str:
+        return self.payment_status
+
+    @status.setter
+    def status(self, value):
+        self.payment_status = value
+
     def delete(self, *args, **kwargs):
-        if self.payment_status in [self.PaymentStatus.COMPLETED, self.PaymentStatus.REFUNDED]:
+        if self.payment_status in [
+            self.PaymentStatus.COMPLETED,
+            self.PaymentStatus.REFUNDED,
+            self.PaymentStatus.PARTIALLY_REFUNDED,
+        ]:
             raise ValidationError(
                 'Completed or refunded payments cannot be deleted. Preserve the historical record.'
             )

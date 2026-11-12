@@ -1,4 +1,4 @@
-const requestsData = [
+const requestsData = window.__REQUESTS_DATA__ || [
     {
         id: 'REQ-1001',
         customer: 'Aisha Bello',
@@ -159,7 +159,7 @@ function renderTable() {
             <td><span class="request-status ${slugify(item.status)}">${item.status}</span></td>
             <td>${item.assignee}</td>
             <td>${formatDate(item.updated)}</td>
-            <td><a href="/requests/detail/" class="request-action-link">View</a></td>
+            <td><a href="/requests/${item.uuid || item.id}/" class="request-action-link">View</a></td>
         </tr>
     `).join('');
 }

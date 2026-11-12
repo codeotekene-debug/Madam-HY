@@ -1,63 +1,122 @@
-const profitReportData = [
-    { label: 'Revenue', current: 12650000, previous: 10930000 },
-    { label: 'Cost of sales', current: 4860000, previous: 4505000 },
-    { label: 'Gross profit', current: 7790000, previous: 6425000 },
-    { label: 'Operating expenses', current: 1850000, previous: 1710000 },
-    { label: 'Net profit', current: 5940000, previous: 4715000 }
-];
+(function () {
+    'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderProfitSummary();
-    renderTrendChart();
-    renderTable();
-});
+    let profitData = null;
 
-function renderProfitSummary() {
-    const revenue = profitReportData[0].current;
-    const cost = profitReportData[1].current;
-    const gross = profitReportData[2].current;
-    const expenses = profitReportData[3].current;
-    const net = profitReportData[4].current;
-    const margin = (net / revenue) * 100;
+    function initProfit() {
+        const script = document.getElementById('profitDataJson');
+        if (script) {
+            try {
+                profitData = JSON.parse(script.textContent);
+            } catch (e) {
+                console.error('Failed to parse profit data JSON', e);
+            }
+        }
 
-    document.getElementById('profitRevenue')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(revenue)}`));
-    document.getElementById('profitCost')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(cost)}`));
-    document.getElementById('profitGross')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(gross)}`));
-    document.getElementById('profitExpenses')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(expenses)}`));
-    document.getElementById('profitNet')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(net)}`));
-    document.getElementById('profitMargin')?.replaceChildren(document.createTextNode(`${margin.toFixed(1)}%`));
-}
+        renderProfitSummary();
+        renderTrendChart();
+        renderTable();
+    }
 
-function renderTrendChart() {
-    const chart = document.getElementById('profitTrendChart');
-    if (!chart) return;
+    function renderProfitSummary() {
+        const revenue = Number(profitData?.revenue || 0);
+        const cost = Number(profitData?.cost_of_goods_sold || 0);
+        const gross = Number(profitData?.gross_profit || 0);
+        const expenses = Number(profitData?.expenses || 0);
+        const net = Number(profitData?.net_profit || 0);
+        const margin = Number(profitData?.profit_margin || (revenue > 0 ? (net / revenue) * 100 : 0));
 
-    const values = [42, 52, 60, 72, 78, 88];
-    chart.innerHTML = values.map((value, index) => `
-        <div class="trend-item">
-            <div class="trend-bar" style="height:${value}%"></div>
-            <span>${['Jan','Feb','Mar','Apr','May','Jun'][index]}</span>
-        </div>
-    `).join('');
-}
+        document.getElementById('profitRevenue')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(revenue)}`));
+        document.getElementById('profitCost')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(cost)}`));
+        document.getElementById('profitGross')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(gross)}`));
+        document.getElementById('profitExpenses')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(expenses)}`));
+        document.getElementById('profitNet')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(net)}`));
+        document.getElementById('profitMargin')?.replaceChildren(document.createTextNode(`${margin.toFixed(1)}%`));
+    }
 
-function renderTable() {
-    const tableBody = document.getElementById('profitTableBody');
-    if (!tableBody) return;
+    function renderTrendChart() {
+        const chart = document.getElementById('profitTrendChart');
+        if (!chart) return;
 
-    tableBody.innerHTML = profitReportData.map(item => {
-        const diff = ((item.current - item.previous) / item.previous) * 100;
-        return `
+        const revenue = Number(profitData?.revenue || 0);
+        const gross = Number(profitData?.gross_profit || 0);
+        const net = Number(profitData?.net_profit || 0);
+        const expenses = Number(profitData?.expenses || 0);
+
+        if (revenue === 0 && expenses === 0 && net === 0) {
+            chart.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted, #718096); width: 100%;">No financial data recorded for this period.</div>';
+            return;
+        }
+
+        const maxVal = Math.max(revenue, Math.abs(gross), Math.abs(net), expenses, 1);
+        const points = [
+            { label: 'Revenue', value: revenue },
+            { label: 'Gross', value: gross },
+            { label: 'Expenses', value: expenses },
+            { label: 'Net Profit', value: net }
+        ];
+
+        chart.innerHTML = points.map(item => {
+            const pct = Math.max(8, Math.min(100, Math.round((Math.abs(item.value) / maxVal) * 100)));
+            return `
+                <div class="trend-item">
+                    <div class="trend-bar" style="height:${pct}%" title="₦ ${formatCurrency(item.value)}"></div>
+                    <span>${escapeHtml(item.label)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderTable() {
+        const tableBody = document.getElementById('profitTableBody');
+        if (!tableBody) return;
+
+        const revenue = Number(profitData?.revenue || 0);
+        const cost = Number(profitData?.cost_of_goods_sold || 0);
+        const gross = Number(profitData?.gross_profit || 0);
+        const expenses = Number(profitData?.expenses || 0);
+        const net = Number(profitData?.net_profit || 0);
+
+        const rows = [
+            { label: 'Gross Revenue', current: revenue, note: '100% of sales' },
+            { label: 'Cost of Goods Sold (COGS)', current: cost, note: revenue > 0 ? `${((cost / revenue) * 100).toFixed(1)}% of rev` : '-' },
+            { label: 'Gross Profit', current: gross, note: revenue > 0 ? `${((gross / revenue) * 100).toFixed(1)}% margin` : '-' },
+            { label: 'Operating Expenses', current: expenses, note: revenue > 0 ? `${((expenses / revenue) * 100).toFixed(1)}% of rev` : '-' },
+            { label: 'Net Profit', current: net, note: revenue > 0 ? `${((net / revenue) * 100).toFixed(1)}% margin` : '-' }
+        ];
+
+        tableBody.innerHTML = rows.map(item => `
             <tr>
-                <td>${item.label}</td>
+                <td>${escapeHtml(item.label)}</td>
                 <td>₦ ${formatCurrency(item.current)}</td>
-                <td>₦ ${formatCurrency(item.previous)}</td>
-                <td class="status-positive">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%</td>
+                <td>-</td>
+                <td class="${item.current >= 0 ? 'status-positive' : 'status-negative'}">${escapeHtml(item.note)}</td>
             </tr>
-        `;
-    }).join('');
-}
+        `).join('');
+    }
 
-function formatCurrency(value) {
-    return Number(value).toLocaleString('en-NG');
-}
+    function formatCurrency(value) {
+        const num = Number(value || 0);
+        return num.toLocaleString('en-NG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProfit);
+    } else {
+        initProfit();
+    }
+    window.addEventListener('page:load', initProfit);
+})();

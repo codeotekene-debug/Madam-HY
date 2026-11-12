@@ -14,28 +14,33 @@
 <link rel="stylesheet" href="{% static 'css/pages/products/edit.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="products" active_tab="catalog" %}
+{% endblock %}
+
 {% block content %}
-<div class="product-form-page">
+<div class="product-form-page" data-product-id="{{ product.id }}">
     <section class="page-hero compact-hero">
         <div>
             <span class="badge badge-primary">Catalog</span>
             <h2>Edit product</h2>
             <p>Adjust product details, pricing, and inventory notes without disturbing the backend workflow.</p>
         </div>
-        <a href="#" class="btn btn-secondary">View product</a>
+        <a href="{% url 'products:list' %}" class="btn btn-secondary">Back to products</a>
     </section>
 
-    <form class="card product-form" id="editProductForm" novalidate>
+    <form class="card product-form" id="editProductForm" action="{% url 'products:update' product.id %}" method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
         <div class="form-grid">
             <div class="form-column">
                 <div class="form-group">
                     <label class="form-label" for="editProductName">Product name <span class="required">*</span></label>
-                    <input id="editProductName" class="form-control" type="text" value="Green Ankara Fabric Premium" required />
+                    <input id="editProductName" class="form-control" type="text" value="{{ product.name|default:'' }}" placeholder="e.g. Silk Chiffon Fabric" required />
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="editProductSku">SKU <span class="required">*</span></label>
-                    <input id="editProductSku" class="form-control" type="text" value="MH-FAB-104" required />
+                    <input id="editProductSku" class="form-control" type="text" value="{{ product.sku|default:'' }}" placeholder="e.g. MH-FAB-001" required />
                 </div>
 
                 <div class="form-group">
@@ -46,36 +51,41 @@
 
                 <div class="form-group">
                     <label class="form-label" for="editDescription">Description</label>
-                    <textarea id="editDescription" class="form-textarea">Premium quality Ankara fabric designed for stylish tailoring, event wear, and boutique retail display.</textarea>
+                    <textarea id="editDescription" class="form-textarea" placeholder="Product description and material details...">{{ product.description|default:'' }}</textarea>
                 </div>
             </div>
 
             <div class="form-column">
                 <div class="form-group">
                     <label class="form-label" for="editRetailPrice">Retail price <span class="required">*</span></label>
-                    <input id="editRetailPrice" class="form-control" type="number" min="0" step="0.01" value="12500" required />
+                    <input id="editRetailPrice" class="form-control" type="number" min="0" step="0.01" value="{{ product.selling_price|default:'' }}" placeholder="0.00" required />
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="editCostPrice">Cost price</label>
-                    <input id="editCostPrice" class="form-control" type="number" min="0" step="0.01" value="9300" />
+                    <input id="editCostPrice" class="form-control" type="number" min="0" step="0.01" value="{{ product.cost_price|default:'' }}" placeholder="0.00" />
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="editStockQty">Stock quantity <span class="required">*</span></label>
-                    <input id="editStockQty" class="form-control" type="number" min="0" value="0" />
+                    <label class="form-label">Physical Stock Level</label>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); flex-wrap: wrap;">
+                        <span id="stockBadge" class="badge {% if product.inventory_item.current_stock > 5 %}badge-success{% elif product.inventory_item.current_stock > 0 %}badge-warning{% else %}badge-danger{% endif %}">
+                            Current Stock: {{ product.inventory_item.current_stock|default:0 }} units
+                        </span>
+                        <a href="/inventory/adjust/?product={{ product.id }}" class="btn btn-sm btn-outline-primary" style="white-space: nowrap;">Receive / Adjust Stock in Inventory &rarr;</a>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="editReorderLevel">Reorder level</label>
-                    <input id="editReorderLevel" class="form-control" type="number" min="0" value="8" />
+                    <input id="editReorderLevel" class="form-control" type="number" min="0" value="{{ product.reorder_level|default:'5' }}" />
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="editProductImage">Product image</label>
-                    <input id="editProductImage" class="form-control" type="file" accept="image/*" />
+                    <input id="editProductImage" name="image" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
                     <div class="image-preview-box image-preview-box--with-image" id="editImagePreviewBox" aria-live="polite">
-                        <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80" alt="Edited product preview" />
+                        <img src="{% if product.primary_image and product.primary_image.image %}{{ product.primary_image.image.url }}{% elif product.images.first and product.images.first.image %}{{ product.images.first.image.url }}{% else %}{% static 'img/defaults/product-placeholder.svg' %}{% endif %}" alt="{{ product.name|default:'Product preview' }}" />
                     </div>
                 </div>
             </div>

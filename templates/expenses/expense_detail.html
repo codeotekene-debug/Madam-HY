@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/expenses/detail.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="expenses" current_tab="list" %}
+{% endblock %}
+
 {% block content %}
 <div class="expense-detail-page">
     <section class="expenses-hero">

@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="{% static 'css/pages/inventory/low-stock.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include "includes/module_subnav.html" with module="inventory" active_tab="stock_levels" %}
+{% endblock %}
+
 {% block content %}
 <div class="low-stock-page">
     <section class="inventory-hero">

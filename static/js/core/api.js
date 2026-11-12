@@ -24,7 +24,10 @@ function getCsrfToken() {
         .split('; ')
         .find(row => row.startsWith('csrftoken='))
         ?.split('=')[1];
-    return cookieValue || '';
+    return cookieValue ||
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+        document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+        '';
 }
 
 // ============================================================================

@@ -1,88 +1,165 @@
-{% extends "base.html" %}
-
+{% extends "customer/base.html" %}
 {% load static %}
 
 {% block title %}
-    Products | MADAM HY Customer
+    Products Catalogue | MADAM HY Storefront
 {% endblock %}
 
 {% block page_title %}
-    Products
+    Shop Products
 {% endblock %}
 
-{% block page_css %}
+{% block customer_css %}
 <link rel="stylesheet" href="{% static 'css/pages/customer/products.css' %}">
 {% endblock %}
 
-{% block content %}
+{% block customer_content %}
 <div class="customer-products-page">
-    <section class="products-hero">
-        <div>
-            <h2>Shop our collection</h2>
-            <p>Discover quality products at MADAM HY</p>
+
+    <!-- Storefront Hero Header -->
+    <header class="products-hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="" class="brand-emblem-svg storefront-badge-mark" width="16" height="16" aria-hidden="true" />
+                    <span>Official MADAM HY Storefront</span>
+                </span>
+            </div>
+            <div class="hero-title-wrap">
+                <img src="{% static 'img/branding/madamhy_logo.svg' %}" alt="MADAM HY" class="brand-emblem-svg storefront-hero-emblem" width="52" height="52" />
+                <div>
+                    <h1>Everyday essentials, all in one place.</h1>
+                    <p class="products-hero-copy">Browse products, compare current prices, and check availability from our catalog.</p>
+                </div>
+            </div>
         </div>
 
         <div class="products-actions">
-            <a href="/customer/cart/" class="btn btn-primary">View cart</a>
+            <a href="/customer/cart/" class="btn btn-primary" aria-label="View shopping cart">
+                <i class="bi bi-cart3" aria-hidden="true"></i>
+                <span>View Cart (<strong id="cartItemCount">0</strong>)</span>
+            </a>
+        </div>
+    </header>
+
+    <section class="store-ad-scroller" aria-label="HY STORE promotions">
+        <div class="store-ad-heading">
+            <span><i class="bi bi-megaphone" aria-hidden="true"></i> HY STORE promotions</span>
+            <button type="button" id="storeAdPause" aria-pressed="false" aria-label="Pause HY STORE promotions">Pause</button>
+        </div>
+        <div class="store-ad-viewport" role="region" tabindex="0" aria-label="Scrolling HY STORE promotions">
+            <div class="store-ad-track" id="storeAdTrack">
+                <div class="store-ad-set">
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="HY STORE: Everyday finds for everyone. Browse products."><img src="{% static 'images/promotions/hy-store-ad-01.webp' %}" alt="HY STORE — Everyday finds for everyone. Browse products." width="1983" height="793" fetchpriority="high"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="Good finds, good company at HY STORE. Browse products."><img src="{% static 'images/promotions/hy-store-ad-02.webp' %}" alt="Good finds, good company at HY STORE. Browse products." width="1774" height="887" loading="lazy"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="A moment for you. Everyday shopping at HY STORE."><img src="{% static 'images/promotions/hy-store-ad-03.webp' %}" alt="A moment for you. Everyday shopping at HY STORE." width="1774" height="887" loading="lazy"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="Here to help you. Welcome to HY STORE."><img src="{% static 'images/promotions/hy-store-ad-04.webp' %}" alt="Here to help you. Welcome to HY STORE." width="1983" height="793" loading="lazy"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="Shop for everyday. Find it at HY STORE."><img src="{% static 'images/promotions/hy-store-ad-05.webp' %}" alt="Shop for everyday. Find it at HY STORE." width="1774" height="887" loading="lazy"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="Make home feel like home. Shop everyday at HY STORE."><img src="{% static 'images/promotions/hy-store-ad-06.webp' %}" alt="Make home feel like home. Shop everyday at HY STORE." width="1774" height="887" loading="lazy"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" aria-label="Find what you need. Everyday shopping at HY STORE."><img src="{% static 'images/promotions/hy-store-ad-07.webp' %}" alt="Find what you need. Everyday shopping at HY STORE." width="1774" height="887" loading="lazy"></a>
+                </div>
+                <div class="store-ad-set" aria-hidden="true" inert>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-01.webp' %}" alt="" width="1983" height="793"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-02.webp' %}" alt="" width="1774" height="887"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-03.webp' %}" alt="" width="1774" height="887"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-04.webp' %}" alt="" width="1983" height="793"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-05.webp' %}" alt="" width="1774" height="887"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-06.webp' %}" alt="" width="1774" height="887"></a>
+                    <a class="store-ad-slide" href="#customerProductGrid" tabindex="-1"><img src="{% static 'images/promotions/hy-store-ad-07.webp' %}" alt="" width="1774" height="887"></a>
+                </div>
+            </div>
         </div>
     </section>
 
-    <section class="card products-toolbar" aria-label="Product filters">
+    <!-- Categories are loaded from active store data. -->
+    <!-- Sticky Category Filter Navigation Bar -->
+    <nav class="sticky-category-nav" id="stickyCategoryNav" aria-label="Category filter pills">
+        <div class="category-pills-wrap" id="categoryPillsWrap">
+            <button type="button" class="category-pill active" data-category="all">
+                <i class="bi bi-grid-fill"></i>
+                <span>All Products</span>
+            </button>
+            <!-- Dynamic Category Pills Injected via JS -->
+        </div>
+    </nav>
+
+    <!-- Search & Filter Control Bar -->
+    <section class="card products-toolbar" aria-label="Product search and filter controls">
         <div class="toolbar-search">
             <label class="visually-hidden" for="customerProductSearch">Search products</label>
-            <input id="customerProductSearch" class="form-control" type="search" placeholder="Search by name or category" />
+            <div class="input-with-icon">
+                <input
+                    id="customerProductSearch"
+                    class="form-control"
+                    type="search"
+                    placeholder="Search by product name, SKU, category, or description..."
+                    aria-label="Search products"
+                />
+                <button
+                    type="button"
+                    id="clearSearchBtn"
+                    class="btn-clear-search"
+                    aria-label="Clear search query"
+                    hidden
+                >
+                    <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
 
         <div class="toolbar-filters">
             <label class="visually-hidden" for="customerCategoryFilter">Filter by category</label>
-            <select id="customerCategoryFilter" class="form-select">
+            <select id="customerCategoryFilter" class="form-select" aria-label="Filter by category">
                 <option value="all">All categories</option>
             </select>
 
             <label class="visually-hidden" for="customerStockFilter">Filter by availability</label>
-            <select id="customerStockFilter" class="form-select">
-                <option value="all">All items</option>
+            <select id="customerStockFilter" class="form-select" aria-label="Filter by stock availability">
+                <option value="all">All availability</option>
                 <option value="IN_STOCK">In stock</option>
                 <option value="LOW_STOCK">Low stock</option>
                 <option value="OUT_OF_STOCK">Out of stock</option>
             </select>
 
             <label class="visually-hidden" for="customerSortSelect">Sort products</label>
-            <select id="customerSortSelect" class="form-select">
-                <option value="name">Sort: Name</option>
-                <option value="price_asc">Price: Low to high</option>
-                <option value="price_desc">Price: High to low</option>
+            <select id="customerSortSelect" class="form-select" aria-label="Sort product catalog">
+                <option value="name">Sort: Name (A-Z)</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
             </select>
         </div>
     </section>
 
-    <section class="products-summary" aria-label="Products overview">
-        <article class="summary-card">
-            <span>Available products</span>
-            <strong id="availableProductsCount">0</strong>
-        </article>
+    <!-- Product Catalog Dynamic Grid -->
+    <section id="customerProductGrid" class="customer-product-grid" aria-live="polite" aria-label="Product catalog list"></section>
+    <p id="productResultsStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
 
-        <article class="summary-card">
-            <span>In your cart</span>
-            <strong id="cartItemCount">0</strong>
-        </article>
-    </section>
-
-    <section id="customerProductGrid" class="customer-product-grid" aria-live="polite"></section>
-
+    <!-- Structured Empty State -->
     <div id="customerProductsEmpty" class="empty-state empty-state-hidden" aria-live="polite">
+        <div class="empty-state-icon" aria-hidden="true">
+            <i class="bi bi-search"></i>
+        </div>
         <h3>No products match your filters</h3>
-        <p>Try adjusting your search or filters.</p>
+        <p>Try searching with another keyword or reset the category and stock availability filters.</p>
+        <button type="button" class="btn btn-secondary btn-sm" id="resetFiltersBtn">Reset All Filters</button>
     </div>
 
-    <nav class="products-pagination" aria-label="Product pagination">
-        <button type="button" class="btn btn-secondary btn-sm" id="customerProductsPrevious">Previous</button>
-        <span id="customerProductsPage">Page 1 of 1</span>
-        <button type="button" class="btn btn-secondary btn-sm" id="customerProductsNext">Next</button>
+    <!-- Product Pagination Controls -->
+    <nav class="products-pagination" aria-label="Product pagination controls">
+        <button type="button" class="btn btn-secondary btn-sm" id="customerProductsPrevious" aria-label="Go to previous page">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            <span>Previous</span>
+        </button>
+        <span id="customerProductsPage" class="pagination-page-indicator">Page 1 of 1</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="customerProductsNext" aria-label="Go to next page">
+            <span>Next</span>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
     </nav>
+
 </div>
 {% endblock %}
 
-{% block page_js %}
+{% block customer_js %}
 <script src="{% static 'js/pages/customer/products.js' %}"></script>
 {% endblock %}

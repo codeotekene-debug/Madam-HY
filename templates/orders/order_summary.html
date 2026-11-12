@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order Analytics &amp; Summary | MADAM HY{% endblock %}
+{% block page_title %}Order Analytics{% endblock %}
+
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='orders' current_tab='summary' %}
+{% endblock %}
+
+{% block page_actions %}
+<div class="page-actions-inline u-flex-gap-sm" >
+    <a href="{% url 'orders:list' %}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>Orders List</span>
+    </a>
+    <a href="{% url 'reports:reports_dashboard' %}" class="btn btn-outline btn-sm">
+        <i class="bi bi-graph-up" aria-hidden="true"></i>
+        <span>Reports Hub</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="order-summary-container" style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- Hero Card -->
+    <section class="card" style="padding: 24px; border-radius: 12px; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <span class="badge badge-primary" style="margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                    <span>Management Analytics</span>
+                </span>
+                <h2 style="font-size: 22px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px 0;">Order Analytics &amp; Performance</h2>
+                <p style="color: var(--muted); margin: 0; font-size: 13.5px; max-width: 650px;">
+                    Comprehensive breakdown of fulfillment volume, revenue velocity, cancellation ratios, and payment settlement breakdown.
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; font-weight: 600; padding: 6px 12px; border-radius: 20px;">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                    <span>Manager Restricted</span>
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Metrics Grid -->
+    <section class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Total Orders</span>
+                <i class="bi bi-bag-check" style="color: var(--primary); font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: var(--text-heading);">
+                {{ summary.total_orders|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">All-time order count</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Completed Orders</span>
+                <i class="bi bi-check-circle" style="color: #057a44; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #057a44;">
+                {{ summary.completed_orders|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">Successfully fulfilled</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Cancelled Orders</span>
+                <i class="bi bi-x-circle" style="color: #be123c; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #be123c;">
+                {{ summary.cancelled_orders|default:"0" }}
+            </strong>
+            <span  class="u-text-muted-sm">Voided or abandoned</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Total Revenue</span>
+                <i class="bi bi-cash-stack" style="color: #0d9488; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #0d9488;">
+                ₦{{ summary.total_revenue|default:"0.00" }}
+            </strong>
+            <span  class="u-text-muted-sm">Fulfilled volume</span>
+        </article>
+
+        <article class="card u-stacked-surface" >
+            <div  class="u-flex-between-muted">
+                <span>Average Order Value</span>
+                <i class="bi bi-graph-up-arrow" style="color: #7c3aed; font-size: 18px;" aria-hidden="true"></i>
+            </div>
+            <strong style="font-size: 26px; font-weight: 750; color: #7c3aed;">
+                ₦{{ summary.average_order_value|default:"0.00" }}
+            </strong>
+            <span  class="u-text-muted-sm">Per completed sale</span>
+        </article>
+    </section>
+
+    <!-- Payment Methods Breakdown Section -->
+    <section class="card" style="padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0 0 4px 0;">Revenue by Payment Method</h3>
+                <p style="font-size: 13px; color: var(--muted); margin: 0;">Completed order settlement breakdown across counter channels.</p>
+            </div>
+            <a href="{% url 'payments:list' %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-receipt" aria-hidden="true"></i>
+                <span>Payment Records</span>
+            </a>
+        </div>
+
+        {% if summary.payment_totals %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            {% for method, amount in summary.payment_totals.items %}
+            <div style="padding: 16px; border-radius: 8px; background: var(--surface-hover, #f8fafc); border: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span class="badge badge-outline" style="font-size: 11px; text-transform: uppercase;">{{ method }}</span>
+                </div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--text-heading);">
+                    ₦{{ amount }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--muted);">
+            <i class="bi bi-wallet2" style="font-size: 36px; opacity: 0.5; display: block; margin-bottom: 12px;" aria-hidden="true"></i>
+            <p style="margin: 0; font-size: 14px;">No payment settlement data recorded yet.</p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}

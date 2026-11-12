@@ -1,105 +1,196 @@
-const salesReportData = [
-    { date: '2026-08-01', invoice: 'INV-10241', payment: 'Cash', customer: 'Aisha Bello', revenue: 42500, items: 3 },
-    { date: '2026-08-02', invoice: 'INV-10242', payment: 'Card', customer: 'Musa Adamu', revenue: 31800, items: 4 },
-    { date: '2026-08-04', invoice: 'INV-10243', payment: 'Transfer', customer: 'Grace Nnaji', revenue: 28000, items: 2 },
-    { date: '2026-08-06', invoice: 'INV-10244', payment: 'Card', customer: 'Emeka Ibe', revenue: 36500, items: 5 },
-    { date: '2026-08-09', invoice: 'INV-10245', payment: 'Cash', customer: 'Sade Okon', revenue: 41000, items: 3 },
-    { date: '2026-08-12', invoice: 'INV-10246', payment: 'Transfer', customer: 'Tunde Babs', revenue: 47200, items: 4 }
-];
+(function () {
+    'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderSalesSummary();
-    renderSalesTrend();
-    renderPaymentMix();
-    renderSalesTable();
+    let salesData = null;
+    let salesReportData = [];
 
-    const filterSelect = document.getElementById('salesMethodFilter');
-    filterSelect?.addEventListener('change', renderSalesTable);
+    function initSales() {
+        const script = document.getElementById('salesDataJson');
+        if (script) {
+            try {
+                salesData = JSON.parse(script.textContent);
+            } catch (e) {
+                console.error('Failed to parse sales data JSON', e);
+            }
+        }
 
-    document.querySelectorAll('.range-button').forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.range-button').forEach(item => item.classList.remove('active'));
-            button.classList.add('active');
+        salesReportData = (salesData && salesData.recent_sales) ? salesData.recent_sales : [];
+
+        renderSalesSummary();
+        renderSalesTrend();
+        renderPaymentMix();
+        renderSalesTable();
+
+        const filterSelect = document.getElementById('salesMethodFilter');
+        filterSelect?.addEventListener('change', renderSalesTable);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentPeriod = urlParams.get('period') || 'this_month';
+
+        document.querySelectorAll('.range-button').forEach(button => {
+            const range = button.dataset.range;
+            if (
+                (range === 'month' && (currentPeriod === 'this_month' || currentPeriod === 'month')) ||
+                (range === 'quarter' && (currentPeriod === 'this_quarter' || currentPeriod === 'quarter')) ||
+                (range === 'year' && (currentPeriod === 'this_year' || currentPeriod === 'year')) ||
+                (range === 'today' && currentPeriod === 'today')
+            ) {
+                document.querySelectorAll('.range-button').forEach(item => item.classList.remove('active'));
+                button.classList.add('active');
+            }
+
+            button.addEventListener('click', () => {
+                let p = 'this_month';
+                if (range === 'quarter') p = 'this_quarter';
+                else if (range === 'year') p = 'this_year';
+                else if (range === 'today') p = 'today';
+                const url = new URL(window.location.href);
+                url.searchParams.set('period', p);
+                window.location.href = url.toString();
+            });
         });
-    });
-});
 
-function renderSalesSummary() {
-    const total = salesReportData.reduce((sum, row) => sum + row.revenue, 0);
-    const avg = total / salesReportData.length;
-
-    document.getElementById('salesTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(total)}`));
-    document.getElementById('salesTransactions')?.replaceChildren(document.createTextNode(String(salesReportData.length)));
-    document.getElementById('salesAverage')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(avg)}`));
-    document.getElementById('salesGrowth')?.replaceChildren(document.createTextNode('+18.4%'));
-}
-
-function renderSalesTrend() {
-    const chart = document.getElementById('salesTrendChart');
-    if (!chart) return;
-
-    const values = [40, 52, 58, 74, 68, 85];
-    chart.innerHTML = values.map((value, index) => `
-        <div class="bar-segment" style="--value: ${value}%">
-            <span>${['W1','W2','W3','W4','W5','W6'][index]}</span>
-        </div>
-    `).join('');
-}
-
-function renderPaymentMix() {
-    const mix = document.getElementById('salesPaymentMix');
-    if (!mix) return;
-
-    const paymentTotals = {
-        Cash: salesReportData.filter(item => item.payment === 'Cash').reduce((sum, item) => sum + item.revenue, 0),
-        Card: salesReportData.filter(item => item.payment === 'Card').reduce((sum, item) => sum + item.revenue, 0),
-        Transfer: salesReportData.filter(item => item.payment === 'Transfer').reduce((sum, item) => sum + item.revenue, 0)
-    };
-
-    const total = Object.values(paymentTotals).reduce((sum, value) => sum + value, 0);
-
-    mix.innerHTML = Object.entries(paymentTotals).map(([method, value]) => `
-        <div class="payment-item">
-            <div>
-                <strong>${method}</strong>
-            </div>
-            <span>${((value / total) * 100).toFixed(1)}% · ₦ ${formatCurrency(value)}</span>
-        </div>
-    `).join('');
-}
-
-function renderSalesTable() {
-    const tableBody = document.getElementById('salesTableBody');
-    const emptyState = document.getElementById('salesEmptyState');
-    const methodFilter = document.getElementById('salesMethodFilter')?.value || 'all';
-
-    if (!tableBody) return;
-
-    const filtered = salesReportData.filter(item => methodFilter === 'all' || item.payment === methodFilter);
-
-    if (!filtered.length) {
-        tableBody.innerHTML = '';
-        emptyState?.classList.remove('empty-state-hidden');
-        return;
+        document.getElementById('exportSalesCsvBtn')?.addEventListener('click', () => {
+            if (!salesReportData.length) {
+                alert('No sales records to export for this period.');
+                return;
+            }
+            const headers = ['Date', 'Invoice', 'Payment Method', 'Customer', 'Revenue (NGN)', 'Items Count'];
+            const rows = salesReportData.map(row => [
+                `"${row.date || ''}"`,
+                `"${row.invoice || ''}"`,
+                `"${row.payment || ''}"`,
+                `"${row.customer || ''}"`,
+                `"${row.revenue || 0}"`,
+                `"${row.items || 0}"`,
+            ]);
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `sales_report_${currentPeriod}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
     }
 
-    emptyState?.classList.add('empty-state-hidden');
-    tableBody.innerHTML = filtered.map(item => `
-        <tr>
-            <td>${formatDate(item.date)}</td>
-            <td>${item.invoice}</td>
-            <td>${item.payment}</td>
-            <td>${item.customer}</td>
-            <td>₦ ${formatCurrency(item.revenue)}</td>
-            <td>${item.items}</td>
-        </tr>
-    `).join('');
-}
+    function renderSalesSummary() {
+        const total = salesData ? Number(salesData.total_sales || 0) : salesReportData.reduce((sum, row) => sum + Number(row.revenue || 0), 0);
+        const count = salesData ? Number(salesData.sales_count || 0) : salesReportData.length;
+        const avg = salesData ? Number(salesData.average_sale || 0) : (count > 0 ? total / count : 0);
 
-function formatDate(value) {
-    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+        document.getElementById('salesTotal')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(total)}`));
+        document.getElementById('salesTransactions')?.replaceChildren(document.createTextNode(String(count)));
+        document.getElementById('salesAverage')?.replaceChildren(document.createTextNode(`₦ ${formatCurrency(avg)}`));
+        document.getElementById('salesGrowth')?.replaceChildren(document.createTextNode(count > 0 ? `${count} orders` : '-'));
+    }
 
-function formatCurrency(value) {
-    return Number(value).toLocaleString('en-NG');
-}
+    function renderSalesTrend() {
+        const chart = document.getElementById('salesTrendChart');
+        if (!chart) return;
+
+        const days = (salesData && salesData.sales_by_day) ? salesData.sales_by_day : [];
+        if (!days.length) {
+            chart.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted, #718096); width: 100%;">No sales recorded in this period.</div>';
+            return;
+        }
+
+        const maxVal = Math.max(...days.map(d => Number(d.total_sales || 0))) || 1;
+        chart.innerHTML = days.slice(-8).map(d => {
+            const pct = Math.max(8, Math.min(100, Math.round((Number(d.total_sales || 0) / maxVal) * 100)));
+            const label = d.day ? String(d.day).slice(5) : '';
+            return `
+                <div class="bar-segment" style="--value: ${pct}%" title="₦ ${formatCurrency(d.total_sales)}">
+                    <span>${escapeHtml(label)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderPaymentMix() {
+        const mix = document.getElementById('salesPaymentMix');
+        if (!mix) return;
+
+        const methods = (salesData && salesData.sales_by_payment_method) ? salesData.sales_by_payment_method : [];
+        if (!methods.length) {
+            mix.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted, #718096); width: 100%;">No payment channel data available.</div>';
+            return;
+        }
+
+        const total = methods.reduce((sum, item) => sum + Number(item.total_sales || 0), 0) || 1;
+
+        mix.innerHTML = methods.map(item => {
+            const val = Number(item.total_sales || 0);
+            const pct = ((val / total) * 100).toFixed(1);
+            return `
+                <div class="payment-item">
+                    <div>
+                        <strong>${escapeHtml(item.payment_method)}</strong>
+                    </div>
+                    <span>${pct}% · ₦ ${formatCurrency(val)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderSalesTable() {
+        const tableBody = document.getElementById('salesTableBody');
+        const emptyState = document.getElementById('salesEmptyState');
+        const methodFilter = (document.getElementById('salesMethodFilter')?.value || 'all').toUpperCase();
+
+        if (!tableBody) return;
+
+        const filtered = salesReportData.filter(item => methodFilter === 'ALL' || String(item.payment || '').toUpperCase() === methodFilter);
+
+        if (!filtered.length) {
+            tableBody.innerHTML = '';
+            emptyState?.classList.remove('empty-state-hidden');
+            return;
+        }
+
+        emptyState?.classList.add('empty-state-hidden');
+        tableBody.innerHTML = filtered.map(item => `
+            <tr>
+                <td>${formatDate(item.date)}</td>
+                <td>${escapeHtml(item.invoice)}</td>
+                <td>${escapeHtml(item.payment)}</td>
+                <td>${escapeHtml(item.customer)}</td>
+                <td>₦ ${formatCurrency(item.revenue)}</td>
+                <td>${item.items}</td>
+            </tr>
+        `).join('');
+    }
+
+    function formatDate(value) {
+        if (!value) return '-';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function formatCurrency(value) {
+        const num = Number(value || 0);
+        return num.toLocaleString('en-NG', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSales);
+    } else {
+        initSales();
+    }
+    window.addEventListener('page:load', initSales);
+})();

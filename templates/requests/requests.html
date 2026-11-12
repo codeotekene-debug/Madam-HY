@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}
-    Requests | MADAM HY
+    Customer &amp; Store Requests | MADAM HY
 {% endblock %}
 
 {% block page_title %}
@@ -14,56 +14,93 @@
 <link rel="stylesheet" href="{% static 'css/pages/requests/requests.css' %}">
 {% endblock %}
 
+{% block module_subnav %}
+    {% include 'includes/module_subnav.html' with module='requests' current_tab=active_tab %}
+{% endblock %}
+
 {% block content %}
 <div class="requests-page">
-    <section class="requests-hero">
+
+    <!-- Page Header & Hero -->
+    <header class="requests-hero">
         <div>
-            <span class="badge badge-primary">Operations</span>
-            <h2>Request management</h2>
-            <p>Review incoming customer and staff requests, track priorities, and follow up on the latest updates.</p>
+            <div class="hero-badge">
+                <span class="badge badge-primary">
+                    <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+                    <span>Support &amp; Inquiries</span>
+                </span>
+            </div>
+            <h2>Customer &amp; Store Requests</h2>
+            <p>Review customer inquiries, product requests, inventory tickets, and staff follow-ups with priority tracking and resolution workflows.</p>
         </div>
 
         <div class="requests-actions">
-            <a href="/requests/create/" class="btn btn-primary">Create request</a>
+            <a href="/requests/create/" class="btn btn-primary" aria-label="Create a new support or product request">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <span>Create Request</span>
+            </a>
         </div>
-    </section>
+    </header>
 
-    <section class="requests-summary" aria-label="Requests summary">
-        <article class="summary-card">
-            <span>Total requests</span>
+    <!-- Top Statistical Summary Cards -->
+    <section class="requests-summary" aria-label="Requests queue summary">
+        <article class="summary-card" aria-label="Total recorded requests">
+            <div class="summary-top">
+                <span>Total Inquiries</span>
+                <span class="card-icon"><i class="bi bi-inbox" aria-hidden="true"></i></span>
+            </div>
             <strong id="totalRequestsCount">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Pending</span>
-            <strong id="pendingRequestsCount">0</strong>
+
+        <article class="summary-card" aria-label="Pending requests awaiting review">
+            <div class="summary-top">
+                <span  class="text-warning-dark">Pending Review</span>
+                <span class="card-icon u-warning-surface" ><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+            </div>
+            <strong id="pendingRequestsCount"  class="text-warning-dark">0</strong>
         </article>
-        <article class="summary-card">
-            <span>In review</span>
-            <strong id="inReviewRequestsCount">0</strong>
+
+        <article class="summary-card" aria-label="Requests currently in review">
+            <div class="summary-top">
+                <span style="color: #4338ca;">Under Investigation</span>
+                <span class="card-icon" style="background: #eef2ff; color: #4338ca;"><i class="bi bi-search" aria-hidden="true"></i></span>
+            </div>
+            <strong id="inReviewRequestsCount" style="color: #4338ca;">0</strong>
         </article>
-        <article class="summary-card">
-            <span>Urgent</span>
-            <strong id="urgentRequestsCount">0</strong>
+
+        <article class="summary-card" aria-label="High priority urgent requests">
+            <div class="summary-top">
+                <span  class="text-danger">Urgent Priority</span>
+                <span class="card-icon" style="background: #fef2f2; color: var(--danger, #dc2626);"><i class="bi bi-exclamation-diamond" aria-hidden="true"></i></span>
+            </div>
+            <strong id="urgentRequestsCount"  class="text-danger">0</strong>
         </article>
     </section>
 
+    <!-- Main Requests Panel -->
     <section class="card requests-panel">
         <div class="panel-header compact-header">
             <div>
-                <h3>Request queue</h3>
-                <p>Search, sort, and filter the active request backlog.</p>
+                <h3>Request Queue Backlog</h3>
+                <p>Filter by issue type, priority status, customer, or assignment.</p>
             </div>
         </div>
 
         <div class="requests-toolbar">
             <div class="toolbar-search">
                 <label class="visually-hidden" for="requestsSearch">Search requests</label>
-                <input id="requestsSearch" class="form-control" type="search" placeholder="Search by ID, customer, subject or staff" />
+                <input
+                    id="requestsSearch"
+                    class="form-control"
+                    type="search"
+                    placeholder="Search by ticket ID, customer name, subject, or staff..."
+                    aria-label="Search requests"
+                />
             </div>
 
             <div class="toolbar-filters">
                 <label class="visually-hidden" for="requestsStatusFilter">Filter by status</label>
-                <select id="requestsStatusFilter" class="form-select">
+                <select id="requestsStatusFilter" class="form-select" aria-label="Filter by request status">
                     <option value="all">All statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="In Review">In Review</option>
@@ -74,66 +111,88 @@
                 </select>
 
                 <label class="visually-hidden" for="requestsPriorityFilter">Filter by priority</label>
-                <select id="requestsPriorityFilter" class="form-select">
+                <select id="requestsPriorityFilter" class="form-select" aria-label="Filter by request priority">
                     <option value="all">All priorities</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
+                    <option value="Low">Low Priority</option>
+                    <option value="Medium">Medium Priority</option>
+                    <option value="High">High Priority</option>
+                    <option value="Urgent">Urgent Priority</option>
                 </select>
 
                 <label class="visually-hidden" for="requestsTypeFilter">Filter by type</label>
-                <select id="requestsTypeFilter" class="form-select">
-                    <option value="all">All types</option>
-                    <option value="Product Request">Product Request</option>
+                <select id="requestsTypeFilter" class="form-select" aria-label="Filter by request category">
+                    <option value="all">All categories</option>
+                    <option value="Product Request">Product Sourcing</option>
                     <option value="Customer Support">Customer Support</option>
-                    <option value="Inventory Issue">Inventory Issue</option>
+                    <option value="Inventory Issue">Inventory Discrepancy</option>
                     <option value="Payment Concern">Payment Concern</option>
                     <option value="Order Follow-up">Order Follow-up</option>
                 </select>
 
                 <label class="visually-hidden" for="requestsSort">Sort requests</label>
-                <select id="requestsSort" class="form-select">
-                    <option value="updated-desc">Newest update</option>
-                    <option value="updated-asc">Oldest update</option>
+                <select id="requestsSort" class="form-select" aria-label="Sort requests">
+                    <option value="updated-desc">Latest Updated</option>
+                    <option value="updated-asc">Oldest Updated</option>
                     <option value="priority-desc">Priority: High to Low</option>
-                    <option value="title-asc">Title A-Z</option>
+                    <option value="title-asc">Title: A-Z</option>
                 </select>
             </div>
         </div>
 
-        <div class="table-wrapper">
+        <!-- Table -->
+        <div class="table-wrapper table-responsive">
             <table class="table requests-table">
                 <thead>
                     <tr>
-                        <th>Request</th>
-                        <th>Customer</th>
-                        <th>Type</th>
-                        <th>Title</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Assigned</th>
-                        <th>Updated</th>
-                        <th>Action</th>
+                        <th scope="col">Ticket ID</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Subject / Title</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Assigned To</th>
+                        <th scope="col">Updated</th>
+                        <th scope="col"  class="text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody id="requestsTableBody"></tbody>
             </table>
         </div>
 
+        <!-- Loading State -->
         <div id="requestsLoadingState" class="empty-state empty-state-hidden" aria-live="polite">
-            <h3>Loading requests</h3>
-            <p>Please wait while the request queue is refreshed.</p>
+            <div class="spinner"></div>
+            <p  class="u-mt-10">Refreshing requests queue...</p>
         </div>
 
+        <!-- Structured Empty State -->
         <div id="requestsEmptyState" class="empty-state empty-state-hidden" aria-live="polite">
-            <h3>No requests match the filters</h3>
-            <p>Adjust the search terms or filters to view more requests.</p>
+            <div class="empty-state-icon" aria-hidden="true">
+                <i class="bi bi-chat-square-text"></i>
+            </div>
+            <h3>No requests match the active filters</h3>
+            <p>Adjust your search query, change category, or reset status filters to view more support requests.</p>
         </div>
     </section>
+
 </div>
 {% endblock %}
 
 {% block page_js %}
+{% if requests_data_json %}
+<script id="requests-data" type="application/json">
+{{ requests_data_json|safe }}
+</script>
+<script>
+    try {
+        const _requestsDataEl = document.getElementById('requests-data');
+        if (_requestsDataEl && _requestsDataEl.textContent) {
+            window.__REQUESTS_DATA__ = JSON.parse(_requestsDataEl.textContent);
+        }
+    } catch (e) {
+        console.warn('Failed to parse requests data:', e);
+    }
+</script>
+{% endif %}
 <script src="{% static 'js/pages/requests/requests.js' %}"></script>
 {% endblock %}

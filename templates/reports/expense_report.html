@@ -94,6 +94,8 @@
         </div>
     </section>
 </div>
+
+{{ expense_data|json_script:"expenseDataJson" }}
 {% endblock %}
 
 {% block page_js %}

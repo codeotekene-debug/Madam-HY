@@ -1089,6 +1089,12 @@ class ProductsAPITests(TestCase):
 
     def setUp(self):
         self.client = Client()
+        self.staff_user = User.objects.create_user(
+            username="staff_api_test",
+            email="staff_api_test@example.com",
+            password="password",
+            role="MANAGER",
+        )
 
         # Create test categories
         self.fashion_category = ProductCategory.objects.create(
@@ -1355,6 +1361,7 @@ class ProductsAPITests(TestCase):
 
     def test_product_detail_includes_all_fields(self):
         """Test that product detail includes all required fields."""
+        self.client.force_login(self.staff_user)
         response = self.client.get(
             reverse('products:detail', args=[self.active_product_1.id])
         )
@@ -1514,3 +1521,397 @@ class ProductsAPITests(TestCase):
         from django.core.management import call_command
 
         call_command('check')
+
+
+class CustomerProductCatalogViewsTests(TestCase):
+    """Integration and unit tests for customer catalog browsing and detail endpoints."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from apps.inventory.models import InventoryItem
+
+        cls.cat_fashion = ProductCategory.objects.create(name='Customer Fashion', slug='cust-fashion')
+        cls.cat_beauty = ProductCategory.objects.create(name='Customer Beauty', slug='cust-beauty')
+
+        cls.product_1 = Product.objects.create(
+            name='Ankara Silk Fabric',
+            slug='ankara-silk-fabric',
+            sku='FAB-001',
+            category=cls.cat_fashion,
+            selling_price=Decimal('5000.00'),
+            description='Premium African print silk fabric.',
+            is_active=True,
+        )
+        InventoryItem.objects.create(product=cls.product_1, quantity=15)
+
+        cls.product_2 = Product.objects.create(
+            name='Shea Glow Lotion',
+            slug='shea-glow-lotion',
+            sku='LOT-001',
+            category=cls.cat_beauty,
+            selling_price=Decimal('2500.00'),
+            description='Natural glowing skin moisturizer.',
+            is_active=True,
+        )
+        InventoryItem.objects.create(product=cls.product_2, quantity=3)
+
+        cls.product_out_of_stock = Product.objects.create(
+            name='Velvet Headwrap',
+            slug='velvet-headwrap',
+            sku='ACC-001',
+            category=cls.cat_fashion,
+            selling_price=Decimal('1500.00'),
+            description='Luxurious soft velvet headwrap.',
+            is_active=True,
+        )
+        InventoryItem.objects.create(product=cls.product_out_of_stock, quantity=0)
+
+        cls.inactive_product = Product.objects.create(
+            name='Discontinued Perfume',
+            slug='discontinued-perfume',
+            sku='PRF-999',
+            category=cls.cat_beauty,
+            selling_price=Decimal('9000.00'),
+            is_active=False,
+        )
+        InventoryItem.objects.create(product=cls.inactive_product, quantity=5)
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_customer_products_list_html_rendering(self):
+        response = self.client.get('/customer/products/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'customer/products.html')
+        self.assertIn('products', response.context)
+        self.assertIn('categories', response.context)
+        self.assertContains(response, 'id="customerProductSearch"')
+        self.assertNotContains(response, 'id="customerSearchForm"')
+
+    def test_customer_global_search_remains_available_outside_catalog(self):
+        response = self.client.get(f'/customer/products/{self.product_1.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="customerSearchForm"')
+
+    def test_customer_catalog_filters_combine(self):
+        response = self.client.get(
+            '/customer/products/?q=silk&category=cust-fashion&stock=IN_STOCK&sort_by=price_desc&page=1&format=json'
+        )
+        self.assertEqual(response.status_code, 200)
+        result = response.json()['data']
+        self.assertEqual(result['pagination']['total_count'], 1)
+        self.assertEqual(result['products'][0]['name'], 'Ankara Silk Fabric')
+
+    def test_customer_products_list_json_format(self):
+        response = self.client.get('/customer/products/?format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['pagination']['total_count'], 3)
+        product_names = [p['name'] for p in data['data']['products']]
+        self.assertIn('Ankara Silk Fabric', product_names)
+        self.assertIn('Shea Glow Lotion', product_names)
+        self.assertIn('Velvet Headwrap', product_names)
+        self.assertNotIn('Discontinued Perfume', product_names)
+
+    def test_customer_products_category_filtering(self):
+        response = self.client.get('/customer/products/?category=cust-beauty&format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['data']['products']), 1)
+        self.assertEqual(data['data']['products'][0]['name'], 'Shea Glow Lotion')
+
+    def test_customer_products_keyword_search(self):
+        response = self.client.get('/customer/products/?q=silk&format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['data']['products']), 1)
+        self.assertEqual(data['data']['products'][0]['sku'], 'FAB-001')
+
+    def test_customer_products_price_sorting(self):
+        resp_asc = self.client.get('/customer/products/?sort_by=price_asc&format=json')
+        products_asc = resp_asc.json()['data']['products']
+        self.assertEqual(products_asc[0]['name'], 'Velvet Headwrap')
+        self.assertEqual(products_asc[-1]['name'], 'Ankara Silk Fabric')
+
+        resp_desc = self.client.get('/customer/products/?sort_by=price_desc&format=json')
+        products_desc = resp_desc.json()['data']['products']
+        self.assertEqual(products_desc[0]['name'], 'Ankara Silk Fabric')
+        self.assertEqual(products_desc[-1]['name'], 'Velvet Headwrap')
+
+    def test_customer_products_stock_filtering(self):
+        response = self.client.get('/customer/products/?stock=OUT_OF_STOCK&format=json')
+        self.assertEqual(response.status_code, 200)
+        products = response.json()['data']['products']
+        self.assertEqual(len(products), 1)
+        self.assertEqual(products[0]['name'], 'Velvet Headwrap')
+
+    def test_customer_products_pagination(self):
+        response = self.client.get('/customer/products/?page=1&page_size=2&format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()['data']
+        self.assertEqual(len(data['products']), 2)
+        self.assertEqual(data['pagination']['total_count'], 3)
+        self.assertEqual(data['pagination']['total_pages'], 2)
+
+    def test_customer_product_detail_json(self):
+        response = self.client.get(f'/customer/products/{self.product_1.id}/?format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['data']['name'], 'Ankara Silk Fabric')
+        self.assertEqual(data['data']['selling_price'], '5000.00')
+        self.assertEqual(data['data']['stock']['quantity'], 15)
+        self.assertEqual(data['data']['stock']['status'], 'IN_STOCK')
+
+    def test_customer_product_detail_html(self):
+        response = self.client.get(f'/customer/products/{self.product_1.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'customer/product_detail.html')
+        self.assertEqual(response.context['product'], self.product_1)
+
+    def test_customer_product_detail_slug_and_sku(self):
+        resp_slug = self.client.get(f'/customer/products/{self.product_1.slug}/?format=json')
+        self.assertEqual(resp_slug.status_code, 200)
+        self.assertEqual(resp_slug.json()['data']['name'], 'Ankara Silk Fabric')
+
+        resp_sku = self.client.get(f'/customer/products/{self.product_1.sku}/?format=json')
+        self.assertEqual(resp_sku.status_code, 200)
+        self.assertEqual(resp_sku.json()['data']['name'], 'Ankara Silk Fabric')
+
+    def test_customer_product_detail_not_found(self):
+        response = self.client.get('/customer/products/999999/?format=json')
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()['success'])
+
+    def test_customer_product_detail_inactive_returns_404(self):
+        response = self.client.get(f'/customer/products/{self.inactive_product.id}/?format=json')
+        self.assertEqual(response.status_code, 404)
+
+    def test_customer_product_rejects_non_get(self):
+        self.assertEqual(self.client.post('/customer/products/').status_code, 405)
+        self.assertEqual(self.client.post(f'/customer/products/{self.product_1.id}/').status_code, 405)
+
+
+class ProductPricingSecurityTests(TestCase):
+    def setUp(self):
+        self.category = ProductCategory.objects.create(
+            name='Luxury Fabrics',
+            slug='luxury-fabrics',
+            description='Premium fabrics',
+        )
+        self.product = Product.objects.create(
+            name='Swiss Voile Lace',
+            slug='swiss-voile-lace',
+            sku='SVL-001',
+            category=self.category,
+            selling_price=Decimal('25000.00'),
+            cost_price=Decimal('18000.00'),
+        )
+        self.owner = User.objects.create_user(
+            email='pricing-owner@example.com',
+            username='pricing-owner',
+            password='StrongPass123',
+            role='OWNER',
+        )
+        self.cashier = User.objects.create_user(
+            email='pricing-cashier@example.com',
+            username='pricing-cashier',
+            password='StrongPass123',
+            role='CASHIER',
+        )
+        self.customer = User.objects.create_user(
+            email='pricing-customer@example.com',
+            username='pricing-customer',
+            password='StrongPass123',
+            role='CUSTOMER',
+        )
+
+    def test_selling_price_lower_than_cost_price_rejected(self):
+        self.product.selling_price = Decimal('15000.00')
+        self.product.cost_price = Decimal('18000.00')
+        with self.assertRaises(ValidationError):
+            self.product.clean()
+
+    def test_gross_profit_and_margin_properties(self):
+        self.assertEqual(self.product.gross_profit, Decimal('7000.00'))
+        self.assertEqual(self.product.gross_margin_percentage, Decimal('28.0'))
+
+    def test_record_price_change_updates_both_prices_atomically(self):
+        history = self.product.record_price_change(
+            new_selling_price=Decimal('30000.00'),
+            new_cost_price=Decimal('20000.00'),
+            changed_by=self.owner,
+            reason='Seasonal supplier price increase',
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.selling_price, Decimal('30000.00'))
+        self.assertEqual(self.product.cost_price, Decimal('20000.00'))
+
+        self.assertEqual(history.previous_price, Decimal('25000.00'))
+        self.assertEqual(history.new_price, Decimal('30000.00'))
+        self.assertEqual(history.previous_cost_price, Decimal('18000.00'))
+        self.assertEqual(history.new_cost_price, Decimal('20000.00'))
+        self.assertEqual(history.gross_profit, Decimal('10000.00'))
+        self.assertEqual(history.gross_margin_percentage, Decimal('33.3'))
+        self.assertEqual(history.changed_by, self.owner)
+
+    def test_record_price_change_rejects_selling_lower_than_cost(self):
+        with self.assertRaises(ValidationError):
+            self.product.record_price_change(
+                new_selling_price=Decimal('15000.00'),
+                new_cost_price=Decimal('22000.00'),
+                changed_by=self.owner,
+                reason='Invalid below-cost price',
+            )
+
+    def test_price_history_is_immutable(self):
+        history = self.product.record_price_change(
+            new_selling_price=Decimal('28000.00'),
+            changed_by=self.owner,
+            reason='Initial increase',
+        )
+        # Attempting to edit or delete must raise ValidationError
+        with self.assertRaises(ValidationError):
+            history.new_price = Decimal('50000.00')
+            history.save()
+
+        with self.assertRaises(ValidationError):
+            history.delete()
+
+    def test_customer_isolation_cost_price_and_margins_hidden(self):
+        # Customer requesting product detail
+        self.client.force_login(self.customer)
+        response = self.client.get(f'/customer/products/{self.product.id}/?format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json().get('data', {})
+        self.assertNotIn('cost_price', data)
+        self.assertNotIn('gross_profit', data)
+        self.assertNotIn('gross_margin_percentage', data)
+
+        # Anonymous user requesting customer catalog
+        self.client.logout()
+        anon_resp = self.client.get('/customer/products/?format=json')
+        self.assertEqual(anon_resp.status_code, 200)
+        items = anon_resp.json().get('data', {}).get('products', [])
+        for item in items:
+            self.assertNotIn('cost_price', item)
+            self.assertNotIn('gross_profit', item)
+            self.assertNotIn('gross_margin_percentage', item)
+
+    def test_staff_can_view_cost_price_and_margins(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(f'/products/{self.product.id}/?format=json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json().get('data', {})
+        self.assertIn('cost_price', data)
+        self.assertIn('gross_profit', data)
+        self.assertIn('gross_margin_percentage', data)
+        self.assertEqual(data['cost_price'], '18000.00')
+
+
+class ProductImageUploadAndDisplayTests(TestCase):
+    """
+    Test suite verifying that products created with uploaded images properly
+    persist their images to the database and media directory, and that product list,
+    detail, storefront, and POS endpoints expose accessible image URLs.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.manager = User.objects.create_user(
+            username='image_manager',
+            email='image_manager@example.com',
+            password='Password123',
+            role='MANAGER',
+        )
+        self.category = ProductCategory.objects.create(
+            name='Luxury Bags',
+            slug='luxury-bags',
+            description='Handbags and clutches',
+        )
+
+    def _generate_image_file(self, filename='handbag.jpg', color=(20, 120, 80)):
+        buffer = BytesIO()
+        image = Image.new('RGB', (120, 120), color=color)
+        image.save(buffer, format='JPEG')
+        buffer.seek(0)
+        return SimpleUploadedFile(filename, buffer.read(), content_type='image/jpeg')
+
+    def test_product_creation_with_image_upload_and_display(self):
+        self.client.force_login(self.manager)
+        image_file = self._generate_image_file('test_handbag.jpg')
+
+        # 1. Create product with multipart/form-data upload
+        response = self.client.post(
+            reverse('products:create'),
+            data={
+                'name': 'MADAM HY Emerald Tote',
+                'sku': 'MHY-TOTE-001',
+                'category_id': self.category.id,
+                'selling_price': '45000.00',
+                'cost_price': '30000.00',
+                'reorder_level': '5',
+                'description': 'Handcrafted premium emerald leather tote bag.',
+                'image': image_file,
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertTrue(data['success'])
+        product_id = data['data']['id']
+
+        # Verify Product and ProductImage in database
+        product = Product.objects.get(id=product_id)
+        self.assertEqual(product.name, 'MADAM HY Emerald Tote')
+        self.assertEqual(product.images.count(), 1)
+        primary_image = product.primary_image
+        self.assertIsNotNone(primary_image)
+        self.assertTrue(primary_image.is_primary)
+        self.assertTrue(bool(primary_image.image))
+        self.assertTrue(primary_image.image.name.startswith('products/'))
+
+        # Verify image URL property on model
+        self.assertTrue(bool(product.image_url))
+        self.assertEqual(product.image_url, primary_image.url)
+
+        # 2. Verify Product List API exposes image URL
+        list_response = self.client.get(reverse('products:list'))
+        self.assertEqual(list_response.status_code, 200)
+        list_data = list_response.json()
+        created_item = next((p for p in list_data['data']['products'] if p['id'] == product_id), None)
+        self.assertIsNotNone(created_item)
+        self.assertIsNotNone(created_item['image'])
+        self.assertEqual(created_item['image']['url'], primary_image.url)
+        self.assertEqual(created_item['image_url'], primary_image.url)
+
+        # 3. Verify Product Detail API exposes image URL
+        detail_response = self.client.get(reverse('products:detail', args=[product_id]))
+        self.assertEqual(detail_response.status_code, 200)
+        detail_data = detail_response.json()['data']
+        self.assertIsNotNone(detail_data['primary_image'])
+        self.assertEqual(detail_data['primary_image']['url'], primary_image.url)
+        self.assertIsNotNone(detail_data['image'])
+        self.assertEqual(detail_data['image']['url'], primary_image.url)
+        self.assertEqual(detail_data['image_url'], primary_image.url)
+        self.assertEqual(len(detail_data['images']), 1)
+        self.assertEqual(detail_data['images'][0]['url'], primary_image.url)
+
+        # 4. Verify Customer Storefront List & Detail expose image
+        cust_list_resp = self.client.get('/customer/products/?format=json')
+        self.assertEqual(cust_list_resp.status_code, 200)
+        cust_list_data = cust_list_resp.json()
+        cust_item = next((p for p in cust_list_data['data']['products'] if p['id'] == product_id), None)
+        self.assertIsNotNone(cust_item)
+        self.assertEqual(cust_item['image']['url'], primary_image.url)
+
+        cust_detail_resp = self.client.get(f'/customer/products/{product_id}/?format=json')
+        self.assertEqual(cust_detail_resp.status_code, 200)
+        cust_detail_data = cust_detail_resp.json()['data']
+        self.assertEqual(cust_detail_data['primary_image']['url'], primary_image.url)
+
+        # 5. Verify the saved image URL is directly accessible via HTTP GET (returns 200)
+        image_url = primary_image.url
+        media_response = self.client.get(image_url)
+        self.assertEqual(media_response.status_code, 200)
+        self.assertIn('image/', media_response.headers.get('Content-Type', ''))
