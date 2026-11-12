@@ -18,6 +18,9 @@ ENV/
 # Environment Variables / Secrets
 # ==============================
 .env
+.env.*
+!.env.example
+!.env.production.example
 
 # ==============================
 # Django
@@ -25,6 +28,7 @@ ENV/
 db.sqlite3
 db.sqlite3-journal
 db.mysql
+logs/
 
 # Django collected static files
 staticfiles/
@@ -56,8 +60,13 @@ desktop.ini
 # Testing / Coverage
 # ==============================
 .coverage
+.coverage.*
 htmlcov/
 .pytest_cache/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
 
 # ==============================
 # Jupyter
